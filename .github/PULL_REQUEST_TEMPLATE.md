@@ -21,6 +21,10 @@ Fixes #
 |---|---|---|
 | | | |
 
+## How it works
+
+<!-- Required. Attach a real image of how this change works end to end: a small diagram, or a screenshot of the result. For config or docs changes, a small accurate diagram of what changes is enough. Do not paste a Mermaid block. Keep the editable source in the repo so the next person can regenerate the image. -->
+
 ## Infographic
 
 <!-- EVERY PR carries a picture a reviewer can look at without running the code:
