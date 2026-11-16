@@ -12,6 +12,12 @@ on:
 permissions:
   contents: read
 
+# Cancel a superseded pull_request run when a new commit is pushed to the same PR.
+# Push, schedule and manual runs get a unique group and are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # Finds every plugin folder (any dir with a plugin.yaml). Runs only the plugins
   # touched by the change. A change outside any plugin folder (shared files such as
