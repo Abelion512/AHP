@@ -1,0 +1,21 @@
+digraph nebula22 {
+  graph [rankdir=TB, bgcolor="white", pad="0.35", nodesep="0.4", ranksep="0.45", fontname="Helvetica", label="Nebula: credential boundary and optional-mode disclosure", labelloc=t, fontsize=22];
+  node [shape=box, style="rounded,filled", fillcolor="#f6f8fa", color="#d0d7de", fontname="Helvetica", fontsize=15, margin="0.22,0.15"];
+  edge [color="#57606a", fontname="Helvetica", fontsize=12];
+  input [label="Plugin registration + labeled credential input"];
+  host [label="Pinned core required policy active?", shape=diamond, fillcolor="#fff8c5"];
+  required [label="Required mode\nHost enforces supported main + auxiliary egress", fillcolor="#dafbe1"];
+  optional [label="Absent / inactive / cannot confirm\nWarn once: auxiliary/title calls NOT guarded", fillcolor="#fff8c5"];
+  parse [label="Credential recognizer\nIs the complete value a documented placeholder?", shape=diamond];
+  reference [label="Yes: <your-api-key>, <token>, <...>\nKeep documentation reference unchanged", fillcolor="#dafbe1"];
+  secret [label="No: quoted value merely starts with <\nMask recognized secret; never restore credentials", fillcolor="#dafbe1"];
+  limit [label="Warning is disclosure, not enforcement\nOptional mode remains unguarded for auxiliary/title calls\nNot a universal network firewall", fillcolor="#fff8c5"];
+  input -> host;
+  host -> required [label="yes"];
+  host -> optional [label="no / unknown"];
+  required -> parse;
+  optional -> parse [label="supported plugin request paths only"];
+  parse -> reference [label="yes"];
+  parse -> secret [label="no"];
+  optional -> limit [style=dashed];
+}
