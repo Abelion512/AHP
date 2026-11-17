@@ -61,4 +61,4 @@ Fixes #
 - [ ] CI is green
 - [ ] Docs updated where behaviour or setup changed - or N/A
 - [ ] Review bot / reviewer findings answered in-thread and fixed in their own commit
-- [ ] Stacked PR: base PR named and merge order stated in "Why merge this now"
+- [ ] Stacked PR: base PR named and merge order stated in "Why merge this now" - or N/A
