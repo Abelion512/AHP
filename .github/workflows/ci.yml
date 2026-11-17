@@ -310,12 +310,16 @@ jobs:
             plugins/**/plugin.yaml
             plugins/**/plugin-requirements.txt
             plugins/**/requirements*.txt
+      # Verify the external lockfile exists at the pinned Hermes ref before caching.
+      - name: verify hermes-core npm lockfile
+        run: test -f hermes-core/package-lock.json
       # Node 26 satisfies Hermes' declared runtime range; pin the action to its reviewed commit.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: "26"
           cache: "npm"
-          # hermes-core is checked out two steps earlier at a pinned ref.
+          # hermes-core is checked out two steps earlier at a pinned ref; lockfile must exist there.
+          # Later puppeteer-core install (npm install --prefix "$E2E_NODE") is not covered by this cache.
           cache-dependency-path: hermes-core/package-lock.json
       - name: Install host dependencies for E2E
         run: |
