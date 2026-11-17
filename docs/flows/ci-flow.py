@@ -1,14 +1,16 @@
 from PIL import Image, ImageDraw, ImageFont
 import os
 
-# Regenerates docs/assets/ci-flow.png. Needs Pillow (pip install pillow).
-# Run from anywhere: python3 docs/flows/ci-flow.py
+# Regenerates docs/assets/ci-flow.png. Needs Pillow >= 10.1
+# (pip install 'pillow>=10.1'). Run from anywhere: python3 docs/flows/ci-flow.py
 def font(names, size):
     for n in names:
         try: return ImageFont.truetype(n, size)
         except OSError: pass
-    try: return ImageFont.load_default(size)
-    except TypeError: return ImageFont.load_default()  # Pillow < 10.1 has no size argument
+    try:
+        return ImageFont.load_default(size)
+    except TypeError:
+        raise RuntimeError("Pillow >= 10.1 is required for readable diagram text") from None
 
 DEJAVU = "/usr/share/fonts/truetype/dejavu/"
 MAC = "/System/Library/Fonts/Supplemental/"
