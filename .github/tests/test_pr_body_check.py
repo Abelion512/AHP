@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 import unittest
+import time
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / '.github/scripts/check_pr_body.py'
@@ -44,6 +45,16 @@ class BodyCheckTest(unittest.TestCase):
 
     def test_code_block_headings(self):
         self.assertEqual(len(module.missing_sections('```markdown\n' + body() + '\n```')), 3)
+
+    def test_long_unclosed_fence_and_comment_are_bounded(self):
+        for value in ['<!--' + 'x' * 250000, '```markdown\n' + body() + '\n' + ' ' * 250000]:
+            start = time.monotonic()
+            self.assertEqual(len(module.missing_sections(value)), 3)
+            self.assertLess(time.monotonic() - start, 3)
+
+    def test_tilde_fences_and_unclosed_fences(self):
+        for value in ['~~~markdown\n' + body() + '\n~~~', '```markdown\n' + body()]:
+            self.assertEqual(len(module.missing_sections(value)), 3)
 
     def test_crlf_case(self):
         self.assertEqual(module.missing_sections(body().upper().replace('\n', '\r\n')), [])
