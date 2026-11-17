@@ -8,7 +8,9 @@ A monorepo for standalone Hermes Agent plugins. Each plugin owns its implementat
 |---|---|---|---|
 | Privacy Guard | `nebula` | [`plugins/nebula/`](plugins/nebula/) | Session-local PII/credential masking, permitted placeholder restoration, and held output redaction. |
 
-Each plugin folder contains its own `README.md`, `docs/`, `tests/`, `e2e/`, and `skills/` as applicable. The bundled authoring skill lives at [`skills/intelligence-ui/`](skills/intelligence-ui/); the live WebApp smoke lives at [`e2e/`](e2e/). The repository root retains only shared metadata and entry points such as `hermes.json`, `update-plugins.sh`, this README, and GitHub configuration.
+| Aero | `aero` | [`plugins/aero/`](plugins/aero/) | Native interactive transcript cards. |
+
+Each plugin folder contains its own `README.md`, `docs/`, `tests/`, `e2e/`, and `skills/` as applicable. The repository root retains only shared metadata and entry points such as `hermes.json`, `update-plugins.sh`, this README, and GitHub configuration.
 
 ## Plugin vs. core
 

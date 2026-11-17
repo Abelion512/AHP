@@ -1,0 +1,15 @@
+# Plugin-local labels for aero.
+# Repo-level labeler stays generic; these cover this plugin's own paths.
+plugin-docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "README.md"
+          - "docs/**"
+          - "skills/**"
+          - "plugin.yaml"
+tests:
+  - changed-files:
+      - any-glob-to-any-file: "tests/**"
+e2e:
+  - changed-files:
+      - any-glob-to-any-file: "e2e/**"

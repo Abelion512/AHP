@@ -1,5 +1,5 @@
 // REFERENCE ONLY — NOT APPLIED, NOT IMPORTED, NOT COMPILED.
-// Sketch of the core-side alternative to `intelligence-ui-abelion`.
+// Sketch of the core-side alternative to `aero`.
 // See docs/CORE_COMPARISON.md for why this is not the chosen surface.
 
 import { jsx } from 'react/jsx-runtime'

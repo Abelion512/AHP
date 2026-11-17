@@ -1,7 +1,7 @@
-"""Contract tests for the intelligence-ui-abelion directive.
+"""Contract tests for the aero directive.
 
 Run from the repo root:
-    python3 -m unittest discover -s plugins/intelligence_ui_abelion/tests -v
+    python3 -m unittest discover -s plugins/aero/tests -v
 """
 
 import json
@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-PLUGIN = ROOT / "plugins" / "intelligence_ui_abelion"
+PLUGIN = ROOT / "plugins" / "aero"
 CONTRACT = PLUGIN / "docs" / "directive-contract.json"
 SOURCE = PLUGIN / "desktop" / "plugin.js"
 
@@ -22,7 +22,7 @@ class DirectiveContractTests(unittest.TestCase):
     def test_contract_identity(self):
         self.assertEqual(self.contract["version"], 1)
         self.assertEqual(self.contract["directive"], "ui")
-        self.assertEqual(self.contract["plugin_id"], "intelligence-ui-abelion")
+        self.assertEqual(self.contract["plugin_id"], "aero")
         self.assertEqual(self.contract["placement"], "alone-on-its-own-line")
 
     def test_validation_state_and_event_contract(self):
@@ -31,7 +31,7 @@ class DirectiveContractTests(unittest.TestCase):
         self.assertTrue(self.contract["validation"]["reject_unknown_kind"])
         self.assertEqual(self.contract["state"]["persisted"], ["wizard.done"])
         self.assertTrue(self.contract["events"]["fail_closed"])
-        for needle in ("uiStorage.get", "uiStorage.set", "streaming", "Kartu UI tidak didukung"):
+        for needle in ("storage?.get", "storage?.set", "streaming", "Kartu UI tidak didukung"):
             self.assertIn(needle, self.source)
 
     def test_five_kinds_declared_and_implemented(self):

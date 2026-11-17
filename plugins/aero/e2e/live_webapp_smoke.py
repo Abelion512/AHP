@@ -1,10 +1,10 @@
-"""Live WebApp smoke for the intelligence-ui-abelion transcript directive.
+"""Live WebApp smoke for the aero transcript directive.
 
 Requires a reachable WebApp at http://127.0.0.1:9120 and a Chromium-family
 browser with CDP on 127.0.0.1:9222, already logged into the WebApp.
 
 Usage:
-    python3 e2e/live_webapp_smoke.py --title "E2E smoke"
+    python3 plugins/aero/e2e/live_webapp_smoke.py --title "E2E smoke"
 
 Exit 0 only when the card was observed as rendered native text, not raw
 directive syntax. No credentials are read or printed.
@@ -85,7 +85,7 @@ async def smoke(title: str, timeout: float) -> dict:
 
             directive = (
                 '::ui{version="1" id="e2e-live" kind="status" '
-                f'title="{title}" items="Load:ok|Register:ok"}}'
+                f'title="{title}" items="Load:ok|Register:ok"}'
             )
             await page.send("Input.insertText", {"text": "Balas persis satu baris: " + directive})
             await page.send(

@@ -1,9 +1,9 @@
 /**
- * intelligence-ui-abelion — native Intelligence UI cards rendered inline in the
+ * aero — native Intelligence UI cards rendered inline in the
  * WebApp/Desktop transcript via the plugin transcript-directive area.
  *
  * Install: symlink the `desktop/` folder into
- *   $HERMES_HOME/desktop-plugins/intelligence-ui-abelion
+ *   $HERMES_HOME/desktop-plugins/aero
  * Use in a reply (alone on its own line):
  *   ::ui{version="1" id="wiz-01" kind="wizard"  title="Rotasi" steps="OpenCode|Hermes|9router"}
  *   ::ui{version="1" id="stat-01" kind="status"  title="Gate" items="Hook:siap|Credential:blocked"}
@@ -12,15 +12,14 @@
  *   ::ui{version="1" id="form-01" kind="form"    title="Input" fields="Nama|Catatan" submit="Kirim"}
  *
  * All attrs are untrusted strings. They are capped, never parsed as markup,
- * and rendered as React text children. No network, no privileged API.
+ * and rendered as React text children. No direct network; user clicks submit only through the owning chat composer.
  */
 import { jsx, jsxs } from 'react/jsx-runtime'
 import { useEffect, useState } from 'react'
 import { TRANSCRIPT_DIRECTIVE_AREA, host, haptic } from '@hermes/plugin-sdk'
 
-const ID = 'intelligence-ui-abelion'
+const ID = 'aero'
 const VERSION = '1'
-let uiStorage = null
 const KINDS = new Set(['wizard', 'status', 'trace', 'compare', 'form'])
 
 function text(value, max) {
@@ -29,69 +28,85 @@ function text(value, max) {
 
 function items(value, max) {
   if (typeof value !== 'string') return []
-  return value
+  return value.slice(0, 16384)
     .split('|')
-    .map((part) => part.trim())
+    .map((part) => part.trim().slice(0, 60))
     .filter(Boolean)
     .slice(0, max)
 }
 
-function send(prompt, setError) {
-  const address = host.state.focusedSessionId.get() || null
-  const accepted = host.composer.submit(address, prompt.slice(0, 240))
-  setError(accepted ? '' : 'Composer tidak menerima permintaan ini.')
-  haptic('tap')
+function send(sessionId, prompt, setError) {
+  if (typeof sessionId !== 'string' || !sessionId.trim()) {
+    setError('Chat pemilik kartu tidak tersedia. Tidak ada pesan dikirim.')
+    return
+  }
+  if (prompt.length > 240) {
+    setError('Pesan melebihi 240 karakter. Pendekkan isian; tidak ada pesan dikirim.')
+    return
+  }
+  try {
+    const accepted = host?.composer?.submit?.(sessionId, prompt)
+    if (accepted !== true) {
+      setError('Composer tidak menerima permintaan ini.')
+      return
+    }
+  } catch {
+    setError('Composer tidak menerima permintaan ini.')
+    return
+  }
+  setError('')
+  try { haptic('tap') } catch { /* Optional feedback cannot undo an accepted send. */ }
 }
 
-function Card({ attrs, streaming }) {
-  const rawKind = text(attrs.kind, 20)
-  const version = text(attrs.version, 4) || VERSION
-  const cardId = text(attrs.id, 60) || `${version}-${rawKind || 'wizard'}-${text(attrs.title, 20)}`
-  const storageKey = `${ID}:${version}:${cardId}`
-  const [done, setDone] = useState(() => {
-    try {
-      const saved = uiStorage ? uiStorage.get(storageKey) : null
-      return Array.isArray(saved) ? saved : []
-    } catch {
-      return []
+function restoreDone(storage, storageKey, rows) {
+  try {
+    const saved = storageKey ? storage?.get?.(storageKey) : null
+    if (!Array.isArray(saved)) return []
+    const result = []
+    const used = new Set()
+    for (const label of saved.slice(0, 8)) {
+      if (typeof label !== 'string') continue
+      const index = rows.findIndex((row, i) => row === label && !used.has(i))
+      if (index >= 0) { used.add(index); result.push(index) }
     }
-  })
+    return result
+  } catch { return [] }
+}
+
+function Card({ attrs, streaming, sessionId, storage }) {
+  const rawKind = typeof attrs.kind === 'string' ? attrs.kind.trim() : ''
+  const version = typeof attrs.version === 'string' ? attrs.version.trim() : VERSION
+  const cardId = text(attrs.id, 60)
+  const owner = typeof sessionId === 'string' && sessionId.trim() ? sessionId : null
+  const storageKey = owner && cardId ? JSON.stringify([ID, VERSION, owner, cardId]) : null
+  const rows = items(attrs.steps || attrs.items, 8)
+  const [done, setDone] = useState(() => restoreDone(storage, storageKey, rows))
   const [error, setError] = useState('')
   const [values, setValues] = useState({})
 
   useEffect(() => {
     try {
-      if (uiStorage) uiStorage.set(storageKey, done)
-    } catch {
-      // Persistence is best-effort; local state still works for this mount.
-    }
-  }, [storageKey, done])
+      if (storageKey && !streaming && (!rawKind || rawKind === 'wizard') && version === VERSION) {
+        storage?.set?.(storageKey, done.map((i) => rows[i]).filter((row) => typeof row === 'string'))
+      }
+    } catch { /* Persistence is best-effort; local state remains usable. */ }
+  }, [storage, storageKey, done, streaming, rawKind, version, rows.join('\u0000')])
 
-  const invalid =
-    Boolean(attrs.version && version !== VERSION) ||
-    Boolean(rawKind && !KINDS.has(rawKind))
-  if (invalid) {
-    return jsx('div', {
-      style: { fontSize: 12, color: 'var(--ui-text-secondary, var(--muted-foreground))' },
-      children: 'Kartu UI tidak didukung; menampilkan teks biasa.',
-    })
+  if (version !== VERSION || (rawKind && !KINDS.has(rawKind))) {
+    return jsx('div', { role: 'status', children: 'Kartu UI tidak didukung; gunakan jawaban teks.' })
   }
   if (streaming) {
-    return jsx('div', {
-      style: { fontSize: 12, color: 'var(--ui-text-secondary, var(--muted-foreground))' },
-      children: 'Menyiapkan kartu…',
-    })
+    return jsx('div', { role: 'status', children: 'Menyiapkan kartu...' })
   }
-
   const kind = rawKind || 'wizard'
-  const title = text(attrs.title, 80) || 'Intelligence UI'
-  const rows = items(attrs.steps || attrs.items, 8)
+  const title = text(attrs.title, 80) || 'Aero'
 
   const shell = {
     maxWidth: 760,
     padding: '12px 2px 10px',
     color: 'var(--foreground)',
     fontSize: 13,
+    overflowWrap: 'anywhere',
   }
   const muted = { color: 'var(--ui-text-secondary, var(--muted-foreground))', fontSize: 12 }
   const line = { borderTop: '1px solid var(--ui-stroke-secondary, var(--border))', padding: '9px 0' }
@@ -116,7 +131,7 @@ function Card({ attrs, streaming }) {
       style: { display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' },
       children: [
         jsx('div', { style: { fontSize: 17, fontWeight: 650 }, children: title }),
-        rows.length
+        rows.length && kind === 'wizard'
           ? jsx('div', { style: muted, children: `${done.length} / ${rows.length}` })
           : null,
       ],
@@ -167,7 +182,7 @@ function Card({ attrs, streaming }) {
                   jsx('button', {
                     type: 'button',
                     style: button,
-                    onClick: () => send(`Bantu: ${title} — ${row}`, setError),
+                    onClick: () => send(owner, `Bantu: ${title} - ${row}`, setError),
                     children: 'Bantu',
                   }),
                   jsx('button', {
@@ -211,7 +226,7 @@ function Card({ attrs, streaming }) {
     children.push(
       jsxs('div', {
         key: 'cmp',
-        style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 10 },
+        style: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 12, marginTop: 10 },
         children: [left, right].map((col, ci) =>
           jsxs('div', {
             key: `c${ci}`,
@@ -247,9 +262,11 @@ function Card({ attrs, streaming }) {
           jsx('div', { children: field }),
           jsx('input', {
             type: 'text',
-            value: values[field] || '',
+            maxLength: 160,
+            autoComplete: 'off',
+            value: values[index] || '',
             onChange: (event) =>
-              setValues((prev) => ({ ...prev, [field]: event.target.value.slice(0, 160) })),
+              setValues((prev) => ({ ...prev, [index]: event.target.value.slice(0, 160) })),
             style: {
               width: '100%',
               marginTop: 4,
@@ -274,7 +291,8 @@ function Card({ attrs, streaming }) {
         style: { ...button, marginTop: 10 },
         onClick: () =>
           send(
-            `${title}: ${fields.map((field) => `${field}=${values[field] || ''}`).join('; ')}`,
+            owner,
+            `${title}: ${fields.map((field, index) => `${field}=${values[index] || ''}`).join('; ')}`,
             setError
           ),
         children: submit,
@@ -282,7 +300,7 @@ function Card({ attrs, streaming }) {
     )
   } else if (kind === 'trace') {
     const traceChildren = [
-      jsx('summary', { key: 'sum', children: `Kenapa — ${rows.length} node` }),
+      jsx('summary', { key: 'sum', children: `Kenapa - ${rows.length} node` }),
       jsxs('div', {
         key: 'nodes',
         style: { borderLeft: '1px solid var(--ui-stroke-secondary, var(--border))', paddingLeft: 14, marginTop: 8 },
@@ -296,22 +314,28 @@ function Card({ attrs, streaming }) {
     )
   }
 
-  if (error) children.push(jsx('div', { key: 'err', style: { ...muted, marginTop: 8 }, children: error }))
+  if (!owner && (kind === 'wizard' || kind === 'form')) children.push(jsx('div', { key: 'owner', role: 'status', children: 'Chat pemilik kartu tidak tersedia. Pengiriman dinonaktifkan.' }))
+  if (error) children.push(jsx('div', { key: 'err', role: 'alert', style: { ...muted, marginTop: 8 }, children: error }))
 
   return jsx('div', { style: shell, children })
 }
 
 export default {
   id: ID,
-  name: 'Intelligence UI',
+  name: 'Aero',
   register(ctx) {
-    uiStorage = ctx.storage || null
     ctx.register({
       id: 'ui.directive',
       area: TRANSCRIPT_DIRECTIVE_AREA,
       data: {
         name: 'ui',
-        render: ({ attrs, streaming }) => jsx(Card, { attrs: attrs || {}, streaming }),
+        render: ({ attrs, streaming, sessionId }) => {
+          const safeAttrs = attrs && typeof attrs === 'object' ? attrs : {}
+          // Remount when the owning chat or card content changes. Never write
+          // the previous card's progress/form state under a new identity.
+          const identity = JSON.stringify([sessionId, safeAttrs])
+          return jsx(Card, { attrs: safeAttrs, streaming, sessionId, storage: ctx.storage || null }, identity)
+        },
       },
     })
   },

@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "cards": 5,
+  "host_parser": "9a85916c87d56c2ca00b02fad8918f93ef1816e9",
+  "checks": [
+    "native DOM for all5kinds",
+    "wizard toggle",
+    "owning-session send",
+    "form values",
+    "reload persistence",
+    "cross-owner isolation",
+    "composer refusal",
+    "trace expansion",
+    "390px no horizontal overflow"
+  ],
+  "limits": [
+    "fake SDK composer/storage bridge",
+    "not a live user-host install",
+    "not a live model generation test"
+  ]
+}

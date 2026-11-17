@@ -4,3 +4,6 @@ __pycache__/
 .DS_Store
 *.swp
 *.swo
+node_modules/
+plugins/aero/tests/runtime/artifacts/
+plugins/aero/tests/runtime/.compiled-plugin.mjs
