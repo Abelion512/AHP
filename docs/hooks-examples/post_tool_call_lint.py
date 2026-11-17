@@ -4,35 +4,49 @@ import json
 import pathlib
 import subprocess
 import sys
+from typing import Optional
 
 
 def diagnostic(message: str) -> None:
     print(f"[post_tool_call_lint] {message}", file=sys.stderr)
 
 
-def main() -> int:
+def resolve_target(value: str, cwd: pathlib.Path) -> Optional[pathlib.Path]:
+    candidate = pathlib.Path(value)
+    target = candidate if candidate.is_absolute() else cwd / candidate
+    resolved = target.resolve()
+    try:
+        resolved.relative_to(cwd)
+    except ValueError:
+        diagnostic(f"ignored {value}: outside the workspace")
+        return None
+    if resolved.suffix != ".py" or not resolved.is_file():
+        return None
+    return resolved
+
+
+def main() -> None:
     try:
         raw = sys.stdin.read() if not sys.stdin.isatty() else ""
         if not raw.strip():
-            return 0
+            return
         try:
             payload = json.loads(raw)
         except json.JSONDecodeError as exc:
             diagnostic(f"ignored invalid hook JSON: {exc}")
-            return 0
+            return
         if not isinstance(payload, dict):
             diagnostic("ignored hook payload: expected a JSON object")
-            return 0
+            return
 
         paths = [
             payload[key] for key in ("file_path", "path", "filename")
             if isinstance(payload.get(key), str) and payload[key].strip()
         ]
-        cwd = pathlib.Path.cwd()
+        cwd = pathlib.Path.cwd().resolve()
         for value in paths:
-            candidate = pathlib.Path(value)
-            target = candidate if candidate.is_absolute() else cwd / candidate
-            if target.suffix != ".py" or not target.is_file():
+            target = resolve_target(value, cwd)
+            if target is None:
                 continue
             try:
                 result = subprocess.run(
@@ -52,8 +66,7 @@ def main() -> int:
     except Exception as exc:
         # The example is fail-open, but failures must remain visible.
         diagnostic(f"hook error ({type(exc).__name__}): {exc}")
-    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
