@@ -110,5 +110,5 @@ patch core.
   registration check.
 - In Desktop or WebApp, confirm the directive renders as a card rather than
   raw text. A text-only client falls back to prose.
-- Run `scripts/run_tests.sh tests/skills/test_intelligence_ui_skill.py -q`
+- Run `python3 -m unittest discover -s plugins/abelion_intelligence_ui/tests`
   before opening the pull request.
