@@ -54,7 +54,30 @@ def dependency_floor(spec: str, environment: dict[str, str] | None = None) -> st
     return f"{requirement.name}{extras}=={floor}"
 
 
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _contained_input(path: Path) -> Path:
+    resolved = path.resolve()
+    if not resolved.is_relative_to(REPO_ROOT):
+        raise ValueError(f"{path}: manifest path must stay inside the repository")
+    return resolved
+
+
+def _contained_output(path: Path) -> Path:
+    import os
+    resolved = path.resolve()
+    allowed = [REPO_ROOT]
+    runner_temp = os.environ.get("RUNNER_TEMP")
+    if runner_temp:
+        allowed.append(Path(runner_temp).resolve())
+    if not any(resolved.is_relative_to(base) for base in allowed):
+        raise ValueError(f"{path}: output path must stay inside the repository or RUNNER_TEMP")
+    return resolved
+
 def manifest_floors(path: Path) -> list[str]:
+    path = _contained_input(path)
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     if not isinstance(data, dict):
         raise ValueError(f"{path}: plugin manifest must be a mapping")
@@ -79,11 +102,12 @@ def main() -> int:
     args = parser.parse_args()
     try:
         floors = manifest_floors(args.manifest)
+        output = _contained_output(args.output)
     except (OSError, ValueError, yaml.YAMLError) as exc:
         print(f"::error title=dependency floor::{exc}", file=sys.stderr)
         return 2
 
-    args.output.write_text("".join(item + "\n" for item in floors), encoding="utf-8")
+    output.write_text("".join(item + "\n" for item in floors), encoding="utf-8")
     if not floors:
         print(f"{args.manifest}: no inclusive dependency floors to audit")
     else:
