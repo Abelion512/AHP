@@ -1,0 +1,13 @@
+digraph G {
+ graph [rankdir=LR,bgcolor="white",pad="0.4",nodesep="0.5",ranksep="0.7",fontname="DejaVu Sans",label="PR17: one template, tested rationale gate",labelloc=t,fontsize=24];
+ node [shape=box,style="rounded,filled",fillcolor="#f4efec",color="#918784",fontname="DejaVu Sans",margin="0.2,0.15",fontsize=14];
+ edge [fontname="DejaVu Sans",fontsize=12,color="#716765"];
+ t [label="Canonical template (#26)\nWhat changed\nWhy merge this now\nVerification"];
+ e [label="PR open / edit / push\npull_request, read-only token\nBody passed via env, never shell"];
+ c [label="Tested Python validator\nIgnore comments + fenced code\nReject empty / placeholder / one-word\nAccept canonical OR legacy headings"];
+ pass [label="PASS: text present\nHuman reviews truth + evidence",fillcolor="#dcece6"];
+ fail [label="FAIL: missing rationale\nAuthor fills missing section",fillcolor="#f6e3df"];
+ t -> e -> c; c -> pass [label="substantive text"]; c -> fail [label="incomplete"];
+ n [label="Main sync retains binary-only PyYAML\nSonar S8541 source removed\nNo plugin runtime edits",fillcolor="#edf1f5"];
+ n -> c [style=dashed,label="safe branch baseline"];
+}
