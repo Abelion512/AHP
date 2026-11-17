@@ -1,9 +1,9 @@
 /**
- * abelion-intelligence-ui — native Intelligence UI cards rendered inline in the
+ * intelligence-ui-abelion — native Intelligence UI cards rendered inline in the
  * WebApp/Desktop transcript via the plugin transcript-directive area.
  *
  * Install: symlink the `desktop/` folder into
- *   $HERMES_HOME/desktop-plugins/abelion-intelligence-ui
+ *   $HERMES_HOME/desktop-plugins/intelligence-ui-abelion
  * Use in a reply (alone on its own line):
  *   ::ui{version="1" id="wiz-01" kind="wizard"  title="Rotasi" steps="OpenCode|Hermes|9router"}
  *   ::ui{version="1" id="stat-01" kind="status"  title="Gate" items="Hook:siap|Credential:blocked"}
@@ -18,7 +18,7 @@ import { jsx, jsxs } from 'react/jsx-runtime'
 import { useEffect, useState } from 'react'
 import { TRANSCRIPT_DIRECTIVE_AREA, host, haptic } from '@hermes/plugin-sdk'
 
-const ID = 'abelion-intelligence-ui'
+const ID = 'intelligence-ui-abelion'
 const VERSION = '1'
 let uiStorage = null
 const KINDS = new Set(['wizard', 'status', 'trace', 'compare', 'form'])
@@ -303,7 +303,7 @@ function Card({ attrs, streaming }) {
 
 export default {
   id: ID,
-  name: 'Abelion Intelligence UI',
+  name: 'Intelligence UI',
   register(ctx) {
     uiStorage = ctx.storage || null
     ctx.register({

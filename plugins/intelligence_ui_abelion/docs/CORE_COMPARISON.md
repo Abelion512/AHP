@@ -43,7 +43,7 @@ a future PR can compare the two footprints without rediscovering the seam.
 | Check | Result |
 |---|---|
 | `node --check` on `.mjs` copy | exit 0 |
-| WebApp `/api/desktop-plugins/list` | HTTP 200, `abelion-intelligence-ui` present |
+| WebApp `/api/desktop-plugins/list` | HTTP 200, `intelligence-ui-abelion` present |
 | `wizard` directive | `0 / 3`, three steps, Bantu/Sudah rendered as native DOM |
 | `status` directive | `Hook / siap`, `Key / blocked` rows |
 | `trace` directive | summary `Kenapa — 3 node` |

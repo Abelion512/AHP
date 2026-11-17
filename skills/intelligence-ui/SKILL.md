@@ -15,7 +15,7 @@ metadata:
 # Intelligence UI Skill
 
 Hermes has two UI transports. Prefer the NATIVE one: the
-`abelion-intelligence-ui` desktop plugin claims `::ui{...}` and renders React
+`intelligence-ui-abelion` desktop plugin claims `::ui{...}` and renders React
 cards inline in Desktop and WebApp. `::preview{file="..."}` is the fallback: a
 live but sandboxed HTML iframe. This skill teaches composition; it does not
 patch core.
@@ -38,7 +38,7 @@ patch core.
 
 1. First choice — native React, no iframe: emit `::ui{version="1" id="card-01" kind="wizard"
    title="Judul" steps="A|B|C"}` alone on its own line. The installed
-   `abelion-intelligence-ui` plugin claims the `ui` directive. Kinds: `wizard`,
+   `intelligence-ui-abelion` plugin claims the `ui` directive. Kinds: `wizard`,
    `status` (`items="Label:status|..."`), `trace` (`steps="Input|Bukti|Keputusan"`),
    `compare` (`left="A|B" right="C|D" pick="left"`), and
    `form` (`fields="Nama|Catatan" submit="Kirim"`). One card per reply: stacked
@@ -85,7 +85,7 @@ patch core.
 - Depending on relative image or script files: opaque-origin documents do not
   resolve sibling assets.
 - Install the native plugin by linking its `desktop/` folder into
-  `$HERMES_HOME/desktop-plugins/abelion-intelligence-ui`; the loader follows
+  `$HERMES_HOME/desktop-plugins/intelligence-ui-abelion`; the loader follows
   linked plugin folders, so do not write plugin files under the guarded home.
 - When composing children arrays in `jsx()`, a `forEach` that creates a node
   must `children.push(...)` it. A syntactically valid file can still render an
@@ -104,7 +104,7 @@ patch core.
   no external `script src`, no `fetch(`, and a `data-hermes-send` attribute for
   every claimed interaction.
 - Confirm the native plugin is served: `GET /api/desktop-plugins/list` from
-  the WebApp origin must include `abelion-intelligence-ui`. Then send one
+  the WebApp origin must include `intelligence-ui-abelion`. Then send one
   `::ui{...}` reply and read the live DOM: the card's title, rows and buttons
   must be text, never raw directive syntax. A served file alone is not a
   registration check.

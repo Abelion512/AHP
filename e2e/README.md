@@ -1,4 +1,4 @@
-# Live E2E — abelion-intelligence-ui
+# Live E2E — intelligence-ui-abelion
 
 `live_webapp_smoke.py` drives the real WebApp at `http://127.0.0.1:9120`
 through the browser's CDP endpoint on `127.0.0.1:9222`. It sends one

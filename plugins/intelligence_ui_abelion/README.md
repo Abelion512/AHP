@@ -1,4 +1,4 @@
-# Abelion Intelligence UI
+# Intelligence UI
 
 Native, interactive Intelligence UI cards rendered **inside the Hermes Desktop
 and WebApp transcript**. No iframe, no core patch.
@@ -7,11 +7,11 @@ and WebApp transcript**. No iframe, no core patch.
 
 | Field | Value |
 |---|---|
-| Runtime / plugin id | `abelion-intelligence-ui` |
-| Folder | `plugins/abelion_intelligence_ui` |
-| Desktop half | `plugins/abelion_intelligence_ui/desktop/plugin.js` |
+| Runtime / plugin id | `intelligence-ui-abelion` |
+| Folder | `plugins/intelligence_ui_abelion` |
+| Desktop half | `plugins/intelligence_ui_abelion/desktop/plugin.js` |
 | Directive | `::ui{...}` |
-| Display name | Abelion Intelligence UI |
+| Display name | Intelligence UI |
 
 ## Install
 
@@ -19,7 +19,7 @@ The Hermes desktop-plugin loader follows a linked plugin folder. From this
 folder:
 
 ```sh
-ln -s "$PWD/desktop" "$HOME/.hermes/desktop-plugins/abelion-intelligence-ui"
+ln -s "$PWD/desktop" "$HOME/.hermes/desktop-plugins/intelligence-ui-abelion"
 ```
 
 Reload the WebApp or Desktop page. No build step, no dependency.
@@ -59,8 +59,8 @@ iframe, not native).
 ## Tests
 
 ```sh
-python3 -m unittest discover -s plugins/abelion_intelligence_ui/tests -v
-cd plugins/abelion_intelligence_ui/desktop && cp plugin.js plugin.mjs && node --check plugin.mjs
+python3 -m unittest discover -s plugins/intelligence_ui_abelion/tests -v
+cd plugins/intelligence_ui_abelion/desktop && cp plugin.js plugin.mjs && node --check plugin.mjs
 ```
 
 Live WebApp evidence is recorded in `docs/DIRECTIVE_CONTRACT.md` and

@@ -1,7 +1,7 @@
-"""Contract tests for the abelion-intelligence-ui directive.
+"""Contract tests for the intelligence-ui-abelion directive.
 
 Run from the repo root:
-    python3 -m unittest discover -s plugins/abelion_intelligence_ui/tests -v
+    python3 -m unittest discover -s plugins/intelligence_ui_abelion/tests -v
 """
 
 import json
@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-PLUGIN = ROOT / "plugins" / "abelion_intelligence_ui"
+PLUGIN = ROOT / "plugins" / "intelligence_ui_abelion"
 CONTRACT = PLUGIN / "docs" / "directive-contract.json"
 SOURCE = PLUGIN / "desktop" / "plugin.js"
 
@@ -22,7 +22,7 @@ class DirectiveContractTests(unittest.TestCase):
     def test_contract_identity(self):
         self.assertEqual(self.contract["version"], 1)
         self.assertEqual(self.contract["directive"], "ui")
-        self.assertEqual(self.contract["plugin_id"], "abelion-intelligence-ui")
+        self.assertEqual(self.contract["plugin_id"], "intelligence-ui-abelion")
         self.assertEqual(self.contract["placement"], "alone-on-its-own-line")
 
     def test_validation_state_and_event_contract(self):

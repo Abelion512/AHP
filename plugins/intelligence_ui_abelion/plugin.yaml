@@ -1,4 +1,4 @@
-name: abelion-intelligence-ui
+name: intelligence-ui-abelion
 description: "Native Intelligence UI cards (wizard, status, trace, compare, form) rendered inline in Hermes Desktop and WebApp transcripts."
 version: 0.1.0
 author: Abelion

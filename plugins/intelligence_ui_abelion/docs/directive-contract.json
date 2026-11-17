@@ -2,7 +2,7 @@
   "version": 1,
   "directive": "ui",
   "placement": "alone-on-its-own-line",
-  "plugin_id": "abelion-intelligence-ui",
+  "plugin_id": "intelligence-ui-abelion",
   "common_attrs": ["version", "id"],
   "validation": {
     "version": "1",
@@ -12,7 +12,7 @@
   },
   "state": {
     "owner": "plugin",
-    "key": "abelion-intelligence-ui:<version>:<id>",
+    "key": "intelligence-ui-abelion:<version>:<id>",
     "persisted": ["wizard.done"],
     "not_persisted": ["form.values"]
   },

@@ -8,7 +8,7 @@ A monorepo for standalone Hermes Agent plugins. Each plugin owns its implementat
 |---|---|---|---|
 | Privacy Guard | `pii-mask-abelion` | [`plugins/pii_mask_abelion/`](plugins/pii_mask_abelion/) | Session-local PII/credential masking, permitted placeholder restoration, and held output redaction. |
 | Bot Screen | `screen` | [`plugins/screen/`](plugins/screen/) | Dashboard for the agent's virtual desktop and a capability-gated human input lease. |
-| Intelligence UI | `abelion-intelligence-ui` | [`plugins/abelion_intelligence_ui/`](plugins/abelion_intelligence_ui/) | Native interactive transcript cards (`::ui{...}`) in Desktop and WebApp. |
+| Intelligence UI | `intelligence-ui-abelion` | [`plugins/intelligence_ui_abelion/`](plugins/intelligence_ui_abelion/) | Native interactive transcript cards (`::ui{...}`) in Desktop and WebApp. |
 
 Each plugin folder contains its own `README.md`, `docs/`, `tests/`, `e2e/`, and `skills/` as applicable. The bundled authoring skill lives at [`skills/intelligence-ui/`](skills/intelligence-ui/); the live WebApp smoke lives at [`e2e/`](e2e/). The repository root retains only shared metadata and entry points such as `hermes.json`, `update-plugins.sh`, this README, and GitHub configuration.
 

@@ -1,4 +1,4 @@
-"""Live WebApp smoke for the abelion-intelligence-ui transcript directive.
+"""Live WebApp smoke for the intelligence-ui-abelion transcript directive.
 
 Requires a reachable WebApp at http://127.0.0.1:9120 and a Chromium-family
 browser with CDP on 127.0.0.1:9222, already logged into the WebApp.
