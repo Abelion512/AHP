@@ -30,7 +30,7 @@ class GitHubProofTransport:
         u=urlsplit(path)
         decoded=unquote(u.path)
         if (not path.startswith(ROOT) or u.scheme or u.netloc or u.fragment
-                or any(p in ('.','..') for p in decoded.split('/')) or '\\' in decoded
+                or any(p in ('','.','..') for p in decoded.lstrip('/').split('/')) or '\\' in decoded
                 or any(ord(c)<32 for c in path+decoded)):
             raise ValueError('api_path_outside_repository')
         token=self.token_provider()

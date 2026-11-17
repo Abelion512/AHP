@@ -47,8 +47,10 @@ def reverse_apply(head_text, section):
 
     Missing-newline markers are refused rather than silently normalizing evidence.
     """
-    head = head_text.replace('\r\n', '\n').splitlines()
-    lines = section.splitlines()
+    head = head_text.replace('\r\n', '\n').split('\n')
+    lines = section.replace('\r\n', '\n').split('\n')
+    if head and head[-1] == '': head.pop()
+    if lines and lines[-1] == '': lines.pop()
     i = next((n for n, line in enumerate(lines) if HUNK.match(line)), len(lines))
     if i == len(lines):
         raise ValueError('p4_sem_no_hunks')
@@ -93,7 +95,7 @@ def reverse_apply(head_text, section):
     base = list(head)
     for position, old, newlen in reversed(hunks):
         base[position:position + newlen] = old
-    return '\n'.join(base) + ('\n' if head_text.endswith('\n') else '')
+    return '\n'.join(base) + ('\n' if base else '')
 
 
 def _tree(text):

@@ -2,6 +2,8 @@
 No candidate-supplied context/digest is accepted and no candidate code runs.
 """
 import base64
+import binascii
+import re
 from urllib.parse import quote
 from proof_context import normalize_context
 from triage import collect
@@ -23,6 +25,8 @@ def collect_context(gh,pr_number,*,repo_id,bot_id,owner_id,bot_slug,request_comm
         if pr['state']!='open' or pr.get('draft') is not False or pr['head']['repo']['id']!=repo_id:
             raise ValueError('producer_pr_not_eligible')
         head,base=pr['head']['sha'],pr['base']['sha']
+        if any(type(sha) is not str or not re.fullmatch('[a-f0-9]{40}',sha) for sha in (head,base)):
+            raise ValueError('invalid_producer_sha')
         discussions,fingerprint,_=collect(gh,pr_number,bot_id,request_comment_id,owner_id,bot_slug)
         files=gh.pages(ROOT+'/pulls/'+str(pr_number)+'/files')
         if type(files) is not list or not 0<len(files)<=30:raise ValueError('producer_file_count')
@@ -31,6 +35,10 @@ def collect_context(gh,pr_number,*,repo_id,bot_id,owner_id,bot_slug,request_comm
         for f in files:
             path=f['filename'];status=f['status']
             if type(path) is not str or status not in ('added','modified'):raise ValueError('producer_source_status')
+            if (not path or path.startswith('/') or '\\' in path
+                    or any(part in ('','.','..') for part in path.split('/'))
+                    or any(ord(c)<32 for c in path)):
+                raise ValueError('invalid_producer_path')
             if path in sources:raise ValueError('producer_duplicate_path')
             item=gh.request(ROOT+'/contents/'+quote(path,safe='/')+'?ref='+head)
             if item.get('encoding')!='base64' or item.get('type','file')!='file':raise ValueError('producer_source_encoding')
@@ -52,5 +60,5 @@ def collect_context(gh,pr_number,*,repo_id,bot_id,owner_id,bot_slug,request_comm
         _,latest_fingerprint,_=collect(gh,pr_number,bot_id,request_comment_id,owner_id,bot_slug)
         if latest_fingerprint!=fingerprint:raise ValueError('producer_comments_changed')
         return context
-    except (KeyError,TypeError,AttributeError,UnicodeError) as exc:
+    except (KeyError,TypeError,AttributeError,UnicodeError,binascii.Error) as exc:
         raise ValueError('malformed_producer_source') from exc

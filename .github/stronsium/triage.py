@@ -24,7 +24,7 @@ def collect(gh,pr,bot_id,request_comment_id,owner_id=None,bot_slug=None):
  serial=json.dumps(comments,sort_keys=True,ensure_ascii=False)
  if len(comments)>50 or len(serial)>MAX_COMMENT_CHARS:raise ValueError('review_comments_limit')
  fingerprint=hashlib.sha256(serial.encode()).hexdigest()
- prior.sort(key=lambda c:(c.get('updated_at',''),c['id']),reverse=True)
+ prior.sort(key=lambda c:(c.get('updated_at') or '',c['id']),reverse=True)
  return comments,fingerprint,prior[0] if prior else None
 
 def validate_triage(entries,comments):

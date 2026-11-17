@@ -203,7 +203,7 @@ class ProofVerifier:
                 body = z.read(info)
             record = json.loads(body.decode('utf-8'), object_pairs_hook=_unique,
                                 parse_constant=lambda _: (_ for _ in ()).throw(ValueError('invalid_json_number')))
-        except (OSError, UnicodeError, zipfile.BadZipFile, RuntimeError) as exc:
+        except (OSError, UnicodeError, zipfile.BadZipFile, RuntimeError, ValueError) as exc:
             raise ValueError('invalid_proof_archive') from exc
         self._verify_record(record, context, run_id, attempt, head_sha)
         return VerifiedProof(digest(context), context['sha'], context['base'],

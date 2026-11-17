@@ -78,6 +78,11 @@ class ProofTest(unittest.TestCase):
   raw=raw if raw is not None else archive(record)
   self.artifact.setdefault('digest','sha256:'+hashlib.sha256(raw).hexdigest())
   return ProofVerifier(self.policy,serve(self.run,self.artifact,self.calls)).verify(raw,context or CONTEXT,run_id=10,attempt=1,artifact_id=11)
+ def test_invalid_archive_json_has_named_error(self):
+  for payload in (b'{',b'{"version":1,"version":2}',b'{"value":NaN}'):
+   self.artifact.pop('digest',None)
+   with self.subTest(payload=payload),self.assertRaisesRegex(ValueError,'invalid_proof_archive'):
+    self.verify(raw=archive(payload=payload))
  def test_malformed_api_payloads_fail_named_closed(self):
   for payload in (None,[],True,'success'):
    with self.subTest(payload=payload):
