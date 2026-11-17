@@ -15,7 +15,6 @@ import asyncio
 import json
 import urllib.request
 
-import websockets
 
 WEBAPP = "http://127.0.0.1:9120/"
 VERSION_URL = "http://127.0.0.1:9222/json/version"
@@ -48,7 +47,16 @@ class Cdp:
         return result.get("result", {}).get("result", {}).get("value")
 
 
+def build_status_directive(title: str) -> str:
+    if (not isinstance(title, str) or not 0 < len(title) <= 80
+            or any(char in title for char in ('"', '{', '}', '\n', '\r'))):
+        raise ValueError('invalid smoke title')
+    return ('::ui{version="1" id="e2e-live" kind="status" title="'
+            + title + '" items="Load:ok|Register:ok"}')
+
+
 async def smoke(title: str, timeout: float) -> dict:
+    import websockets
     with urllib.request.urlopen(VERSION_URL, timeout=5) as response:
         endpoint = json.load(response)["webSocketDebuggerUrl"]
 
@@ -83,10 +91,7 @@ async def smoke(title: str, timeout: float) -> dict:
             if not ready:
                 return {"ok": False, "reason": "composer not found"}
 
-            directive = (
-                '::ui{version="1" id="e2e-live" kind="status" '
-                f'title="{title}" items="Load:ok|Register:ok"}}'
-            )
+            directive = build_status_directive(title)
             await page.send("Input.insertText", {"text": "Balas persis satu baris: " + directive})
             await page.send(
                 "Input.dispatchKeyEvent",

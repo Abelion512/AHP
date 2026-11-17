@@ -47,6 +47,20 @@ class DirectiveContractTests(unittest.TestCase):
         self.assertNotIn("fetch(", self.source)
         self.assertNotIn("openExternal", self.source)
 
+    def test_live_smoke_emits_exactly_one_balanced_directive(self):
+        import importlib.util
+        path = PLUGIN / 'e2e' / 'live_webapp_smoke.py'
+        spec = importlib.util.spec_from_file_location('aero_live_smoke', path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        directive = module.build_status_directive('Browser smoke')
+        self.assertEqual(directive, '::ui{version="1" id="e2e-live" kind="status" title="Browser smoke" items="Load:ok|Register:ok"}')
+        self.assertEqual(directive.count('{'), 1)
+        self.assertEqual(directive.count('}'), 1)
+        for bad in ('', 'x' * 81, 'a"b', 'a}b', 'a\nb'):
+            with self.subTest(title=bad), self.assertRaises(ValueError):
+                module.build_status_directive(bad)
+
     def test_limits_are_bounded(self):
         limits = self.contract["limits"]
         self.assertLessEqual(limits["title_chars"], 120)
