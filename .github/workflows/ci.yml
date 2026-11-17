@@ -2,6 +2,7 @@ name: ci
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
   schedule:
@@ -70,6 +71,11 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: "3.14"
+          cache: "pip"
+          # Pinned pip packages live in this workflow; plugin deps in plugin.yaml.
+          cache-dependency-path: |
+            .github/workflows/ci.yml
+            plugins/**/plugin.yaml
       - name: test workflow script steps
         run: |
           python -m pip install --only-binary ':all:' pyyaml==6.0.3
@@ -164,6 +170,11 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: "3.14"
+          cache: "pip"
+          # Pinned pip packages live in this workflow; plugin deps in plugin.yaml.
+          cache-dependency-path: |
+            .github/workflows/ci.yml
+            plugins/**/plugin.yaml
       - name: install test deps and pip-audit
         env:
           P: ${{ matrix.plugin }}
@@ -290,10 +301,18 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: "3.14"
+          cache: "pip"
+          # Pinned pip packages live in this workflow; plugin deps in plugin.yaml.
+          cache-dependency-path: |
+            .github/workflows/ci.yml
+            plugins/**/plugin.yaml
       # Node 26 satisfies Hermes' declared runtime range; pin the action to its reviewed commit.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: "26"
+          cache: "npm"
+          # hermes-core is checked out two steps earlier at a pinned ref.
+          cache-dependency-path: hermes-core/package-lock.json
       - name: Install host dependencies for E2E
         run: |
           sudo apt-get update
@@ -442,6 +461,11 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: "3.14"
+          cache: "pip"
+          # Pinned pip packages live in this workflow; plugin deps in plugin.yaml.
+          cache-dependency-path: |
+            .github/workflows/ci.yml
+            plugins/**/plugin.yaml
       - name: pip install pyyaml
         run: python -m pip install --only-binary ':all:' pyyaml==6.0.3
       - name: lint plugin manifests and skill frontmatter
