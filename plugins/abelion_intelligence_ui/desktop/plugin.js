@@ -15,10 +15,12 @@
  * and rendered as React text children. No network, no privileged API.
  */
 import { jsx, jsxs } from 'react/jsx-runtime'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { TRANSCRIPT_DIRECTIVE_AREA, host, haptic } from '@hermes/plugin-sdk'
 
 const ID = 'abelion-intelligence-ui'
+const VERSION = '1'
+let uiStorage = null
 const KINDS = new Set(['wizard', 'status', 'trace', 'compare', 'form'])
 
 function text(value, max) {
@@ -41,11 +43,47 @@ function send(prompt, setError) {
   haptic('tap')
 }
 
-function Card({ attrs }) {
-  const [done, setDone] = useState([])
+function Card({ attrs, streaming }) {
+  const rawKind = text(attrs.kind, 20)
+  const version = text(attrs.version, 4) || VERSION
+  const cardId = text(attrs.id, 60) || `${version}-${rawKind || 'wizard'}-${text(attrs.title, 20)}`
+  const storageKey = `${ID}:${version}:${cardId}`
+  const [done, setDone] = useState(() => {
+    try {
+      const saved = uiStorage ? uiStorage.get(storageKey) : null
+      return Array.isArray(saved) ? saved : []
+    } catch {
+      return []
+    }
+  })
   const [error, setError] = useState('')
   const [values, setValues] = useState({})
-  const kind = KINDS.has(attrs.kind) ? attrs.kind : 'wizard'
+
+  useEffect(() => {
+    try {
+      if (uiStorage) uiStorage.set(storageKey, done)
+    } catch {
+      // Persistence is best-effort; local state still works for this mount.
+    }
+  }, [storageKey, done])
+
+  const invalid =
+    Boolean(attrs.version && version !== VERSION) ||
+    Boolean(rawKind && !KINDS.has(rawKind))
+  if (invalid) {
+    return jsx('div', {
+      style: { fontSize: 12, color: 'var(--ui-text-secondary, var(--muted-foreground))' },
+      children: 'Kartu UI tidak didukung; menampilkan teks biasa.',
+    })
+  }
+  if (streaming) {
+    return jsx('div', {
+      style: { fontSize: 12, color: 'var(--ui-text-secondary, var(--muted-foreground))' },
+      children: 'Menyiapkan kartu…',
+    })
+  }
+
+  const kind = rawKind || 'wizard'
   const title = text(attrs.title, 80) || 'Intelligence UI'
   const rows = items(attrs.steps || attrs.items, 8)
 
@@ -267,12 +305,13 @@ export default {
   id: ID,
   name: 'Abelion Intelligence UI',
   register(ctx) {
+    uiStorage = ctx.storage || null
     ctx.register({
       id: 'ui.directive',
       area: TRANSCRIPT_DIRECTIVE_AREA,
       data: {
         name: 'ui',
-        render: ({ attrs }) => jsx(Card, { attrs: attrs || {} }),
+        render: ({ attrs, streaming }) => jsx(Card, { attrs: attrs || {}, streaming }),
       },
     })
   },

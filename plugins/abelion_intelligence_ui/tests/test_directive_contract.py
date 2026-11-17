@@ -25,6 +25,15 @@ class DirectiveContractTests(unittest.TestCase):
         self.assertEqual(self.contract["plugin_id"], "abelion-intelligence-ui")
         self.assertEqual(self.contract["placement"], "alone-on-its-own-line")
 
+    def test_validation_state_and_event_contract(self):
+        self.assertEqual(self.contract["common_attrs"], ["version", "id"])
+        self.assertEqual(self.contract["validation"]["version"], "1")
+        self.assertTrue(self.contract["validation"]["reject_unknown_kind"])
+        self.assertEqual(self.contract["state"]["persisted"], ["wizard.done"])
+        self.assertTrue(self.contract["events"]["fail_closed"])
+        for needle in ("uiStorage.get", "uiStorage.set", "streaming", "Kartu UI tidak didukung"):
+            self.assertIn(needle, self.source)
+
     def test_five_kinds_declared_and_implemented(self):
         expected = {"wizard", "status", "trace", "compare", "form"}
         self.assertEqual(set(self.contract["kinds"]), expected)
