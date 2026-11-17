@@ -63,5 +63,5 @@ python3 -m unittest discover -s plugins/abelion_intelligence_ui/tests -v
 cd plugins/abelion_intelligence_ui/desktop && cp plugin.js plugin.mjs && node --check plugin.mjs
 ```
 
-Live WebApp evidence is recorded in `docs/DIRECTIVE_CONTRACT.md` and
+Live WebApp evidence is recorded in `docs/directive-contract.json` and
 `docs/CORE_COMPARISON.md`.
