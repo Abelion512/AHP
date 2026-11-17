@@ -5,6 +5,9 @@ screen:
 pii-mask:
   - changed-files:
       - any-glob-to-any-file: "plugins/pii_mask_abelion/**"
+intelligence-ui:
+  - changed-files:
+      - any-glob-to-any-file: "plugins/intelligence_ui_abelion/**"
 ci:
   - changed-files:
       - any-glob-to-any-file: ".github/workflows/**"
