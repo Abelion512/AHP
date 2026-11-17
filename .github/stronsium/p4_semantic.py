@@ -29,14 +29,16 @@ def _sections(diff):
     for sec in re.split(r'(?m)^(?=diff --git )', diff):
         if not sec.strip():
             continue
-        m = re.match(r'diff --git a/(.+) b/(.+)\n', sec)
-        if not m or m.group(1) != m.group(2) or m.group(1) in out:
+        header = sec.partition('\n')[0]
+        prefix = 'diff --git a/'
+        names = header[len(prefix):].split(' b/') if header.startswith(prefix) else []
+        if len(names) != 2 or not names[0] or names[0] != names[1] or names[0] in out:
             raise ValueError('p4_sem_diff_header')
         for bad in ('\nold mode ', '\nnew mode ', '\nnew file mode', '\ndeleted file mode', '\nrename ',
                     '\ncopy ', '\nsimilarity ', '\nBinary files', '\nGIT binary patch'):
             if bad in '\n' + sec:
                 raise ValueError('p4_sem_structural_change')
-        out[m.group(1)] = sec
+        out[names[0]] = sec
     return out
 
 
