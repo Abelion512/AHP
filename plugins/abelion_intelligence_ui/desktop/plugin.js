@@ -141,7 +141,7 @@ function Card({ attrs, streaming }) {
       style: { display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' },
       children: [
         jsx('div', { style: { fontSize: 17, fontWeight: 650 }, children: title }),
-        rows.length
+        rows.length && kind === 'wizard'
           ? jsx('div', { style: muted, children: `${done.length} / ${rows.length}` })
           : null,
       ],
