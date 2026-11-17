@@ -27,6 +27,9 @@ jobs:
               "Kenapa harus saya merge?",
               "Bukti verifikasi",
           ]
+          # Shallow gate: reject empty, placeholder-only, or one-word answers.
+          placeholders = {"todo", "tbd", "tba", "n/a", "na", "none", "placeholder",
+                          "xxx", "fixme", "wip", "coming soon", "tbc"}
           missing = []
           for index, heading in enumerate(headings):
               match = re.search(
@@ -34,7 +37,12 @@ jobs:
                   visible,
                   flags=re.S,
               )
-              if not match or not match.group(1).strip():
+              section = match.group(1).strip() if match else ""
+              if not section:
+                  missing.append(heading)
+                  continue
+              lowered = section.lower()
+              if lowered in placeholders or len(section) < 10:
                   missing.append(heading)
           if missing:
               print("::error::PR body is incomplete. Fill these sections:")
