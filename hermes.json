@@ -13,6 +13,11 @@
       "id": "screen",
       "path": "plugins/screen",
       "description": "Bot Screen: dashboard view and input takeover for the agent virtual desktop"
+    },
+    {
+      "id": "abelion-intelligence-ui",
+      "path": "plugins/abelion_intelligence_ui",
+      "description": "Intelligence UI: native interactive transcript cards via ::ui{...} in Desktop and WebApp"
     }
   ]
 }
