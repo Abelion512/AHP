@@ -36,13 +36,14 @@ patch core.
 
 ## How to Run
 
-1. First choice — native React, no iframe: emit `::ui{kind="wizard"
+1. First choice — native React, no iframe: emit `::ui{version="1" id="card-01" kind="wizard"
    title="Judul" steps="A|B|C"}` alone on its own line. The installed
    `abelion-intelligence-ui` plugin claims the `ui` directive. Kinds: `wizard`,
    `status` (`items="Label:status|..."`), `trace` (`steps="Input|Bukti|Keputusan"`),
    `compare` (`left="A|B" right="C|D" pick="left"`), and
    `form` (`fields="Nama|Catatan" submit="Kirim"`). One card per reply: stacked
-   directives are not parsed by v0.23.1.
+   directives are not parsed by v0.23.1. Unknown `kind` or wrong `version`
+   falls back to plain text; wizard progress persists under the stable `id`.
 2. Fallback only — if the plugin is absent, use `write_file` to create one
    self-contained HTML file, then put `::preview{file="/absolute/path/card.html"}`
    alone on its own line. Inline or mid-prose directives stay plain text.
