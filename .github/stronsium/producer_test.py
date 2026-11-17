@@ -190,7 +190,11 @@ class ProducerTest(unittest.TestCase):
                 with self.assertRaises(ValueError):ProofProducer(wrong,prog).produce(self.collect(),run_id=10,attempt=1,head_sha=WORKFLOW,closure_sha256=CLOSURE)
     def test_deterministic_archive_bytes(self):
         prog=program();producer=ProofProducer(policy(prog),prog);ctx=self.collect()
-        self.assertEqual(producer.produce(ctx,run_id=10,attempt=1,head_sha=WORKFLOW,closure_sha256=CLOSURE),producer.produce(ctx,run_id=10,attempt=1,head_sha=WORKFLOW,closure_sha256=CLOSURE))
+        first = producer.produce(ctx,run_id=10,attempt=1,head_sha=WORKFLOW,closure_sha256=CLOSURE)
+        second = ProofProducer(policy(program()),program()).produce(copy.deepcopy(ctx),run_id=10,attempt=1,head_sha=WORKFLOW,closure_sha256=CLOSURE)
+        self.assertEqual(hashlib.sha256(first).digest(), hashlib.sha256(second).digest())
+        changed = producer.produce(ctx,run_id=10,attempt=2,head_sha=WORKFLOW,closure_sha256=CLOSURE)
+        self.assertNotEqual(first, changed)
     def test_producer_findings_roundtrip_not_model_proof(self):
         gh=ReadService();gh.comments=[{'id':4,'user':{'id':333},'body':'fixture finding','updated_at':'before'}]
         context=self.collect(gh);self.assertEqual(context['finding_ids'],['review:4'])
