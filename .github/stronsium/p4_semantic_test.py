@@ -78,3 +78,31 @@ class T(unittest.TestCase):
   diff = d('a.py', "@@ -1,4 +1,4 @@\n # fmt: off\n x=1\n # fmt: on\n-# old\n+# new\n")
   self.assertTrue(S.classify_semantic(ctx('a.py', head, diff)))
 if __name__=='__main__':unittest.main()
+
+class StrictHunks(unittest.TestCase):
+ def test_real_multi_hunk_roundtrip(self):
+  import difflib
+  before=''.join('v%d = %d\n' % (i,i) for i in range(30))
+  after='# intro\n'+before.replace('v25 = 25', '# note\nv25 = 25')
+  patch=''.join(difflib.unified_diff(before.splitlines(True),after.splitlines(True),fromfile='a/a.py',tofile='b/a.py'))
+  self.assertEqual(S.reverse_apply(after,patch),before)
+ def test_false_old_count_denied(self):
+  with self.assertRaisesRegex(ValueError,'hunk_length'):
+   S.reverse_apply('x = 1\n', '@@ -1,99 +1 @@\n-x=1\n+x = 1\n')
+ def test_false_old_position_denied(self):
+  with self.assertRaisesRegex(ValueError,'hunk_range'):
+   S.reverse_apply('x = 1\n', '@@ -999 +1 @@\n-x=1\n+x = 1\n')
+ def test_overlapping_hunks_denied(self):
+  with self.assertRaisesRegex(ValueError,'hunk_range'):
+   S.reverse_apply('x = 1\n', '@@ -1 +1 @@\n-x=1\n+x = 1\n@@ -1 +1 @@\n-x=1\n+x = 1\n')
+ def test_zero_start_with_nonempty_hunk_denied(self):
+  with self.assertRaisesRegex(ValueError,'hunk_range'):
+   S.reverse_apply('x=1\n','@@ -0 +0 @@\n x=1\n')
+ def test_out_of_bounds_empty_hunk_denied(self):
+  with self.assertRaisesRegex(ValueError,'hunk_range'):
+   S.reverse_apply('x=1\n','@@ -99 +99,0 @@\n-# removed\n')
+ def test_missing_newline_marker_refused(self):
+  with self.assertRaisesRegex(ValueError,'hunk_line'):
+   S.reverse_apply('x = 1','@@ -1 +1 @@\n-x=1\n+x = 1\n\\ No newline at end of file\n')
+ def test_context_suffix_supported(self):
+  self.assertEqual(S.reverse_apply('x = 1\n','@@ -1 +1 @@ def example():\n-x=1\n+x = 1\n'),'x=1\n')
