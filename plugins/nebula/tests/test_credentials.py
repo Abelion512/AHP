@@ -379,3 +379,13 @@ def test_mask_count_keeps_preexisting_markers_out_of_new_count():
     assert count == 1
     assert output.count("[REDACTED]_SECRET_FIELD") == 2
     assert cred.mask_credentials(output) == (output, 0)
+
+
+def test_marker_substrings_do_not_suppress_optional_request_replacement():
+    value = "prefix[REDACTED]_SECRET_FIELDsuffix"
+    request = {"messages": [{"role": "user", "content": 'api_key="' + value + '"'}]}
+    original = copy.deepcopy(request)
+    result = pii.pii_middleware(request)
+    assert result is not None
+    assert value not in json.dumps(result["request"])
+    assert request == original
