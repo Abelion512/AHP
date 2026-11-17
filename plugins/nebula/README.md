@@ -1,0 +1,106 @@
+# Privacy Guard for Hermes Agent
+
+This plugin combines Hermes's native secret redactor with session-local masking for PII, credentials and paths. The repository merge is not a release, an installed-profile migration, or verification on a user's laptop. Do not enable it for daily use based only on unit-test counts.
+
+## Required host
+
+Mandatory mode requires the exact Hermes fork commit `9a85916c87d56c2ca00b02fad8918f93ef1816e9` from `Abelion512/hermes-4gent`. CI pins and verifies that source for real-host E2E tests. Stock Hermes plus this plugin is not equivalent mandatory protection. A version number alone does not prove the required core contract exists. The user's installed host and profile remain unverified.
+
+## Try without changing your normal profile
+
+Use the plugin-local E2E harness in `e2e/` with a pinned Hermes environment. It creates a temporary profile, uses synthetic inputs and a loopback fake provider, and does not use real credentials. Missing required test support fails the CI gate rather than silently converting the run to a pass.
+
+For a separate disposable profile with the matching core already present, put this plugin directory under that profile's `plugins/`, and use this YAML alongside its existing model settings:
+
+```yaml
+plugins:
+  enabled:
+    - nebula
+security:
+  require_privacy_guard: true
+  privacy_guard_plugin: nebula
+```
+
+Restart the test process and begin a new session. The profile must contain exactly one required privacy callback owned by that plugin name. Missing, failed, duplicate or unsupported policy denies the request. Provider credentials belong in the normal SDK authentication setup, never in model messages or plugin mapping.
+
+## How the agent learns it is installed
+
+The plugin uses Hermes's supported `register_system_prompt_section` API to add a short usage note to each new session's frozen prompt. It teaches exact placeholder handling and supported file destinations. README by itself is not automatic discovery. Older hosts without this registration API do not get the awareness note. Existing sessions retain their cached prompt; use a new session after loading the plugin. The note is guidance, not the enforcement mechanism.
+
+## Behavior
+
+- Mapping stays in local process memory, per session, with random tokens. Restart/expiry loses restoration. No map is saved to disk.
+- Credentials never restore. CLI final may restore known exact PII/path tokens. API/gateway output does not restore them.
+- Only known PATH tokens in `read_file`, `write_file`, `patch`, `search_files` path slots can restore for local execution. Shell/terminal, URLs, outbound messages and masked delegate goals are blocked rather than interpolated. This can limit coding workflows; it is not transparent shell support.
+- Required mode checks main/aux model payloads, schemas, JSON tool arguments and tool-result replay. Main text/reasoning/interim replies are held until the final transform.
+- Recognized authentication-session material (header/storage cookie values, standalone JSESSIONID/sessionid assignments, JWT-shaped data) is denied before model delivery. Generic process session_id values are not proof of credentials. Tool definitions are documentation, not live cookie containers; recognized values are still redacted. Normal documentation mentioning cookies is allowed. Coverage is structural/header detection, not full cookie detection. JSON {"sessionid":"abc"}, prose user_session=abc logged_in=yes, bare name=value and unknown unlabelled opaque values can pass detection.
+- Images/audio/binary/unsupported objects are denied, not inspected by OCR. Unsupported provider transports deny in required mode. Current supported route is OpenAI SDK Chat Completions, not Responses/Codex, Anthropic/Bedrock/Gemini adapters or MoA.
+
+## Limits and recovery
+
+The required JSON payload ceiling is 2 MiB, with a 10-second bounded policy call. One string over 128 KiB or dense/expensive content can be withheld and cause denial. Mapping is capped at 4096 entries and 2 MB per session, 64 sessions, one-hour idle expiry. There is no silent eviction to make old tokens point somewhere else. For a true capacity refusal, start a fresh session or reduce the input locally. A media/unsupported/foreign-token refusal needs the relevant input changed, not merely retrying or switching providers.
+
+## Disable / rollback
+
+Stop the test process. In that disposable profile, set `security.require_privacy_guard: false`, remove `nebula` from `plugins.enabled`, and start a new process/session. This explicitly returns to native Hermes behavior, not equivalent protection. Do not remove the required plugin while leaving mandatory mode true; it will intentionally deny. No merge or deploy is needed to discard the local test worktree.
+
+## Not covered
+
+Not a firewall or prompt-injection solution. Auxiliary/title provider calls are guarded only in required mode with the pinned core; in optional mode they are unguarded. Direct tool/service traffic (curl, browser uploads, MCP, TTS/STT, media generation and provider-specific memory calls), persisted user prompts, all progress UI/logs and unknown secret encodings are not universally protected. Native Hermes still has its own redaction at several of these sinks; that is not the same as this reversible PII policy.
+
+## Skills overview
+
+The plugin registers `nebula:privacy-mask-placeholders` through native `ctx.register_skill`, exposed in `skills_list`, `skill_view` and the `<available_skills>` index while enabled. Older hosts without that API skip it. See [usage](docs/USAGE.md), [skills coverage](docs/PLUGIN_SKILLS.md), and the skill ([skills/privacy-mask-placeholders/SKILL.md](skills/privacy-mask-placeholders/SKILL.md)). The redacted-output-handling skill is at [skills/redacted-output-handling/SKILL.md](skills/redacted-output-handling/SKILL.md). All four bundled skills (`privacy-mask-placeholders`, `redacted-output-handling`, `nebula-plugin-setup`, `nebula-plugin-debug`) file-skip individually on registration failure; missing one never blocks the others or the middleware.
+
+## Input and requirement validation
+
+See [ordered validation](docs/VALIDATION.md) for the runtime branches and failure outcomes.
+
+## Missing and failing inputs
+
+The guard fails closed, never crashes the host, and never falls through to unmasked content:
+
+- A host that renames or reshapes the native `agent.redact._PREFIX_RE` detector degrades to the plugin's own rules; masking continues.
+- A required-policy `output` call with a missing payload field is answered with withheld text instead of raising.
+- `on_session_end` cleanup tolerates unusable session identities.
+- Skill registration never blocks core middleware: a missing `SKILL.md` file or a raising host API skips one skill and registers the rest. Masking is unaffected.
+- `pii_middleware` remnant path: when the request walk fails and the JSON round trip cannot produce a sendable payload, a held stub request (no model, marker content) is returned. The original request is never sent raw.
+
+`nebula/pii_middleware.py` is a standalone optional middleware (`PUBLIC`/`INTERNAL`/`CONFIDENTIAL` levels, copy-on-write masking with `[REDACTED]` markers). The consolidated plugin does **not** auto-register it; `register()` wires the guard's own `llm_request` path (`optional_request`). Register `pii_middleware` explicitly if you want that layering, and expect both layers then apply. It is exercised by `tests/test_pii_middleware.py`, `tests/test_credentials.py` and `validation/run_matrix.py`.
+
+
+## Native route boundary
+
+The matching core checks final native Anthropic Messages and Gemini payloads,
+plus the identified Jev compaction-evaluation Decisions request. This repository
+change is not a published release or installed-profile verification. Other direct
+HTTP and service calls are not a process-wide privacy boundary. Unknown/unsupported
+transports still deny at the guarded dispatch seam. No laptop/provider proof.
+
+## Consolidated Privacy Guard
+
+This revision combines the two earlier privacy plugins into one installable plugin.
+The stable folder `nebula` and ID `nebula` are intentional: the
+required core owner setting and imports used by its integration harness stay valid.
+There is one held-output hook. It masks using the session map, applies native output
+redaction, then restores only permitted local-CLI PII/path tokens. Credentials never
+restore. Native redactor errors or unavailability withhold the output.
+
+### Existing installations
+
+No automatic migration is performed. Do not overwrite a running daily profile.
+For a reviewed migration in a disposable profile, stop its Hermes process first;
+keep the existing `nebula` install/owner ID, update that folder to the
+reviewed consolidated commit, and disable/remove the separate `output-redact-abelion`
+through Hermes' native plugin management. Restart and begin a new session, then
+verify that only `nebula` owns the required policy and only one privacy
+output hook is registered. Removing a callback while required mode is running
+intentionally denies. Do not disable required mode to bypass an error.
+
+A fresh install uses only `nebula`; the removed folder is not a second
+install target. Existing old plugin copies do not disappear merely because a repo
+folder was removed. Uninstalling them is a separate profile operation. Session maps
+are memory-only and are lost across restart; never reuse old placeholders in a new
+session. To roll back a disposable test, stop it and restore the previous pinned
+plugin/config versions together, then restart with a fresh session. The laptop and
+daily profile have not been migrated or activated.
