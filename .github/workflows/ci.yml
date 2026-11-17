@@ -89,6 +89,7 @@ jobs:
           python -m pip install --only-binary ':all:' pyyaml==6.0.3
           python .github/scripts/test_labeler_merge_step.py
           python .github/scripts/test_plugin_install_step.py
+          python .github/scripts/test_ci_concurrency.py
 
   # Strict pre-merge credential guard: a PR that introduces a leaked secret, a
   # missing plugin manifest, or a bare provider-supplied key shape must not
