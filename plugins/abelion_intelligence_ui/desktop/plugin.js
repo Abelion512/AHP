@@ -37,10 +37,19 @@ function items(value, max) {
 }
 
 function send(prompt, setError) {
-  const address = host.state.focusedSessionId.get() || null
-  const accepted = host.composer.submit(address, prompt.slice(0, 240))
-  setError(accepted ? '' : 'Composer tidak menerima permintaan ini.')
-  haptic('tap')
+  try {
+    const address = host?.state?.focusedSessionId?.get?.() || null
+    const composer = host?.composer
+    if (!composer || typeof composer.submit !== 'function') {
+      setError('Composer tidak menerima permintaan ini.')
+      return
+    }
+    const accepted = composer.submit(address, prompt.slice(0, 240))
+    setError(accepted ? '' : 'Composer tidak menerima permintaan ini.')
+    if (accepted) haptic('tap')
+  } catch {
+    setError('Composer tidak menerima permintaan ini.')
+  }
 }
 
 function Card({ attrs, streaming }) {
