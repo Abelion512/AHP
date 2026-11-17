@@ -3,6 +3,7 @@ import copy
 import importlib
 import json
 import re
+import pytest
 import sys
 import time
 from pathlib import Path
@@ -354,3 +355,27 @@ def test_mask_count_does_not_count_preexisting_labels_or_placeholders():
     assert output.count("[REDACTED]_SECRET_FIELD") == 1
     assert '<your-api-key>' in output
     assert '<token>' in output
+
+
+@pytest.mark.parametrize("template", [
+    'api_key="{}"',
+    '--password "{}"',
+    'password: {} with spaces',
+])
+def test_mask_count_tracks_replacement_events_not_marker_substrings(template):
+    for inner in (
+        "prefix[REDACTED]_SECRET_FIELDsuffix",
+        "prefix[REDACTED]_SECRET_FIELD[REDACTED]_ID_FIELDsuffix",
+    ):
+        output, count = cred.mask_credentials(template.format(inner))
+        assert count == 1
+        assert "prefix" not in output and "suffix" not in output
+        assert output.count("[REDACTED]_SECRET_FIELD") == 1
+
+
+def test_mask_count_keeps_preexisting_markers_out_of_new_count():
+    raw = '[REDACTED]_SECRET_FIELD; api_key="' + FAKE + '"'
+    output, count = cred.mask_credentials(raw)
+    assert count == 1
+    assert output.count("[REDACTED]_SECRET_FIELD") == 2
+    assert cred.mask_credentials(output) == (output, 0)
