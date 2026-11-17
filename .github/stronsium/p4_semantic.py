@@ -21,7 +21,7 @@ OBSERVATIONAL_SCOPE_OWNER_ACCEPTED = False
 import ast
 import re
 
-HUNK = re.compile(r'^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@')
+HUNK = re.compile(r'@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(?: .*)?')
 
 
 def _sections(diff):
@@ -41,35 +41,38 @@ def _sections(diff):
 
 
 def reverse_apply(head_text, section):
-    """Derive the base text from the head text and one file's unified diff. Exact or ValueError."""
-    head = head_text.replace('\r\n', '\n').split('\n')
-    lines = section.split('\n')
-    i = 0
-    while i < len(lines) and not HUNK.match(lines[i]):
-        i += 1
+    """Derive base text only from complete, ordered, internally consistent hunks.
+
+    Missing-newline markers are refused rather than silently normalizing evidence.
+    """
+    head = head_text.replace('\r\n', '\n').splitlines()
+    lines = section.splitlines()
+    i = next((n for n, line in enumerate(lines) if HUNK.match(line)), len(lines))
     if i == len(lines):
         raise ValueError('p4_sem_no_hunks')
     hunks = []
+    previous_old_end = previous_new_end = delta = 0
     while i < len(lines):
-        m = HUNK.match(lines[i])
-        if not m:
-            if lines[i] == '' and i == len(lines) - 1:
-                break
+        match = HUNK.fullmatch(lines[i])
+        if not match:
             raise ValueError('p4_sem_hunk_syntax')
-        newstart = int(m.group(3)); newlen = int(m.group(4)) if m.group(4) is not None else 1
+        oldstart, oldlen, newstart, newlen = (
+            int(match.group(1)), int(match.group(2) or 1),
+            int(match.group(3)), int(match.group(4) or 1))
+        oldpos = oldstart - 1 if oldlen else oldstart
+        newpos = newstart - 1 if newlen else newstart
+        if (oldpos < previous_old_end or newpos < previous_new_end
+                or oldpos < 0 or newpos < 0 or newpos > len(head)
+                or newpos != oldpos + delta):
+            raise ValueError('p4_sem_hunk_range')
         old, new = [], []
         i += 1
         while i < len(lines) and not lines[i].startswith('@@ '):
-            ln = lines[i]
-            if ln.startswith('\\'):
-                i += 1
-                continue
-            if ln == '' and i == len(lines) - 1:
-                i += 1
-                break
-            tag, body = ln[:1], ln[1:].rstrip('\r')
+            line = lines[i]
+            tag, body = line[:1], line[1:]
             if tag == ' ':
-                old.append(body); new.append(body)
+                old.append(body)
+                new.append(body)
             elif tag == '-':
                 old.append(body)
             elif tag == '+':
@@ -77,18 +80,18 @@ def reverse_apply(head_text, section):
             else:
                 raise ValueError('p4_sem_hunk_line')
             i += 1
-        if len(new) != newlen:
+        if len(old) != oldlen or len(new) != newlen:
             raise ValueError('p4_sem_hunk_length')
-        hunks.append((newstart, old, new))
-    base = list(head)
-    for newstart, old, new in reversed(hunks):
-        s = newstart - 1 if new else newstart
-        if base[s:s + len(new)] != [x.rstrip('\r') for x in head[s:s + len(new)]] and False:
-            pass
-        if [x.rstrip('\r') for x in head[s:s + len(new)]] != new:
+        if head[newpos:newpos + newlen] != new:
             raise ValueError('p4_sem_diff_does_not_match_source')
-        base[s:s + len(new)] = old
-    return '\n'.join(base)
+        hunks.append((newpos, old, newlen))
+        previous_old_end = oldpos + oldlen
+        previous_new_end = newpos + newlen
+        delta += newlen - oldlen
+    base = list(head)
+    for position, old, newlen in reversed(hunks):
+        base[position:position + newlen] = old
+    return '\n'.join(base) + ('\n' if head_text.endswith('\n') else '')
 
 
 def _tree(text):
