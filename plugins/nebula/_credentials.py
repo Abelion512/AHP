@@ -294,11 +294,11 @@ def _sub_flag(m: re.Match) -> str:
     return m.group(0) if new is None else f"{m.group('name')}{m.group('sep')}{new}"
 
 
-def _scan_assign(text: str) -> str:
+def _scan_assign(text: str) -> tuple[str, int]:
     """Like ``_ASSIGN.sub`` but a rejected match does not swallow its value: ``out: password: x`` still
     reaches the inner ``password: x`` (non-overlapping matching would skip it)."""
     out: list[str] = []
-    pos = last = 0
+    pos = last = changes = 0
     while True:
         m = _ASSIGN.search(text, pos)
         if m is None:
@@ -309,9 +309,23 @@ def _scan_assign(text: str) -> str:
             continue
         out.append(text[last:m.start()])
         out.append(new)
+        changes += 1
         pos = last = m.end()
     out.append(text[last:])
-    return "".join(out)
+    return "".join(out), changes
+
+
+def _replace_changed(pattern, replace, text: str) -> tuple[str, int]:
+    """Count replacements, not marker text that may already occur in input."""
+    changes = 0
+
+    def counted(match):
+        nonlocal changes
+        replacement = replace(match)
+        changes += replacement != match.group(0)
+        return replacement
+
+    return pattern.sub(counted, text), changes
 
 
 def mask_credentials(text: str) -> tuple[str, int]:
@@ -325,22 +339,14 @@ def mask_credentials(text: str) -> tuple[str, int]:
         text, n = _PEM.subn("[REDACTED]_PRIVATE_KEY", text)
         changes += n
     if ":" in text or "=" in text or "%3" in text:
-        before = _labels(text)
-        text = _LINE.subn(_sub_line, text)[0]  # multi-word line values first
-        text = _scan_assign(text)
-        changes += _labels(text) - before
+        text, n = _replace_changed(_LINE, _sub_line, text)
+        changes += n
+        text, n = _scan_assign(text)
+        changes += n
     if "--" in text:
-        before = _labels(text)
-        text = _FLAG.subn(_sub_flag, text)[0]
-        changes += _labels(text) - before
+        text, n = _replace_changed(_FLAG, _sub_flag, text)
+        changes += n
     return text, changes
-
-
-def _labels(text: str) -> int:
-    # Field-value masks create exactly these two labels and later stages never
-    # consume one, so a count delta is a real mask count (subn counts attempts,
-    # rejected matches included).
-    return text.count("[REDACTED]_SECRET_FIELD") + text.count("[REDACTED]_ID_FIELD")
 
 
 _AUTH_KEYS = frozenset({"authorization", "proxy-authorization"})
