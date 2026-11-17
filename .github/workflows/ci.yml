@@ -76,6 +76,8 @@ jobs:
           cache-dependency-path: |
             .github/workflows/ci.yml
             plugins/**/plugin.yaml
+            plugins/**/plugin-requirements.txt
+            plugins/**/requirements*.txt
       - name: test workflow script steps
         run: |
           python -m pip install --only-binary ':all:' pyyaml==6.0.3
