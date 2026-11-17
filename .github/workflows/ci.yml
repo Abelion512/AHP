@@ -177,6 +177,8 @@ jobs:
           cache-dependency-path: |
             .github/workflows/ci.yml
             plugins/**/plugin.yaml
+            plugins/**/plugin-requirements.txt
+            plugins/**/requirements*.txt
       - name: install test deps and pip-audit
         env:
           P: ${{ matrix.plugin }}
