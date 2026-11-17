@@ -57,10 +57,27 @@ function Card({ attrs, streaming }) {
   const version = text(attrs.version, 4) || VERSION
   const cardId = text(attrs.id, 60) || `${version}-${rawKind || 'wizard'}-${text(attrs.title, 20)}`
   const storageKey = `${ID}:${version}:${cardId}`
+  const rows = items(attrs.steps || attrs.items, 8)
   const [done, setDone] = useState(() => {
     try {
       const saved = uiStorage ? uiStorage.get(storageKey) : null
-      return Array.isArray(saved) ? saved : []
+      if (!Array.isArray(saved)) return []
+      if (saved.every((x) => typeof x === 'number')) {
+        return saved.filter((n) => Number.isInteger(n) && n >= 0 && n < rows.length)
+      }
+      if (saved.every((x) => typeof x === 'string')) {
+        const used = new Set()
+        const result = []
+        for (const label of saved) {
+          const idx = rows.findIndex((r, i) => r === label && !used.has(i))
+          if (idx !== -1) {
+            used.add(idx)
+            result.push(idx)
+          }
+        }
+        return result
+      }
+      return []
     } catch {
       return []
     }
@@ -70,11 +87,11 @@ function Card({ attrs, streaming }) {
 
   useEffect(() => {
     try {
-      if (uiStorage) uiStorage.set(storageKey, done)
+      if (uiStorage) uiStorage.set(storageKey, done.map((i) => rows[i]).filter((x) => typeof x === 'string'))
     } catch {
       // Persistence is best-effort; local state still works for this mount.
     }
-  }, [storageKey, done])
+  }, [storageKey, done, rows])
 
   const invalid =
     Boolean(attrs.version && version !== VERSION) ||
@@ -94,7 +111,6 @@ function Card({ attrs, streaming }) {
 
   const kind = rawKind || 'wizard'
   const title = text(attrs.title, 80) || 'Intelligence UI'
-  const rows = items(attrs.steps || attrs.items, 8)
 
   const shell = {
     maxWidth: 760,
