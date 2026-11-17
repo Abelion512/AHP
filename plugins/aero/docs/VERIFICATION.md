@@ -41,7 +41,7 @@ values are negative controls. This tests behavior, not model selection.
 ## Authorized temporary live smoke
 
 On 2026-11-18 at 06:38-06:40 Asia/Jakarta, renderer and skill from functional head
-`829eeb83332402f1d4f97a83b1e7a3fe4269e989` were tested on the intended Hermes
+`829eeb8` were tested on the intended Hermes
 v0.23.2 host. The owner approved a temporary update followed by exact restoration.
 The existing renderer was replaced in place, not installed alongside a second
 claimant. Both original files were backed up before replacement.
