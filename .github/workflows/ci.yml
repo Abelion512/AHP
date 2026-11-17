@@ -2,6 +2,7 @@ name: ci
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
   schedule:
@@ -59,6 +60,30 @@ jobs:
           json=$(printf '%s\n' "$sel" | sed '/^$/d' | sort -u | jq -R . | jq -sc .)
           echo "plugins=$json" | tee -a "$GITHUB_OUTPUT"
 
+  # Protect existing Hermes profiles from stale plugin copies after a source rename.
+  plugin-migration-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: test legacy-install preflight
+        run: bash tests/test_update_plugins_migration.sh
+      # actions/setup-python v7.1.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.14"
+          cache: "pip"
+          # Pinned pip packages live in this workflow; plugin deps in plugin.yaml.
+          cache-dependency-path: |
+            .github/workflows/ci.yml
+            plugins/**/plugin.yaml
+            plugins/**/plugin-requirements.txt
+            plugins/**/requirements*.txt
+      - name: test workflow script steps
+        run: |
+          python -m pip install --only-binary ':all:' pyyaml==6.0.3
+          python .github/scripts/test_labeler_merge_step.py
+          python .github/scripts/test_plugin_install_step.py
+
   # Strict pre-merge credential guard: a PR that introduces a leaked secret, a
   # missing plugin manifest, or a bare provider-supplied key shape must not
   # become mergeable through labeling or review alone.
@@ -93,6 +118,10 @@ jobs:
               if pin in line or canary in line: continue
               if re.match(r"^\+[0-9a-f]{40}:", line): continue
               if "uses:" in line and re.search(r"@[0-9a-f]{40}", line): continue
+              # Pinned checksum commands are hashes by design; skip only when the whole added
+              # line is exactly echo "<64-hex>  <file>" | sha256sum -c (a secret appended
+              # anywhere breaks the fullmatch and is still caught below).
+              if re.fullmatch(r"\+\s*echo\s+\"[0-9a-f]{64}  [^\"\s]+\"\s*\|\s*sha256sum\s+-c\s*-?\s*", line): continue
               low = line.lower()
               if re.search(r'(?<![A-Za-z0-9])[A-Za-z0-9+/]{40}(?![A-Za-z0-9+/=])', line):
                   suspicious.append(("long_base64_like", line[:120]))
@@ -147,16 +176,27 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: "3.14"
+          cache: "pip"
+          # Pinned pip packages live in this workflow; plugin deps in plugin.yaml.
+          cache-dependency-path: |
+            .github/workflows/ci.yml
+            plugins/**/plugin.yaml
+            plugins/**/plugin-requirements.txt
+            plugins/**/requirements*.txt
       - name: install test deps and pip-audit
         env:
           P: ${{ matrix.plugin }}
         run: |
-          python -m pip install pip-audit pytest
-          python -m pip install pyyaml
+          python -m pip install --only-binary ':all:' pip-audit==2.10.1 pytest==9.1.1 packaging==26.3 pyyaml==6.0.3
           for f in "$P"/tests/requirements*.txt; do
-            [ -f "$f" ] && python -m pip install -r "$f"
+            # No requirements file: the glob stays literal, so test for a real
+            # file inside the loop instead of `[ -f ] &&` which exits 1 under -e.
+            if [ -f "$f" ]; then
+              python -m pip install -r "$f"
+            fi
           done
-          true
+      - name: dependency-floor parser unit tests
+        run: python .github/scripts/test_dependency_floor_audit.py
       - name: syntax check
         env:
           P: ${{ matrix.plugin }}
@@ -196,6 +236,32 @@ jobs:
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
               summary.write(line + "\n")
           PY
+      - name: plugin dependency mirror
+        env:
+          P: ${{ matrix.plugin }}
+        run: |
+          python - "$P" <<'PY'
+          import sys
+          from pathlib import Path
+          import yaml
+
+          plugin = Path(sys.argv[1])
+          manifest = yaml.safe_load((plugin / "plugin.yaml").read_text(encoding="utf-8")) or {}
+          declared = manifest.get("python_dependencies") or []
+          mirror = plugin / "plugin-requirements.txt"
+          actual = []
+          if mirror.is_file():
+              actual = [
+                  line.strip() for line in mirror.read_text(encoding="utf-8").splitlines()
+                  if line.strip() and not line.lstrip().startswith("#")
+              ]
+          if declared != actual:
+              print("::error::plugin-requirements.txt must mirror plugin.yaml python_dependencies exactly")
+              print("manifest:", declared)
+              print("mirror:", actual)
+              raise SystemExit(1)
+          print(f"{plugin}: dependency mirror matches ({len(declared)} entries)")
+          PY
       - name: dependency audit
         env:
           P: ${{ matrix.plugin }}
@@ -207,6 +273,15 @@ jobs:
             pip-audit -r "$f"
           done < <(find "$P" -name 'requirements*.txt' -o -name 'plugin-requirements.txt' | sort -u)
           [ "$found" = 1 ] || echo "no requirements files in $P"
+      - name: dependency floor audit
+        env:
+          P: ${{ matrix.plugin }}
+        run: |
+          floors="$RUNNER_TEMP/dependency-floors.txt"
+          python .github/scripts/audit_dependency_floors.py "$P/plugin.yaml" --output "$floors"
+          if [ -s "$floors" ]; then
+            pip-audit -r "$floors"
+          fi
 
   # Real host E2E: never silently skip host-dependent tests. Pin the exact
   # required-privacy core revision, verify the imported source matches it, and
@@ -234,10 +309,24 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: "3.14"
+          cache: "pip"
+          # Pinned pip packages live in this workflow; plugin deps in plugin.yaml.
+          cache-dependency-path: |
+            .github/workflows/ci.yml
+            plugins/**/plugin.yaml
+            plugins/**/plugin-requirements.txt
+            plugins/**/requirements*.txt
+      # Verify the external lockfile exists at the pinned Hermes ref before caching.
+      - name: verify hermes-core npm lockfile
+        run: test -f hermes-core/package-lock.json
       # Node 26 satisfies Hermes' declared runtime range; pin the action to its reviewed commit.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: "26"
+          cache: "npm"
+          # hermes-core is checked out two steps earlier at a pinned ref; lockfile must exist there.
+          # Later puppeteer-core install (npm install --prefix "$E2E_NODE") is not covered by this cache.
+          cache-dependency-path: hermes-core/package-lock.json
       - name: Install host dependencies for E2E
         run: |
           sudo apt-get update
@@ -302,6 +391,7 @@ jobs:
           CHROME_ZIP="$RUNNER_TEMP/chrome-for-testing-${CHROME_FOR_TESTING_VERSION}.zip"
           CHROME_ROOT="$RUNNER_TEMP/chrome-for-testing-${CHROME_FOR_TESTING_VERSION}"
           curl -fsSL "https://storage.googleapis.com/chrome-for-testing-public/${CHROME_FOR_TESTING_VERSION}/linux64/chrome-linux64.zip" -o "$CHROME_ZIP"
+          echo "855d228f4918b9e21b059a3ab6785a2217489dc570d220d73c4fa667c83b4582  $CHROME_ZIP" | sha256sum -c -
           rm -rf "$CHROME_ROOT"
           mkdir -p "$CHROME_ROOT"
           unzip -q "$CHROME_ZIP" -d "$CHROME_ROOT"
@@ -386,8 +476,15 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: "3.14"
+          cache: "pip"
+          # Pinned pip packages live in this workflow; plugin deps in plugin.yaml.
+          cache-dependency-path: |
+            .github/workflows/ci.yml
+            plugins/**/plugin.yaml
+            plugins/**/plugin-requirements.txt
+            plugins/**/requirements*.txt
       - name: pip install pyyaml
-        run: python -m pip install pyyaml
+        run: python -m pip install --only-binary ':all:' pyyaml==6.0.3
       - name: lint plugin manifests and skill frontmatter
         run: |
           python - <<'PY'
