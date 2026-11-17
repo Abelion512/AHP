@@ -41,8 +41,13 @@ PR #148562 is still open), so use one card per reply.
 Example:
 
 ```text
-::ui{kind="wizard" title="Rotasi kredensial" steps="OpenCode|Hermes|9router"}
+::ui{version="1" id="rotasi-01" kind="wizard" title="Rotasi kredensial" steps="OpenCode|Hermes|9router"}
 ```
+
+`version` and `id` are optional but recommended: `id` gives the card a stable
+local state key across reloads. An unknown `kind` or wrong `version` falls back
+to a plain "unsupported" line instead of a broken card. While a turn is still
+streaming the card shows a short placeholder.
 
 All attributes are untrusted strings: capped, split on `|`, and rendered as
 React text children. The card never fetches, never touches credentials, and

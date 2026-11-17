@@ -3,6 +3,23 @@
   "directive": "ui",
   "placement": "alone-on-its-own-line",
   "plugin_id": "abelion-intelligence-ui",
+  "common_attrs": ["version", "id"],
+  "validation": {
+    "version": "1",
+    "allowlist": true,
+    "reject_unknown_kind": true,
+    "caps": "title 80, rows 8, prompt 240"
+  },
+  "state": {
+    "owner": "plugin",
+    "key": "abelion-intelligence-ui:<version>:<id>",
+    "persisted": ["wizard.done"],
+    "not_persisted": ["form.values"]
+  },
+  "events": {
+    "bridge": "host.composer.submit(focusedSessionId, text)",
+    "fail_closed": true
+  },
   "kinds": {
     "wizard": {
       "attrs": ["title", "steps"],
