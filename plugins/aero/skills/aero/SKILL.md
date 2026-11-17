@@ -1,6 +1,6 @@
 ---
 name: aero
-description: Use for visual or interactive answers, procedures, status, comparisons and short non-secret forms. Select an appropriate native card without requiring the user to type directive syntax.
+description: Choose native cards for visual or interactive answers.
 version: 0.2.0
 author: Abelion
 license: MIT
