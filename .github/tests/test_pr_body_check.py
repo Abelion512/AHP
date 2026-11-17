@@ -25,6 +25,14 @@ class BodyCheckTest(unittest.TestCase):
     def test_legacy(self):
         self.assertEqual(module.missing_sections(body(legacy=True)), [])
 
+    def test_all_annotated_placeholders(self):
+        for placeholder in module.PLACEHOLDERS:
+            with self.subTest(placeholder=placeholder):
+                self.assertEqual(len(module.missing_sections(body(placeholder + ': details will follow later'))), 3)
+
+    def test_fixes_is_allowed_in_real_explanation(self):
+        self.assertEqual(module.missing_sections(body('Fixes invalid input handling with explicit regression tests.')), [])
+
     def test_missing(self):
         self.assertEqual(len(module.missing_sections('')), 3)
 
