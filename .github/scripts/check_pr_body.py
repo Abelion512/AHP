@@ -28,16 +28,47 @@ def substantive(text):
     return len(lines) >= 3 and len(set(lines)) >= 3 and len(' '.join(lines)) >= 15
 
 
+def visible_lines(body):
+    # Linear scans avoid regex backtracking on an unclosed comment/fence.
+    pieces = []
+    offset = 0
+    while True:
+        start = body.find('<!--', offset)
+        if start < 0:
+            pieces.append(body[offset:])
+            break
+        pieces.append(body[offset:start])
+        end = body.find('-->', start + 4)
+        if end < 0:
+            break
+        offset = end + 3
+    fence = None
+    for line in ''.join(pieces).splitlines():
+        stripped = line.lstrip()
+        marker = stripped[:1]
+        count = len(stripped) - len(stripped.lstrip(marker)) if marker in ('`', '~') else 0
+        if fence:
+            char, length = fence
+            if marker == char and count >= length and not stripped[count:].strip():
+                fence = None
+        elif count >= 3:
+            fence = (marker, count)
+        else:
+            yield line
+
+
 def missing_sections(body):
-    visible = re.sub(r'<!--.*?(?:-->|\Z)', '', body, flags=re.S)
-    # Code examples cannot supply fake headings or rationale.
-    visible = re.sub(r'(?ms)^\s*(`{3,}|~{3,}).*?^\s*\1\s*$', '', visible)
-    chunks = re.split(r'(?m)^##[ \t]+([^\n]+)\n?', visible)
     sections = {}
-    for index in range(1, len(chunks), 2):
-        sections.setdefault(chunks[index].strip().casefold(), []).append(chunks[index + 1])
+    current = None
+    for line in visible_lines(body):
+        if line.startswith('## ') or line.startswith('##\t'):
+            current = line[3:].strip().casefold()
+            sections.setdefault(current, []).append([])
+        elif current is not None:
+            sections[current][-1].append(line)
     return [name for name, aliases in SECTIONS.items()
-            if not any(substantive(part) for alias in aliases for part in sections.get(alias, []))]
+            if not any(substantive('\n'.join(part)) for alias in aliases
+                       for part in sections.get(alias, []))]
 
 
 def main():
