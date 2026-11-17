@@ -14,13 +14,72 @@
  * All attrs are untrusted strings. They are capped, never parsed as markup,
  * and rendered as React text children. No direct network; user clicks submit only through the owning chat composer.
  */
-import { jsx, jsxs } from 'react/jsx-runtime'
-import { useEffect, useState } from 'react'
+import { jsx as renderJsx, jsxs as renderJsxs } from 'react/jsx-runtime'
+import { useEffect, useState, useId } from 'react'
 import { TRANSCRIPT_DIRECTIVE_AREA, host, haptic } from '@hermes/plugin-sdk'
+
+// The SDK consumes plain JS, so pass keys separately just as compiled JSX does.
+function jsx(type, props, identity) {
+  const { key, ...rest } = props
+  return renderJsx(type, rest, identity ?? key)
+}
+function jsxs(type, props, identity) {
+  const { key, ...rest } = props
+  return renderJsxs(type, rest, identity ?? key)
+}
 
 const ID = 'aero'
 const VERSION = '1'
-const KINDS = new Set(['wizard', 'status', 'trace', 'compare', 'form'])
+// One allowed catalog is used by validation and rendering. Models describe data,
+// never executable expressions, component imports or arbitrary styling.
+export const catalog = Object.freeze({
+  wizard: { input: 'steps', max: 8 }, status: { input: 'items', max: 8 },
+  trace: { input: 'steps', max: 8 }, compare: { input: 'left', max: 6 },
+  form: { input: 'fields', max: 6 },
+  choice: { input: 'options', max: 6, min: 2, event: 'answer' },
+  flow: { input: 'nodes', max: 6, min: 2, event: 'local' },
+  chart: { input: 'labels', max: 6, min: 1, event: 'local' },
+})
+const KINDS = new Set(Object.keys(catalog))
+
+// Normalize the new data-rich cards into a small typed representation first.
+// Legacy five-kind inputs retain their established caps and behavior.
+export function normalize(attrs) {
+  const kind = text(attrs.kind, 20)
+  if (!['choice', 'flow', 'chart'].includes(kind)) return null
+  const spec = catalog[kind]
+  const raw = attrs[spec.input]
+  // Keep allocation bounded even if a future caller bypasses the host parser.
+  if ((attrs.details?.length || 0) > 2048 || (attrs.values?.length || 0) > 256) return { error: 'Data kartu terlalu panjang.' }
+  if (typeof raw !== 'string' || raw.length > 2048) return { error: 'Data kartu belum lengkap. Gunakan jawaban teks.' }
+  const values = raw.split('|').map(v => v.trim())
+  if (values.length < spec.min || values.length > spec.max || values.some(v => !v || v.length > 60)) {
+    return { error: 'Data kartu tidak valid. Gunakan jawaban teks.' }
+  }
+  if (kind === 'choice') return normalizeChoice(attrs, values)
+  if (kind === 'flow') return normalizeFlow(attrs, values)
+  return normalizeChart(attrs, values)
+}
+
+function normalizeChoice(attrs, values) {
+  if (attrs.multiple !== undefined && !['true', 'false'].includes(attrs.multiple)) return { error: 'Mode pilihan tidak didukung.' }
+  if (new Set(values).size !== values.length) return { error: 'Pilihan harus berbeda.' }
+  return { kind: 'choice', options: values, multiple: attrs.multiple === 'true' }
+}
+
+function normalizeFlow(attrs, values) {
+  const details = typeof attrs.details === 'string' ? attrs.details.split('|').map(v => v.trim()) : []
+  if (details.length !== values.length || details.some(v => !v || v.length > 180)) return { error: 'Setiap tahap perlu penjelasan singkat.' }
+  return { kind: 'flow', nodes: values, details }
+}
+
+function normalizeChart(attrs, values) {
+  const numbers = typeof attrs.values === 'string' ? attrs.values.split('|').map(v => v.trim()) : []
+  if (numbers.length !== values.length || numbers.some(v => !/^(?:0|[1-9]\d{0,8})(?:\.\d{1,4})?$/.test(v))) {
+    return { error: 'Angka grafik tidak valid. Nilai harus nonnegatif dan berpasangan dengan label.' }
+  }
+  return { kind: 'chart', labels: values, values: numbers.map(Number), unit: text(attrs.unit, 16), source: text(attrs.source, 100) }
+}
 
 function text(value, max) {
   return typeof value === 'string' ? value.trim().slice(0, max) : ''
@@ -73,6 +132,85 @@ function restoreDone(storage, storageKey, rows) {
   } catch { return [] }
 }
 
+function renderChoice(p) {
+  const { model, owner, title, button, line, muted, choiceName, selection, setSelection, note, setNote, setError } = p
+  const children = []
+    children.push(jsxs('fieldset', {
+      key: 'choices', style: { border: 0, margin: '10px 0', padding: 0, minWidth: 0 },
+      children: [
+        jsx('legend', { style: muted, children: model.multiple ? 'Pilih satu atau lebih' : 'Pilih satu' }),
+        ...model.options.map((label, index) => jsxs('label', {
+          key: index, style: { ...line, display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, cursor: 'pointer' },
+          children: [jsx('input', {
+            type: model.multiple ? 'checkbox' : 'radio', name: choiceName, checked: selection.includes(index),
+            onChange: () => setSelection(prev => model.multiple ? (prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]) : [index]),
+          }), jsx('span', { children: label })],
+        })),
+      ],
+    }))
+    children.push(jsxs('label', { key: 'note', style: { display: 'block', ...muted }, children: [
+      jsx('span', { children: 'Catatan opsional' }),
+      jsx('input', { type: 'text', maxLength: 80, autoComplete: 'off', value: note,
+        onChange: e => setNote(e.target.value.slice(0, 80)),
+        style: { display: 'block', width: '100%', boxSizing: 'border-box', minHeight: 40, marginTop: 4, padding: 8, color: 'inherit', background: 'transparent', border: '1px solid var(--ui-stroke-secondary, var(--border))', borderRadius: 6 } }),
+    ] }))
+    children.push(jsx('button', { key: 'answer', type: 'button', disabled: !owner || selection.length === 0,
+      style: { ...button, marginTop: 10, opacity: !owner || selection.length === 0 ? 0.5 : 1 },
+      onClick: () => {
+        if (!selection.length) return
+        const labels = model.options.filter((_, i) => selection.includes(i))
+        send(owner, `Jawaban: ${title} - ${labels.join('; ')}${note.trim() ? '; Catatan: ' + note.trim() : ''}`, setError)
+      }, children: 'Kirim jawaban' }))
+
+  return children
+}
+
+function renderFlow(p) {
+  const { model, button, line, muted, stage, setStage } = p
+  const children = []
+
+    children.push(jsx('p', { key: 'hint', style: muted, children: 'Pilih tahap untuk melihat hubungan dan penjelasannya.' }))
+    children.push(jsx('style', { key: 'flow-layout', children: '@container (max-width:520px){.aero-flow{flex-direction:column}.aero-flow>li{flex:none!important;flex-direction:column}.aero-flow>li>button{width:100%}.aero-flow>li>span{transform:rotate(90deg)}}' }))
+    children.push(jsx('ol', { key: 'flow', className: 'aero-flow', 'aria-label': 'Alur', style: { listStyle: 'none', margin: '10px 0', padding: 0, display: 'flex', flexWrap: 'nowrap', gap: 8 },
+      children: model.nodes.map((label, index) => jsxs('li', { key: index, style: { display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 0', minWidth: 0 }, children: [
+        jsx('button', { type: 'button', 'aria-pressed': stage === index, onClick: () => setStage(index), style: { ...button, flex: 1, minWidth: 0, minHeight: 64, background: stage === index ? 'var(--ui-accent-muted, #2461b412)' : 'transparent', borderColor: stage === index ? 'var(--ui-accent, var(--accent))' : 'var(--ui-stroke-secondary, var(--border))' }, children: `${index + 1}. ${label}` }),
+        index < model.nodes.length - 1 ? jsx('span', { 'aria-hidden': true, children: '→' }) : null,
+      ] })),
+    }))
+    children.push(jsxs('div', { key: 'explanation', role: 'status', style: { ...line, padding: '12px 0' }, children: [
+      jsx('strong', { children: model.nodes[stage] }),
+      jsx('p', { style: { margin: '6px 0', lineHeight: 1.6 }, children: model.details[stage] }),
+      jsx('div', { style: muted, children: stage + 1 < model.nodes.length ? `Berikutnya: ${model.nodes[stage + 1]}` : 'Tahap akhir' }),
+    ] }))
+
+  return children
+}
+
+function renderChart(p) {
+  const { model, title, button, line, muted, stage, setStage, table, setTable } = p
+  const children = []
+
+    const max = Math.max(...model.values) || 1
+    children.push(jsx('p', { key: 'chart-hint', style: muted, children: 'Bandingkan panjang batang; angka tetap ditampilkan. Pilih batang untuk fokus.' }))
+    children.push(jsx('div', { key: 'bars', role: 'group', 'aria-label': 'Grafik batang', children: model.labels.map((label, index) => jsxs('button', {
+      key: index, type: 'button', 'aria-pressed': stage === index, onClick: () => setStage(index),
+      style: { ...button, display: 'block', textAlign: 'left', width: '100%', padding: '10px 8px', margin: '6px 0', color: 'var(--foreground)', borderColor: stage === index ? 'var(--ui-accent, var(--accent))' : 'var(--ui-stroke-secondary, var(--border))' },
+      children: [
+        jsxs('span', { style: { display: 'flex', justifyContent: 'space-between', gap: 8 }, children: [jsx('span', { children: label }), jsx('strong', { children: `${model.values[index]}${model.unit ? ' ' + model.unit : ''}` })] }),
+        jsx('span', { 'aria-hidden': true, style: { display: 'block', height: 10, background: 'var(--ui-stroke-secondary, var(--border))', marginTop: 8, borderRadius: 3 }, children: jsx('span', { style: { display: 'block', height: '100%', width: `${100 * model.values[index] / max}%`, background: 'var(--ui-accent, var(--accent))', borderRadius: 3 } }) }),
+      ],
+    })) }))
+    children.push(jsx('div', { key: 'focus', role: 'status', style: muted, children: `Fokus: ${model.labels[stage]} = ${model.values[stage]}${model.unit ? ' ' + model.unit : ''}` }))
+    if (model.source) children.push(jsx('p', { key: 'source', style: muted, children: `Sumber: ${model.source}` }))
+    children.push(jsx('button', { key: 'table-toggle', type: 'button', 'aria-expanded': table, onClick: () => setTable(v => !v), style: { ...button, marginTop: 8 }, children: table ? 'Tutup tabel data' : 'Tabel data' }))
+    if (table) children.push(jsxs('table', { key: 'table', style: { width: '100%', borderCollapse: 'collapse', marginTop: 8 }, children: [
+      jsx('caption', { style: muted, children: title }),
+      jsx('thead', { children: jsxs('tr', { children: [jsx('th', { scope: 'col', style: { ...line, textAlign: 'left' }, children: 'Label' }), jsx('th', { scope: 'col', style: line, children: model.unit || 'Nilai' })] }) }),
+      jsx('tbody', { children: model.labels.map((label, index) => jsxs('tr', { key: index, children: [jsx('th', { scope: 'row', style: { ...line, textAlign: 'left' }, children: label }), jsx('td', { style: { ...line, textAlign: 'center' }, children: model.values[index] })] })) }),
+    ] }))
+  return children
+}
+
 function Card({ attrs, streaming, sessionId, storage }) {
   const rawKind = typeof attrs.kind === 'string' ? attrs.kind.trim() : ''
   const version = typeof attrs.version === 'string' ? attrs.version.trim() : VERSION
@@ -83,6 +221,12 @@ function Card({ attrs, streaming, sessionId, storage }) {
   const [done, setDone] = useState(() => restoreDone(storage, storageKey, rows))
   const [error, setError] = useState('')
   const [values, setValues] = useState({})
+  const choiceName = useId()
+  const [selection, setSelection] = useState([])
+  const [note, setNote] = useState('')
+  const [stage, setStage] = useState(0)
+  const [table, setTable] = useState(false)
+  const model = normalize(attrs)
 
   useEffect(() => {
     try {
@@ -98,11 +242,13 @@ function Card({ attrs, streaming, sessionId, storage }) {
   if (streaming) {
     return jsx('div', { role: 'status', children: 'Menyiapkan kartu...' })
   }
+  if (model?.error) return jsx('div', { role: 'status', children: model.error })
   const kind = rawKind || 'wizard'
   const title = text(attrs.title, 80) || 'Aero'
 
   const shell = {
     maxWidth: 760,
+    containerType: 'inline-size',
     padding: '12px 2px 10px',
     color: 'var(--foreground)',
     fontSize: 13,
@@ -314,7 +460,12 @@ function Card({ attrs, streaming, sessionId, storage }) {
     )
   }
 
-  if (!owner && (kind === 'wizard' || kind === 'form')) children.push(jsx('div', { key: 'owner', role: 'status', children: 'Chat pemilik kartu tidak tersedia. Pengiriman dinonaktifkan.' }))
+  const learningProps = { model, owner, title, button, line, muted, choiceName, selection, setSelection, note, setNote, setError, stage, setStage, table, setTable }
+  if (kind === 'choice') children.push(...renderChoice(learningProps))
+  else if (kind === 'flow') children.push(...renderFlow(learningProps))
+  else if (kind === 'chart') children.push(...renderChart(learningProps))
+
+  if (!owner && (kind === 'wizard' || kind === 'form' || kind === 'choice')) children.push(jsx('div', { key: 'owner', role: 'status', children: 'Chat pemilik kartu tidak tersedia. Pengiriman dinonaktifkan.' }))
   if (error) children.push(jsx('div', { key: 'err', role: 'alert', style: { ...muted, marginTop: 8 }, children: error }))
 
   return jsx('div', { style: shell, children })

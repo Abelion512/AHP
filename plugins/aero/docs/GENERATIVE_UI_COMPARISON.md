@@ -1,6 +1,6 @@
 # Scope within generative UI
 
-Aero is a bounded catalog: the assistant chooses one of five card kinds and
+Aero is a bounded catalog: the assistant chooses one of eight card kinds and
 supplies strings. The host parses the directive and the plugin renders native
 React. It cannot generate arbitrary component trees, execute model JavaScript,
 bind arbitrary tool outputs or negotiate a catalog with a foreign host.
@@ -17,6 +17,6 @@ calls or authorization tokens. Trace shows an observed work summary, never
 private reasoning. There is no claim of compatibility with ChatGPT internals,
 MCP Apps, AG-UI or an external generative-UI standard.
 
-Future work, outside this PR: measured live-model skill selection, schema-derived
+Future work, outside this PR: measured broad live-model selection reliability, schema-derived
 prompts, typed events, data binding and incremental streaming patches. Keep
-those claims separate from this opt-in five-card plugin.
+those claims separate from this opt-in eight-card plugin.

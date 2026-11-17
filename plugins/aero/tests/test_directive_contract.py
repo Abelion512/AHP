@@ -34,8 +34,8 @@ class DirectiveContractTests(unittest.TestCase):
         for needle in ("storage?.get", "storage?.set", "streaming", "Kartu UI tidak didukung"):
             self.assertIn(needle, self.source)
 
-    def test_five_kinds_declared_and_implemented(self):
-        expected = {"wizard", "status", "trace", "compare", "form"}
+    def test_eight_kinds_declared_and_implemented(self):
+        expected = {"wizard", "status", "trace", "compare", "form", "choice", "flow", "chart"}
         self.assertEqual(set(self.contract["kinds"]), expected)
         for kind in expected:
             self.assertIn(f"kind === '{kind}'", self.source)

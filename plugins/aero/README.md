@@ -1,6 +1,6 @@
 # Aero
 
-Five native interactive cards in the Hermes Desktop/WebApp transcript. The
+Eight native visual and interactive cards in the Hermes Desktop/WebApp transcript. The
 bundled Aero skill teaches the assistant to choose a card from ordinary requests;
 the user does not need to type directive syntax. No iframe or core patch.
 
@@ -42,13 +42,16 @@ convention, not a parser restriction.
 | trace | title, steps="Read source\|Test behavior" | collapsible observed-work summary |
 | compare | title, left="A\|B", right="C\|D", pick="left" | two columns |
 | form | title, fields="Name\|Notes", submit="Send" | short non-secret inputs |
+| choice | title, options="A\|B", multiple="true" | single/multi-choice, optional note, explicit submit |
+| flow | title, nodes="A\|B", details="Why A\|Why B" | clickable visual sequence and local explanation |
+| chart | title, labels="A\|B", values="12\|8", unit, source | proportional bars, focus and equivalent table |
 
 ```text
 ::ui{version="1" id="review-01" kind="wizard" title="Next steps" steps="Review evidence|Choose an option|Confirm"}
 ```
 
 Use explicit unique ids. Only wizard completion labels persist, scoped by owning
-chat and card id. No explicit id means no persistence. Form values stay in memory
+chat and card id. No explicit id means no persistence. Form/choice values and flow/chart exploration stay in memory
 and reset when owner/card attributes change. Missing/wrong version or kind has a
 visible safe fallback. Streaming cards have no action controls.
 
@@ -58,7 +61,9 @@ field values at 160. The host parser caps the body at 2048. Full action messages
 over 240 characters are refused visibly, never silently truncated. Composer
 acceptance is not proof that a model completed the requested action. Local
 wizard toggles are not proof that the underlying work happened. No direct
-network, secrets, arbitrary JS, typed action protocol or general UI tree language.
+network, secrets, arbitrary JS or general UI tree language. New data-rich kinds
+normalize into a validated typed record before rendering; actions still use
+the existing short text composer bridge, not a typed host event API.
 
 ## Verification
 
@@ -73,9 +78,18 @@ npm run test:browser
 
 The locked React suite covers state, negative controls and exact action payloads.
 The Chromium smoke uses the unmodified pinned host parser, real React DOM and
-Aero, with a fake SDK bridge. It exercises all five kinds, form edits, owner
+Aero, with a fake SDK bridge. It exercises all eight kinds, form edits, owner
 routing, refusal, reload persistence, owner isolation, trace expansion and 390px
 overflow, and emits screenshots/report. See `docs/VERIFICATION.md` for scope and
 `e2e/README.md` for the optional live-host smoke, which creates a real session.
 A deterministic parser/renderer pass is not a live provider's autonomous skill
-selection test. That remains unverified until an authorized live host is used.
+selection test. The earlier five-kind baseline has a bounded live wizard smoke. New choice/flow/chart
+kinds are deterministic-only until a separately authorized live smoke is run.
+
+## Visual-learning design
+
+See [DESIGN.md](docs/DESIGN.md) for the original references, choice of safe
+components over a second chat shell, learning-oriented criteria and limits.
+The chart uses paired nonnegative values; unknown data is not a zero. Flow is an
+ordered sequence, not an arbitrary graph. Exploration stays local until an
+explicit choice submit. A picture alone is not evidence of better comprehension.

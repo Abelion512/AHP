@@ -20,23 +20,33 @@ No provider keys, host credentials, live chat or installation changes are needed
 
 - Python: 6 contract/serialization tests passed, including exact balanced directive
   output and invalid-title refusal controls.
-- React 19 DOM: 7 tests passed, zero skips. Actual component code is compiled by
+- React 19 DOM: 13 tests passed, zero skips. Actual component code is compiled by
   esbuild; the SDK bridge is a named fake. Exact edited form values and the full
   submitted payload are asserted after real input events. A 240-character
   overflow refuses delivery.
 - Previous renderer negative control: 1/7 passed, 6/7 failed under the same suite.
-  Repaired renderer: 7/7 passed.
-- Chromium: all 5 kinds rendered through the unchanged byte-pinned host parser.
+  Repaired five-kind baseline: 7/7 passed.
+- Chromium: all 8 kinds rendered through the unchanged byte-pinned host parser.
   Wizard toggles, owner-addressed sends, edited form payload, reload persistence,
   cross-owner isolation, composer refusal, trace expansion and 390px
   no-horizontal-overflow assertions passed.
 - `aero-desktop.png` and `aero-mobile.png` were visually inspected for readable
   controls and no clipping. `browser-report.json` records the deterministic
   smoke. These images are test-harness renders, not the installed live host.
+- Expanded learning controls: multi/single choice, explicit note submit, isolated
+  radio groups, missing-owner/overflow refusal, owner reset, local flow details,
+  exact chart/table values, fractional/zero bar scales and catalog/skill/contract
+  consistency pass. Fourteen malformed data cases visibly refuse controls.
+- New choice/flow/chart screenshots are `aero-learning-desktop.png` and
+  `aero-learning-mobile.png`. Desktop and 390px mobile were inspected; arrows
+  follow the sequence in both layouts. These new kinds are not live-tested.
 
 The fake SDK reports a focused chat different from the card owner. Missing owner,
 malformed storage, unsupported version/kind, streaming, text injection and capped
 values are negative controls. This tests behavior, not model selection.
+
+- Full Aero + Nebula regression run on supported Python 3.14: 442 passed,
+  8 runtime-dependent skips. This includes the 6 Aero contract tests above.
 
 ## Authorized temporary live smoke
 

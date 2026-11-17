@@ -1,7 +1,7 @@
 ---
 name: aero
-description: Choose native cards for visual or interactive answers.
-version: 0.2.0
+description: Visual learning with interactive native cards.
+version: 0.3.0
 author: Abelion
 license: MIT
 platforms: [linux, macos, windows]
@@ -25,6 +25,50 @@ When a person asks for a visual answer, says they dislike long text, or asks for
 | Compare two options | compare | left="Benefit\|Cost" right="Benefit\|Cost" pick="left" |
 | Short non-secret inputs | form | fields="Name\|Notes" submit="Send feedback" |
 
+## Visual understanding, not decorated prose
+
+For people who learn faster by seeing relationships, choose the representation
+from the question. Do not ask them to write a directive or name a component.
+
+- Interview or preference question: use `choice`, not an A/B/C wall of text.
+  One question at a time, optional note, explicit submit. Reuse answers already
+  in the conversation instead of repeating the interview. Do not preselect the
+  recommended answer or turn a selection into permission for an external action.
+- Explain a process or cause-and-effect chain: use `flow`. Put short stage names
+  in nodes and explain one stage at a time in details. Clicking a stage is local
+  exploration, not a new model call. This is a sequence, not a branching graph.
+- Compare quantities: use `chart` only when you have grounded numeric values,
+  matching labels and units. Include a short source label. If using fictional
+  teaching data, say it is illustrative. Never invent measurements or use bar
+  length to imply a proven learning benefit. Use compare/text for qualitative
+  differences or unsupported/negative numeric data.
+
+| Need | kind | Data attributes |
+|---|---|---|
+| Clickable interview | choice | options="Diagram\|Example\|Text" multiple="false" |
+| Visual sequence | flow | nodes="Input\|Validate\|Render" details="Understand the ask\|Check allowed data\|Draw native controls" |
+| Numeric comparison | chart | labels="A\|B\|C" values="12\|8\|20" unit="units" source="Illustrative example" |
+
+Examples, one per ordinary request:
+
+::ui{version="1" id="learn-choice-01" kind="choice" title="How should we explore this?" options="See the process|Try an example|Compare the data" multiple="true"}
+
+::ui{version="1" id="learn-flow-01" kind="flow" title="How a card appears" nodes="Model|Validator|Renderer" details="Choose a supported representation|Reject malformed data|Show native controls"}
+
+::ui{version="1" id="learn-chart-01" kind="chart" title="Illustrative quantities" labels="A|B|C" values="12|8|20" unit="units" source="Fictional teaching data"}
+
+New kinds use 1-6 rows (choice/flow require at least 2). Labels are 1-60
+characters. Flow requires exactly one 1-180 character detail per node. Chart
+requires exactly one nonnegative decimal per label, at most 9 integer and 4
+fraction digits. No exponents, percentages in values, expressions or formulas.
+Use unit for the unit. Choice multiple is exactly true or false; duplicate
+options are invalid. Notes stay local until submit and are not persisted.
+
+Use one dominant visual plus one short takeaway, not every kind at once. If a
+visual cannot express the answer honestly, use concise text instead. Local
+state is not automatically visible to the model; only explicit submissions are
+sent to the owning conversation. The host remains responsible for approvals.
+
 ## Native path
 
 Prerequisite: Aero's `desktop/` folder must be installed in the host's desktop-plugins directory, and the host must provide `TranscriptDirectiveProps.sessionId` and `host.composer.submit(sessionId, text)`. Serving the file alone does not prove registration. Do not claim this skill installs or activates the renderer.
@@ -45,4 +89,4 @@ If native rendering is unavailable, give a concise text answer with the same dec
 
 ## Verification
 
-For development, run the Python contract suite and the locked React/browser tests documented in the plugin README. The browser smoke verifies deterministic card generation from these examples through the pinned parser and renderer with a fake SDK bridge. It does not establish that a live model autonomously chose the skill. A live host/provider smoke requires explicit access to the intended host, emits a real chat turn and is separate from CI. Do not turn test fixtures or an old run into a claim about the current installed system.
+For development, run the Python contract suite and the locked React/browser tests documented in the plugin README. The browser smoke verifies all eight kinds through the pinned parser and renderer with a fake SDK bridge. The earlier five-kind baseline had a separately authorized live wizard smoke; the three new kinds have not been tested with a live provider. A live host/provider smoke requires explicit access to the intended host, emits a real chat turn and is separate from CI. Do not turn test fixtures or an old run into a claim about the current installed system.
