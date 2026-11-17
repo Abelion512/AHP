@@ -2,7 +2,7 @@ name: pr-body-check
 
 on:
   pull_request:
-    types: [opened, edited, reopened, synchronize]
+    types: [opened, edited, reopened, synchronize, ready_for_review]
 
 permissions:
   contents: read
@@ -11,43 +11,12 @@ jobs:
   required-pr-sections:
     runs-on: ubuntu-latest
     steps:
-      - name: Require non-empty PR rationale and verification
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Test PR body validation
+        run: python -m unittest discover -s .github/tests -p test_pr_body_check.py
+      - name: Require substantive PR rationale and verification
         env:
           PR_BODY: ${{ github.event.pull_request.body || '' }}
-        run: |
-          python - <<'PY'
-          import os
-          import re
-          import sys
-
-          body = os.environ.get("PR_BODY", "")
-          visible = re.sub(r"<!--.*?-->", "", body, flags=re.S)
-          headings = [
-              "Fungsi apa yang dibawa PR ini?",
-              "Kenapa harus saya merge?",
-              "Bukti verifikasi",
-          ]
-          # Shallow gate: reject empty, placeholder-only, or one-word answers.
-          placeholders = {"todo", "tbd", "tba", "n/a", "na", "none", "placeholder",
-                          "xxx", "fixme", "wip", "coming soon", "tbc"}
-          missing = []
-          for index, heading in enumerate(headings):
-              match = re.search(
-                  r"(?m)^##\s+" + re.escape(heading) + r"\s*\n(.*?)(?=^##\s+|\Z)",
-                  visible,
-                  flags=re.S,
-              )
-              section = match.group(1).strip() if match else ""
-              if not section:
-                  missing.append(heading)
-                  continue
-              lowered = section.lower()
-              if lowered in placeholders or len(section) < 10:
-                  missing.append(heading)
-          if missing:
-              print("::error::PR body is incomplete. Fill these sections:")
-              for heading in missing:
-                  print(f"::error::  - {heading}")
-              sys.exit(1)
-          print("Required PR sections are present and non-empty.")
-          PY
+        run: python .github/scripts/check_pr_body.py
