@@ -6,6 +6,12 @@
 
 Fixes #
 
+## Why merge this now
+
+<!-- What breaks, stays blocked, or drifts if this does NOT merge. Merge risk:
+     low / medium / high, with one reason. If this PR is stacked, name the base
+     PR and the merge order here. -->
+
 ## Changes
 
 <!-- Per file or per area, one line each, with the reason - not a diff dump. -->
@@ -23,26 +29,24 @@ Fixes #
 
 ## How it works
 
-<!-- Required. Attach a real image of how this change works end to end: a small diagram, or a screenshot of the result. For config or docs changes, a small accurate diagram of what changes is enough. Do not paste a Mermaid block. Keep the editable source in the repo so the next person can regenerate the image. -->
-
-## Infographic
-
-<!-- EVERY PR carries a picture a reviewer can look at without running the code:
-     a before/after collage for UI work, the annotated flow for anything that
-     moves data or control, a screenshot or graph for an endpoint, a model or a
-     fix. Paste the image, never a Mermaid block - GitHub does not render Mermaid
-     in comments and only sometimes in a body. Keep the source (mermaid/script)
-     in the repo so the next person re-shoots it instead of redrawing it. -->
+<!-- Required. Attach ONE real image a reviewer can look at without running the
+     code: a before/after collage for UI work, the annotated flow for anything
+     that moves data or control, a screenshot or graph for an endpoint, a model
+     or a fix. For config or docs changes, a small accurate diagram of what
+     changes is enough. Paste the image, never a Mermaid block - GitHub does not
+     render Mermaid in comments and only sometimes in a body. Keep the editable
+     source (mermaid/script) in the repo so the next person can regenerate it. -->
 
 ## Verification
 
-<!-- Facts, not adjectives. Paste the command and its result, and say plainly
-     what was NOT covered. A live check that compares old and new behaviour is
-     worth more than a green suite. -->
+<!-- Facts, not adjectives. Paste the command and its result, and label each
+     claim: VERIFIED (command + output) / ESTIMATED / FAILED. Say plainly what
+     was NOT covered. A live check that compares old and new behaviour is worth
+     more than a green suite. -->
 
-| check | result |
-|---|---|
-| | |
+| check | result | label |
+|---|---|---|
+| | | |
 
 ## Trade-off
 
@@ -57,3 +61,4 @@ Fixes #
 - [ ] CI is green
 - [ ] Docs updated where behaviour or setup changed - or N/A
 - [ ] Review bot / reviewer findings answered in-thread and fixed in their own commit
+- [ ] Stacked PR: base PR named and merge order stated in "Why merge this now"
