@@ -5,11 +5,11 @@
  * Install: symlink the `desktop/` folder into
  *   $HERMES_HOME/desktop-plugins/abelion-intelligence-ui
  * Use in a reply (alone on its own line):
- *   ::ui{kind="wizard"  title="Rotasi" steps="OpenCode|Hermes|9router"}
- *   ::ui{kind="status"  title="Gate" items="Hook:siap|Credential:blocked"}
- *   ::ui{kind="trace"   title="Kenapa" steps="Input|Bukti|Keputusan"}
- *   ::ui{kind="compare" title="Opsi" left="A|B" right="C|D" pick="left"}
- *   ::ui{kind="form"    title="Input" fields="Nama|Catatan" submit="Kirim"}
+ *   ::ui{version="1" id="wiz-01" kind="wizard"  title="Rotasi" steps="OpenCode|Hermes|9router"}
+ *   ::ui{version="1" id="stat-01" kind="status"  title="Gate" items="Hook:siap|Credential:blocked"}
+ *   ::ui{version="1" id="trace-01" kind="trace"   title="Kenapa" steps="Input|Bukti|Keputusan"}
+ *   ::ui{version="1" id="cmp-01" kind="compare" title="Opsi" left="A|B" right="C|D" pick="left"}
+ *   ::ui{version="1" id="form-01" kind="form"    title="Input" fields="Nama|Catatan" submit="Kirim"}
  *
  * All attrs are untrusted strings. They are capped, never parsed as markup,
  * and rendered as React text children. No network, no privileged API.

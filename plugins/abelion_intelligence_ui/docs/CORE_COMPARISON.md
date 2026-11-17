@@ -1,5 +1,8 @@
 # Core comparison — why this is a plugin
 
+The directive is versioned: `::ui{version="1" id="..." kind="..."}`. The full
+model-facing contract is `docs/directive-contract.json`.
+
 ## Decision: plugin, not core
 
 Data observed on Hermes v0.23.1:

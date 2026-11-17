@@ -2,7 +2,7 @@
 
 `live_webapp_smoke.py` drives the real WebApp at `http://127.0.0.1:9120`
 through the browser's CDP endpoint on `127.0.0.1:9222`. It sends one
-`::ui{kind="status" ...}` reply and asserts the card appears as native text,
+`::ui{version="1" id="e2e-01" kind="status" ...}` reply and asserts the card appears as native text,
 not raw directive syntax.
 
 ```sh
