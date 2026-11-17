@@ -28,7 +28,7 @@ class BodyCheckTest(unittest.TestCase):
         self.assertEqual(len(module.missing_sections('')), 3)
 
     def test_all_scaffolds(self):
-        for answer in ['', 'TODO', 'coming soon', 'abcdefghijklmnopqrst', 'wip wip wip', '- [ ]', '| check | result | label |\n|---|---|---|\n| | | |', '<!-- Actual meaningful evidence but commented -->']:
+        for answer in ['', 'TODO', 'TODO: implementation will be added', 'WIP - details will follow', 'later with more information', 'coming soon', 'abcdefghijklmnopqrst', 'wip wip wip', '- [ ]', '| check | result | label |\n|---|---|---|\n| | | |', '<!-- Actual meaningful evidence but commented -->']:
             with self.subTest(answer=answer):
                 self.assertEqual(len(module.missing_sections(body(answer))), 3)
 
@@ -52,6 +52,16 @@ class BodyCheckTest(unittest.TestCase):
         for value, expected in [(body() + '\n$(exit 99); `exit 88`', 0), ('', 1)]:
             result = subprocess.run([sys.executable, str(SCRIPT)], env={**os.environ, 'PR_BODY': value}, capture_output=True, text=True)
             self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
+
+    def test_workflow_uses_literal_env_and_readonly_pr_event(self):
+        workflow = (ROOT / '.github/workflows/pr-body-check.yml').read_text()
+        self.assertIn('  pull_request:', workflow)
+        self.assertNotIn('pull_request_target:', workflow)
+        self.assertIn('  contents: read', workflow)
+        self.assertIn('persist-credentials: false', workflow)
+        self.assertIn('run: python .github/scripts/check_pr_body.py', workflow)
+        self.assertIn('PR_BODY: ${{ github.event.pull_request.body', workflow)
+        self.assertNotIn('run: ${{', workflow)
 
     def test_single_template(self):
         templates = [p.name for p in (ROOT / '.github').iterdir() if p.name.casefold() == 'pull_request_template.md']
