@@ -2,6 +2,8 @@
 import copy
 import importlib
 import json
+import re
+import pytest
 import sys
 import time
 from pathlib import Path
@@ -320,3 +322,70 @@ def test_quoted_angle_secret_is_masked_but_documentation_placeholders_stay():
     ):
         assert masked(text) == text, text
     assert cred.mask_value_for_key("api_key", "<your-api-key>") == ("<your-api-key>", 0)
+
+
+def test_field_name_pattern_is_atomic_and_remains_bounded():
+    assert cred._NAME.startswith("(?>")
+    pattern = re.compile(rf"^{cred._NAME}$")
+    assert pattern.fullmatch("A" * 64)
+    assert pattern.fullmatch("A" * 65) is None
+
+
+def test_mask_credentials_returns_exact_new_mask_count():
+    raw = (
+        f'api_key="{FAKE}", '
+        'access_token="<token>", '
+        f'client_secret="{FAKE}"'
+    )
+    output, count = cred.mask_credentials(raw)
+    assert count == 2
+    assert output.count("[REDACTED]_SECRET_FIELD") == 2
+    assert FAKE not in output
+    assert 'access_token="<token>"' in output
+
+
+def test_mask_count_does_not_count_preexisting_labels_or_placeholders():
+    raw = (
+        'api_key="<your-api-key>", '
+        'access_token="<token>", '
+        f'api_key="{FAKE}"'
+    )
+    output, count = cred.mask_credentials(raw)
+    assert count == 1
+    assert output.count("[REDACTED]_SECRET_FIELD") == 1
+    assert '<your-api-key>' in output
+    assert '<token>' in output
+
+
+@pytest.mark.parametrize("template", [
+    'api_key="{}"',
+    '--password "{}"',
+    'password: {} with spaces',
+])
+def test_mask_count_tracks_replacement_events_not_marker_substrings(template):
+    for inner in (
+        "prefix[REDACTED]_SECRET_FIELDsuffix",
+        "prefix[REDACTED]_SECRET_FIELD[REDACTED]_ID_FIELDsuffix",
+    ):
+        output, count = cred.mask_credentials(template.format(inner))
+        assert count == 1
+        assert "prefix" not in output and "suffix" not in output
+        assert output.count("[REDACTED]_SECRET_FIELD") == 1
+
+
+def test_mask_count_keeps_preexisting_markers_out_of_new_count():
+    raw = '[REDACTED]_SECRET_FIELD; api_key="' + FAKE + '"'
+    output, count = cred.mask_credentials(raw)
+    assert count == 1
+    assert output.count("[REDACTED]_SECRET_FIELD") == 2
+    assert cred.mask_credentials(output) == (output, 0)
+
+
+def test_marker_substrings_do_not_suppress_optional_request_replacement():
+    value = "prefix[REDACTED]_SECRET_FIELDsuffix"
+    request = {"messages": [{"role": "user", "content": 'api_key="' + value + '"'}]}
+    original = copy.deepcopy(request)
+    result = pii.pii_middleware(request)
+    assert result is not None
+    assert value not in json.dumps(result["request"])
+    assert request == original

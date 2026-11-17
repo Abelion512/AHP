@@ -51,7 +51,10 @@ DISCORD_TOKEN = re.compile(r"\b[MNO][A-Za-z0-9_\-]{23,25}\.[A-Za-z0-9_\-]{6}\.[A
 # ── 2. Field-name driven masking ─────────────────────────────────────────
 # name, separator (quotes allowed so JSON/headers/query/env/CLI all fit), value.
 # Name is bounded to 64 chars; the value excludes whitespace and delimiters.
-_NAME = r"[A-Za-z](?:[A-Za-z0-9_.\-]|%(?:25)?(?:5[Ff]|2[DdEe])){1,63}"  # %5F / %2D / %2E: URL-encoded _ - .
+# Name is atomic (?>...): separator chars are disjoint from name chars and the
+# name can never bind to sep's "%3D" prefix, so shortening the name can never
+# enable a match — a failed position fails once, not once per name length.
+_NAME = r"(?>[A-Za-z](?:[A-Za-z0-9_.\-]|%(?:25)?(?:5[Ff]|2[DdEe])){1,63})"  # %5F / %2D / %2E: URL-encoded _ - .
 _VALUE = (r"(?:\"[^\"\n]{1,512}\"|'[^'\n]{1,512}'"  # quoted scalar: whole, spaces included
           r"|[^\s\"',;&<>{}\[\]()/$=][^\s\"',;&<>{}\[\]()]*)")
 _ASSIGN = re.compile(
@@ -291,11 +294,11 @@ def _sub_flag(m: re.Match) -> str:
     return m.group(0) if new is None else f"{m.group('name')}{m.group('sep')}{new}"
 
 
-def _scan_assign(text: str) -> str:
+def _scan_assign(text: str) -> tuple[str, int]:
     """Like ``_ASSIGN.sub`` but a rejected match does not swallow its value: ``out: password: x`` still
     reaches the inner ``password: x`` (non-overlapping matching would skip it)."""
     out: list[str] = []
-    pos = last = 0
+    pos = last = changes = 0
     while True:
         m = _ASSIGN.search(text, pos)
         if m is None:
@@ -306,9 +309,23 @@ def _scan_assign(text: str) -> str:
             continue
         out.append(text[last:m.start()])
         out.append(new)
+        changes += 1
         pos = last = m.end()
     out.append(text[last:])
-    return "".join(out)
+    return "".join(out), changes
+
+
+def _replace_changed(pattern, replace, text: str) -> tuple[str, int]:
+    """Count replacements, not marker text that may already occur in input."""
+    changes = 0
+
+    def counted(match):
+        nonlocal changes
+        replacement = replace(match)
+        changes += replacement != match.group(0)
+        return replacement
+
+    return pattern.sub(counted, text), changes
 
 
 def mask_credentials(text: str) -> tuple[str, int]:
@@ -322,19 +339,14 @@ def mask_credentials(text: str) -> tuple[str, int]:
         text, n = _PEM.subn("[REDACTED]_PRIVATE_KEY", text)
         changes += n
     if ":" in text or "=" in text or "%3" in text:
-        text, n = _LINE.subn(_sub_line, text)  # multi-word line values first
-        changes += _count_new(n, text)
-        text = _scan_assign(text)
-        changes += _count_new(1, text)
+        text, n = _replace_changed(_LINE, _sub_line, text)
+        changes += n
+        text, n = _scan_assign(text)
+        changes += n
     if "--" in text:
-        text, n = _FLAG.subn(_sub_flag, text)
-        changes += _count_new(n, text)
+        text, n = _replace_changed(_FLAG, _sub_flag, text)
+        changes += n
     return text, changes
-
-
-def _count_new(subn_count: int, text: str) -> int:
-    # subn counts every regex match (including unchanged ones); count real masks instead.
-    return text.count("[REDACTED]_SECRET_FIELD") + text.count("[REDACTED]_ID_FIELD") if subn_count else 0
 
 
 _AUTH_KEYS = frozenset({"authorization", "proxy-authorization"})
