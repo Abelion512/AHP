@@ -24,3 +24,6 @@
 8ccf80abae104c4bea2455f29ee93ff322fe11b7:plugins/pii_mask_abelion/e2e/test_privacy_wire.py:generic-api-key:88
 8ccf80abae104c4bea2455f29ee93ff322fe11b7:plugins/nebula/e2e/test_privacy_wire.py:generic-api-key:87
 8ccf80abae104c4bea2455f29ee93ff322fe11b7:plugins/nebula/e2e/test_privacy_wire.py:generic-api-key:88
+
+# Same synthetic classifier-regression canary resurfaced in the main-restore commit; exact commit/path/rule only.
+71f0e405ac74b6ba3612ef1b691018d922e946c7:plugins/pii_mask_abelion/tests/test_classifier_case_invariance.py:generic-api-key:87
