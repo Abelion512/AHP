@@ -122,3 +122,7 @@ Restart the process and start a new session.
 - Add it under `plugins/<id>/` with its own README, docs, tests, e2e, skills, plugin-local labels if useful, and a catalog entry in `hermes.json`.
 - Keep feature policy/UI in the plugin repo; host enforcement, lifecycle, and execution guarantees belong in the Hermes core fork.
 - Do not vendor or duplicate the `decolua/9router` router here.
+
+## PR rationale gate
+
+Use `.github/PULL_REQUEST_TEMPLATE.md`, the single canonical template. Explain the function in "What changed", the merge reason and stack order in "Why merge this now", and evidence in "Verification". The PR-body check requires substantive answers, not a green CI claim alone. Indonesian headings remain supported for existing PRs.
