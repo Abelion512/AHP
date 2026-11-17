@@ -85,7 +85,7 @@ async def smoke(title: str, timeout: float) -> dict:
 
             directive = (
                 '::ui{version="1" id="e2e-live" kind="status" '
-                f'title="{title}" items="Load:ok|Register:ok"}}'
+                f'title="{title}" items="Load:ok|Register:ok"}'
             )
             await page.send("Input.insertText", {"text": "Balas persis satu baris: " + directive})
             await page.send(
