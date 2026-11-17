@@ -41,7 +41,7 @@ def main() -> int:
                 )
             except FileNotFoundError:
                 diagnostic("ruff is not installed; lint was not run")
-                return 0
+                continue
             except subprocess.TimeoutExpired:
                 diagnostic(f"ruff timed out for {target}; tool call remains successful")
                 continue
