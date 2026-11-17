@@ -14,7 +14,9 @@ PLACEHOLDERS = {'todo', 'tbd', 'tba', 'n/a', 'na', 'none', 'placeholder',
 def substantive(text):
     # Ignore markup and empty template scaffolding, including unchecked items.
     plain = text.strip().lstrip('-*| ').casefold()
-    if re.match(r'(?:todo|tbd|tba|wip|fixme|placeholder|coming soon|later|null|empty)\b', plain):
+    annotated = any(plain.startswith(word + separator)
+                    for word in PLACEHOLDERS for separator in (':', ' -', '.', ';'))
+    if annotated or re.match(r'(?:todo|tbd|tba|wip|fixme|placeholder|coming soon|later|null|empty)\b', plain):
         return False
     lines = []
     for line in text.splitlines():
