@@ -27,4 +27,3 @@
 
 # Same synthetic classifier-regression canary resurfaced in the main-restore commit; exact commit/path/rule only.
 71f0e405ac74b6ba3612ef1b691018d922e946c7:plugins/pii_mask_abelion/tests/test_classifier_case_invariance.py:generic-api-key:87
-71f0e405ac74b6ba3612ef1b691018d922e946c7:plugins/nebula/tests/test_classifier_case_invariance.py:generic-api-key:87
