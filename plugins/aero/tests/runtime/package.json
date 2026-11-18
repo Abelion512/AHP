@@ -2,8 +2,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test interaction.test.mjs",
-    "test:browser": "node browser-smoke.mjs"
+    "test": "node build-plugin.mjs --check && node --test interaction.test.mjs photo.test.mjs",
+    "test:browser": "node browser-smoke.mjs && node photo-browser.mjs",
+    "build:plugin": "node build-plugin.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.65.1",

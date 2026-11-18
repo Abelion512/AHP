@@ -1,8 +1,8 @@
 # Aero
 
-Eight native visual and interactive cards in the Hermes Desktop/WebApp transcript. The
+Eight native visual and interactive `ui` kinds plus bounded product/place photo cards in the Hermes Desktop/WebApp transcript. The
 bundled Aero skill teaches the assistant to choose a card from ordinary requests;
-the user does not need to type directive syntax. No iframe or core patch.
+the user does not need to type directive syntax. No iframe. The original `ui` path needs no core patch; the photo verification harness used a separate focus-retry core delta, so unpatched-host focus compatibility is not claimed.
 
 ## Install, without changing a running profile automatically
 
@@ -60,8 +60,8 @@ Titles cap at 80 characters, rows at 8 x 60, comparison rows and fields at 6,
 field values at 160. The host parser caps the body at 2048. Full action messages
 over 240 characters are refused visibly, never silently truncated. Composer
 acceptance is not proof that a model completed the requested action. Local
-wizard toggles are not proof that the underlying work happened. No direct
-network, secrets, arbitrary JS or general UI tree language. New data-rich kinds
+wizard toggles are not proof that the underlying work happened. The original `ui` kinds have no direct
+network access, secrets, arbitrary JS or general UI tree language. The separate photo directives load external HTTPS media as described below. New data-rich kinds
 normalize into a validated typed record before rendering; actions still use
 the existing short text composer bridge, not a typed host event API.
 
@@ -97,3 +97,10 @@ explicit choice submit. A picture alone is not evidence of better comprehension.
 ## Contributor reference workflow
 
 Reference observations, sanitized improvement records and patch templates live in [the experiment guide](../../experiments/intelligent-ui-reference/README.md). The [manual contributor skill](../../.plugins/intelligent-ui-reference/SKILL.md) does not change runtime registration. These are pending UI references, not new accepted Aero behavior.
+
+
+## Photo card candidate
+
+`visualcard` and `visualcards` add image-above-title cards and a photo/source-only viewport viewer while preserving all eight `ui` kinds. New authored source lives in `desktop/src/`; `aero-baseline.js` preserves the preceding renderer byte-for-byte. `desktop/plugin.js` is the reproducible bundle: from `tests/runtime`, run `npm ci`, then `npm run build:plugin`. Tests verify the committed bundle matches this source. Install only one Aero plugin instance.
+
+Photos load from validated HTTPS URLs with no referrer. This is external media loading, unlike the original text-only `ui` contract. It does not fetch price/availability/place data or supply a map. Both fixture cards explicitly use the same family illustration, not verified variant photos. Prices remain unverified. See [photo verification and remaining gaps](docs/PHOTO-VERIFICATION.md).

@@ -1,4 +1,4 @@
-"""Contract tests for the aero directive.
+"""Contract tests for the preserved Aero ui directive source (not media directives).
 
 Run from the repo root:
     python3 -m unittest discover -s plugins/aero/tests -v
@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 PLUGIN = ROOT / "plugins" / "aero"
 CONTRACT = PLUGIN / "docs" / "directive-contract.json"
-SOURCE = PLUGIN / "desktop" / "plugin.js"
+SOURCE = PLUGIN / "desktop" / "src" / "aero-baseline.js"
 
 
 class DirectiveContractTests(unittest.TestCase):

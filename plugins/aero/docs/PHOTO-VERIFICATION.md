@@ -1,0 +1,41 @@
+# Aero photo cards: verification scope
+
+This is a partial reference-imitation implementation, not completion of the full Intelligent UI outcome. It adds `visualcard`/`visualcards` to Aero without removing the original eight `ui` kinds. No merge, permanent installation, provider activation, spending or map dependency is included.
+
+## Source and build
+
+- `desktop/src/aero-baseline.js` SHA256 `b63d27fd97b883c8acd35fc44acb1c27d57300c9297a127efbd55e88753aba0f` preserves PR30 head495624de's renderer.
+- `desktop/src/index.mjs` calls the existing registration and adds the photo directives. Public SDK session state closes a retained viewer on navigation; renderer-owner changes and unmount also close it. X/Escape restore the original photo trigger; navigation does not restore focus to the old card.
+- `tests/runtime/build-plugin.mjs` rebuilds the committed bundle. Its SHA256 `0cfd12ee5425c82030dfb72abbcbb715251b0e25005fae622ba0388606cfb108` matches the independently exercised combined v8 artifact.
+- Test harness adapters now select the `ui` registration by name rather than assuming it is the last registered directive. Existing behavioral assertions remain.
+
+## Evidence levels
+
+| Evidence | Actual scope | Not proved |
+|---|---|---|
+| Six Python contract tests | Preserved readable `ui` source/catalog contract | Bundle behavior or new media contract |
+| Original13DOM interaction tests | Combined bundle, fake SDK/storage, original8kinds/actions/state isolation | Real host delivery or model choice |
+| Photo schema test | Bounds, URL refusal, required price/note pair | Remote media trust or data accuracy |
+| Chromium legacy smoke + photo browser | Pinned parser, fake SDK atoms/composer;320/390/1280; viewer boundary/zoom/close/owner switch/unsafe values/zero sends | Full Hermes or live model output |
+| Native-module10group run, private v8 candidate | Actual host Markdown/SDK module graph with cached image interception and separate focus delta | Full shell or model selection |
+| Independent combined-v8 full-shell check | Manual fixture in isolated Hermes, desktop1280 and mobile390; all8legacy types+2photo cards, real touch scroll, X/Escape exact opener focus, actual SDK-state navigation closes overlay, saved combined reopen | Real model generation, all legacy form-field mappings, universal listener cleanup or unpatched-core compatibility |
+
+The full-shell form reached the same owning chat with a fake-provider acknowledgment. Notes-field mapping was not individually exercised at the recorded checkpoint. Repeated reopen/close showed one viewer and no observed page errors; this is not a proof that every listener is absent. No previous isolated v7/v7.3 pass is counted as combined-v8 acceptance.
+
+## Visual evidence
+
+These committed images are deterministic native-module harness screenshots, not the user's account, reference conversation, full Hermes shell or model output. The family illustration is repeated deliberately and labeled, not variant-photo evidence.
+
+![Desktop manual fixture](../tests/runtime/evidence/reference-1280.png)
+
+[390px fixture](../tests/runtime/evidence/reference-390.png) and [390px photo/source-only viewer](../tests/runtime/evidence/photo-viewer-390.png). Original source: https://www.raspberrypi.com/products/raspberry-pi-5/ . Browser CI uses a synthetic image rather than claiming photo provenance.
+
+## Reference and remaining gaps
+
+The settled ChatGPT desktop reference had photos above plain titles and prices; photo click opened image/source-only viewer. Normal title click did nothing and the title was not inside a button/link. This implementation preserves that boundary, not a custom details popup. The reference also has download and image-type controls which are absent here. Native-mobile reference behavior was not established; the horizontal mobile row is tested usability, not exact mobile fidelity.
+
+Fresh varied unseen real-model selection, correct model-emitted serialization and sourced media/data have NOT been proved for this photo path. The skill documents the new directives but a skill edit is not acceptance evidence. Unknown prices/stock/tax/shipping remain visible. No purchase/winner claim is made. HTTPS validation/referrer suppression does not establish that an arbitrary media endpoint is safe or accurate.
+
+The full-shell/native-module photo harness used an existing separate focus-retry core delta. That patch is not included or silently merged into this plugin PR; the plugin adds no new core edit. Unpatched-host focus behavior remains a deployment blocker to resolve through its own review, not a claim hidden by a passing harness.
+
+Maps remain blocked on the user's net-Rp0/no-PAYG condition. No new API key, billing, account, paid call or substitute provider was activated. Other interaction families (maps, video, charts, learning flows) are not complete merely because this photo boundary works.

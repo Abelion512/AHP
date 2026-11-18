@@ -1,5 +1,7 @@
 # Visual-learning design
 
+This document records the original eight `ui` kinds. The added media directives, external image loading and their separate acceptance gaps are scoped in [PHOTO-VERIFICATION.md](PHOTO-VERIFICATION.md).
+
 ## What changed
 
 A card must make a relationship or choice easier to explore, not merely put a

@@ -1,7 +1,7 @@
 ---
 name: aero
 description: Visual learning with interactive native cards.
-version: 0.3.0
+version: 0.4.0
 author: Abelion
 license: MIT
 platforms: [linux, macos, windows]
@@ -90,3 +90,14 @@ If native rendering is unavailable, give a concise text answer with the same dec
 ## Verification
 
 For development, run the Python contract suite and the locked React/browser tests documented in the plugin README. The browser smoke verifies all eight kinds through the pinned parser and renderer with a fake SDK bridge. The earlier five-kind baseline had a separately authorized live wizard smoke; the three new kinds have not been tested with a live provider. A live host/provider smoke requires explicit access to the intended host, emits a real chat turn and is separate from CI. Do not turn test fixtures or an old run into a claim about the current installed system.
+
+
+## Product/place media cards
+
+The same Aero renderer additionally claims `visualcard` and `visualcards`. These do not change the eight `ui` kinds. Prefer short text when grounded image/source data is missing. Do not invent photos, prices, hours, availability or a map.
+
+A `visualcard` requires `kind` (`product` or `place`), title (90chars), summary (180), fact1 (100), caveat (180), source/image HTTPS URLs (600each), and alt (120). Optional fact2-fact4 have the same100char limit. Optional price (80) and pricenote (120) must appear together. State uncertainty in the card, not only nearby prose. Label family illustrations and reused photos; neither proves a particular variant. External image requests occur when the card renders; do not use private, credentialed or tracking-bearing URLs. HTTPS validation is not a claim that every remote source is trustworthy.
+
+Use `visualcards` for1-5peer cards by prefixing every attribute a_, b_, c_, d_, e_. Total directive attributes must remain within2000characters. Values are plain text, never code. Keep each directive on its own line, without braces/newlines inside values. Photo click opens only the image/source viewer; titles remain text. The row scrolls horizontally on small screens. No purchase, reservation, map API, video generation, download or arbitrary HTML is supplied by these directives.
+
+The photo path has manual-fixture tests, not fresh live-model selection proof. It does not authorize a model/provider switch or paid call. Native maps remain blocked until net-zero billing with no PAYG is proven and approved. Never substitute another map provider silently.

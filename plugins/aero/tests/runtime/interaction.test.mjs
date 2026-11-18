@@ -13,7 +13,7 @@ const source = readFileSync(new URL('../../desktop/plugin.js', import.meta.url),
 // The same module instance is shared by plugin and test imports. No network or
 // host account is involved; only the SDK bridge is replaced with an explicit fake.
 const sdk = await import('./sdk.mjs')
-const result = await build({ stdin: { contents: source.replaceAll("'@hermes/plugin-sdk'", JSON.stringify(new URL('./sdk.mjs', import.meta.url).pathname)), resolveDir: process.cwd() }, bundle: true, write: false, format: 'esm', platform: 'node', external: ['react', 'react/jsx-runtime', new URL('./sdk.mjs', import.meta.url).pathname] })
+const result = await build({ stdin: { contents: source.replaceAll("'@hermes/plugin-sdk'", JSON.stringify(new URL('./sdk.mjs', import.meta.url).pathname)), resolveDir: process.cwd() }, bundle: true, write: false, format: 'esm', platform: 'node', alias:{'@hermes/plugin-sdk':new URL('./sdk.mjs',import.meta.url).pathname}, external: ['react', 'react/jsx-runtime', new URL('./sdk.mjs', import.meta.url).pathname] })
 const compiled = new URL('./.compiled-plugin.mjs', import.meta.url)
 writeFileSync(compiled, result.outputFiles[0].text)
 const { default: plugin, catalog, normalize } = await import(compiled.href)
@@ -23,7 +23,7 @@ async function mounted(attrs, options = {}) {
   const stored = options.stored || new Map()
   let render
   const storage = { get: key => stored.get(key), set: (key,value) => stored.set(key,value) }
-  plugin.register({ storage, register: c => { assert.equal(c.area, sdk.TRANSCRIPT_DIRECTIVE_AREA); render = c.data.render } })
+  plugin.register({ storage, register: c => { assert.equal(c.area, sdk.TRANSCRIPT_DIRECTIVE_AREA); if(c.data.name==='ui') render = c.data.render } })
   const node = document.createElement('div'); document.body.append(node)
   const root = createRoot(node)
   const props = { attrs: { version: '1', id: 'card', ...attrs }, streaming: false, sessionId: 'owner-chat', ...options.props }

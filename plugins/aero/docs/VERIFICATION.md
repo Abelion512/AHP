@@ -1,5 +1,7 @@
 # Verification scope
 
+This document records the original eight `ui` kinds. The added media directives, external image loading and their separate acceptance gaps are scoped in [PHOTO-VERIFICATION.md](PHOTO-VERIFICATION.md).
+
 ## Reproduce deterministic tests
 
 From repository root:

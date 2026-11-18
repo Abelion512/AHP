@@ -5,7 +5,7 @@ import { segmentTranscriptDirectives } from '../../e2e/fixtures/transcript-direc
 window.aeroAccept = true
 window.aeroCalls = []
 let render
-plugin.register({storage:{get:key=>JSON.parse(localStorage.getItem(key)||'null'),set:(key,value)=>localStorage.setItem(key,JSON.stringify(value))},register:c=>{render=c.data.render}})
+plugin.register({storage:{get:key=>JSON.parse(localStorage.getItem(key)||'null'),set:(key,value)=>localStorage.setItem(key,JSON.stringify(value))},register:c=>{if(c.data.name==='ui')render=c.data.render}})
 const examples = [
   '::ui{version="1" id="w" kind="wizard" title="Next steps" steps="Review evidence|Choose an option|Confirm action"}',
   '::ui{version="1" id="s" kind="status" title="Verification status" items="Unit tests:pass|Live host:not verified"}',
