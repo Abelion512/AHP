@@ -4,7 +4,7 @@ Inputs: PR number and triggering comment id (workflow event fields, validated as
 a one-line digest file used only to NAME the artifact (the consumer re-derives the name from its own context)."""
 import io,json,os,pathlib,re,sys,zipfile
 from github_proof_transport import GitHubProofTransport
-from producer_context import collect_context
+from producer_context import collect_context, MAX_PROOF_FILES
 from proof_closure import local_closure_digest
 from proof_context import context_digest
 from proof_producer import ProofProducer
@@ -59,7 +59,7 @@ def eligibility(transport, pr_number, identity):
             return 'draft_pr'
         if head_id != identity['repo_id']:
             return 'fork_head_outside_proof_scope'
-        if count > 30:
+        if count > MAX_PROOF_FILES:
             return 'changed_file_limit_outside_proof_scope'
         return None
     except (KeyError, TypeError, AttributeError) as exc:
@@ -106,6 +106,8 @@ def main(argv,env):
     for filename in ('proof.json', 'digest.txt', 'proof-status.json'):
         pathlib.Path(filename).unlink(missing_ok=True)
     transport = GitHubProofTransport(lambda:env.get('GH_TOKEN',''))
+    # run() independently re-collects context and rejects head/base/review movement;
+    # this preflight cannot turn an older metadata snapshot into a positive proof.
     reason = eligibility(transport, pr_number, I.IDENTITY)
     if reason:
         report_outcome(env, reason=reason)

@@ -187,6 +187,29 @@ class ScopeReporting(unittest.TestCase):
                     self.call()
                 self.env = original
 
+    def test_draft_rule_matches_existing_collector(self):
+        service = T.ReadService()
+        original = service.request
+        def request(path, **kwargs):
+            result = original(path, **kwargs)
+            if path.endswith('/pulls/1'):
+                result['draft'] = True
+            return result
+        service.request = request
+        with self.assertRaisesRegex(ValueError, 'producer_pr_not_eligible'):
+            collect_context(service, 1, request_comment_id=0, **FIX)
+        self.pr['draft'] = True
+        self.assertEqual(RC.eligibility(mock.Mock(request=mock.Mock(return_value=self.pr)), 1, I.IDENTITY), 'draft_pr')
+
+    def test_shared_file_limit_matches_collector_boundary(self):
+        from producer_context import MAX_PROOF_FILES
+        self.assertEqual(MAX_PROOF_FILES, 30)
+        self.pr['changed_files'] = MAX_PROOF_FILES
+        service = mock.Mock(request=mock.Mock(return_value=self.pr))
+        self.assertIsNone(RC.eligibility(service, 1, I.IDENTITY))
+        self.pr['changed_files'] += 1
+        self.assertEqual(RC.eligibility(service, 1, I.IDENTITY), 'changed_file_limit_outside_proof_scope')
+
     def test_real_main_classifier_refusal_has_no_proof(self):
         class CanonicalService(Svc):
             def request(service, path, **kwargs):
