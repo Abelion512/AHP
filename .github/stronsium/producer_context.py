@@ -8,7 +8,7 @@ from urllib.parse import quote
 from proof_context import normalize_context
 from triage import collect
 
-REPO='Abelion512/abelion-hermes-plugins'
+REPO='Abelion512/AHP'
 ROOT='/repos/'+REPO
 
 def collect_context(gh,pr_number,*,repo_id,bot_id,owner_id,bot_slug,request_comment_id):

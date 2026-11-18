@@ -32,7 +32,7 @@ def load(env, event='pull_request_target'):
     sha = env.get('GITHUB_SHA', '')
     if not re.fullmatch('[a-f0-9]{40}', sha):
         raise ValueError('producer_sha_missing')
-    if env.get('GITHUB_REPOSITORY') != 'Abelion512/abelion-hermes-plugins' or env.get('GITHUB_REF') != 'refs/heads/main':
+    if env.get('GITHUB_REPOSITORY') != 'Abelion512/AHP' or env.get('GITHUB_REF') != 'refs/heads/main':
         raise ValueError('producer_not_on_default_branch')
     prog = program()
     closure = local_closure_digest(str(ROOT))

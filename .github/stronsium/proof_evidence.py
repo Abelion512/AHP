@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 SHA = re.compile(r'[a-f0-9]{40}')
 HASH = re.compile(r'[a-f0-9]{64}')
-REPO = 'Abelion512/abelion-hermes-plugins'
+REPO = 'Abelion512/AHP'
 MAX_BYTES = 1_000_000
 _SEAL = object()
 

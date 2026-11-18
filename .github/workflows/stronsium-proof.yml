@@ -34,7 +34,9 @@ jobs:
         # PR number comes from the event payload via env, never interpolated into the shell. Digest is computed inside.
         run: python3 -B .github/stronsium/run_producer_comment.py "$PR_NUMBER" 0 proof.json
       # actions/upload-artifact v7.0.2
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      - name: Upload positive proof only
+        if: steps.p.outputs.proof_available == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: stronsium-proof-${{ steps.p.outputs.digest }}
           path: proof.json
