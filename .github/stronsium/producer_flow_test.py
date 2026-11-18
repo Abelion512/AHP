@@ -29,6 +29,23 @@ class Svc(T.ReadService):
         return super().pages(path, **kw)
 
 
+class BinarySvc(Svc):
+    """A PR whose only changed file is a non-UTF-8 (image) file."""
+    def __init__(s, *, filename='docs/a.png', status='added', raw=b'\x89PNG\r\n\x1a\n\xff\xfe'):
+        super().__init__(status=status); s.filename = filename; s.raw = raw
+
+    def pages(s, path, **kw):
+        if path.endswith('/files'):
+            s.calls.append(('GET', path)); return [{'filename': s.filename, 'status': s.status}]
+        return super().pages(path, **kw)
+
+    def request(s, path, method='GET', **kw):
+        if '/contents/' in path:
+            s.calls.append(('GET', path))
+            return {'type': 'file', 'encoding': 'base64', 'content': base64.b64encode(s.raw).decode()}
+        return super().request(path, method, **kw)
+
+
 class Flow(unittest.TestCase):
     def setUp(self):
         self.d = tempfile.TemporaryDirectory(); self.addCleanup(self.d.cleanup)
@@ -157,7 +174,8 @@ class ScopeReporting(unittest.TestCase):
 
     def test_known_semantic_refusals_are_no_proof_only(self):
         for reason in ['p4_sem_not_python', 'p4_sem_ast_changed', 'p4_sem_source_sensitive',
-                       'p4_sem_status_not_modified', 'p4_sem_directive_comment_changed', 'p4_sem_header_lines_changed']:
+                       'p4_sem_status_not_modified', 'p4_sem_directive_comment_changed', 'p4_sem_header_lines_changed',
+                       'p4_sem_structural_change', 'open_findings_unverified']:
             with self.subTest(reason=reason):
                 self.call(failure=S.ScopeNotApplicable(reason)).assert_called_once()
                 self.assertEqual(self.status()['status'], 'not_applicable')
@@ -222,6 +240,47 @@ class ScopeReporting(unittest.TestCase):
         with mock.patch.object(RC, 'GitHubProofTransport', return_value=CanonicalService(diff=BAD)):
             RC.main(['producer', '1', '0', 'proof.json'], self.env)
         self.assertEqual(self.status()['reason'], 'p4_sem_ast_changed')
+        self.assertFalse(pathlib.Path('proof.json').exists())
+        self.assertFalse(pathlib.Path('digest.txt').exists())
+
+    def test_binary_file_is_no_proof_not_a_crash(self):
+        # Regression: a PR carrying an image used to crash the collector with a strict
+        # UTF-8 decode error (job exited 1). It is now a scope refusal: no proof, exit 0.
+        class CanonicalBinary(BinarySvc):
+            def request(service, path, method='GET', **kwargs):
+                value = super().request(path, method, **kwargs)
+                if path.endswith('/pulls/1'):
+                    value['head']['repo']['id'] = I.IDENTITY['repo_id']
+                    value['base']['repo'] = {'id': I.IDENTITY['repo_id'], 'full_name': REPO}
+                return value
+        self.env['GITHUB_WORKSPACE'] = str(ROOT)
+        with mock.patch.object(RC, 'GitHubProofTransport', return_value=CanonicalBinary()):
+            RC.main(['producer', '1', '0', 'proof.json'], self.env)
+        self.assertEqual(self.status(), {'status': 'not_applicable', 'proof_available': False,
+                         'autoapprove_granted': False, 'reason': 'p4_sem_status_not_modified'})
+        self.assertFalse(pathlib.Path('proof.json').exists())
+        self.assertFalse(pathlib.Path('digest.txt').exists())
+        self.assertEqual(pathlib.Path('outputs.txt').read_text(), 'proof_available=false\n')
+
+    def test_open_review_findings_are_no_proof_not_a_failure(self):
+        class FindingSvc(Svc):
+            def pages(s, path, **kw):
+                if '/pulls/' in path and path.endswith('/comments'):
+                    s.calls.append(('GET', path))
+                    return [{'id': 7, 'user': {'id': 999}, 'body': 'reviewer finding', 'updated_at': 'before'}]
+                return super().pages(path, **kw)
+        class CanonicalFinding(FindingSvc):
+            def request(service, path, method='GET', **kwargs):
+                value = super().request(path, method, **kwargs)
+                if path.endswith('/pulls/1'):
+                    value['head']['repo']['id'] = I.IDENTITY['repo_id']
+                    value['base']['repo'] = {'id': I.IDENTITY['repo_id'], 'full_name': REPO}
+                return value
+        self.env['GITHUB_WORKSPACE'] = str(ROOT)
+        with mock.patch.object(RC, 'GitHubProofTransport', return_value=CanonicalFinding()):
+            RC.main(['producer', '1', '0', 'proof.json'], self.env)
+        self.assertEqual(self.status(), {'status': 'not_applicable', 'proof_available': False,
+                         'autoapprove_granted': False, 'reason': 'open_findings_unverified'})
         self.assertFalse(pathlib.Path('proof.json').exists())
         self.assertFalse(pathlib.Path('digest.txt').exists())
 
