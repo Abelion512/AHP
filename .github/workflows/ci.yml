@@ -123,9 +123,13 @@ jobs:
               # anywhere breaks the fullmatch and is still caught below).
               if re.fullmatch(r"\+\s*echo\s+\"[0-9a-f]{64}  [^\"\s]+\"\s*\|\s*sha256sum\s+-c\s*-?\s*", line): continue
               low = line.lower()
-              if re.search(r'(?<![A-Za-z0-9])[A-Za-z0-9+/]{40}(?![A-Za-z0-9+/=])', line):
+              # A URL contains long alphanumeric/slash runs that are not
+              # credentials. Only the URL itself is exempt; token-prefix shapes
+              # elsewhere on the line are still checked against the full line.
+              scanned = re.sub(r"https?://\S+", "", line)
+              if re.search(r'(?<![A-Za-z0-9])[A-Za-z0-9+/]{40}(?![A-Za-z0-9+/=])', scanned):
                   suspicious.append(("long_base64_like", line[:120]))
-              if re.search(r'(?<![A-Za-z0-9])[0-9a-f]{32,}(?![A-Za-z0-9])', low):
+              if re.search(r'(?<![A-Za-z0-9])[0-9a-f]{32,}(?![A-Za-z0-9])', scanned.lower()):
                   suspicious.append(("long_hex_like", line[:120]))
               if re.search(r'sk-(?:prod|pro|proj|live|test)-[A-Za-z0-9_\-]{20,}', low):
                   suspicious.append(("openai_key_shape", line[:120]))
