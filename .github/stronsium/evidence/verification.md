@@ -8,7 +8,9 @@ The same-repository-head, draft exclusion and 30-file limit already existed in `
 
 ## Tests actually run
 
-`python3 -B -m unittest discover -p "*_test.py"` in `.github/stronsium`: 95 tests passed locally on Python 3.10. The original branch head also passed the repository producer-unit workflow configured for Python 3.14. The revised head needs its own fresh CI result.
+`python3 -m pytest -q producer_test.py proof_test.py p4_semantic_test.py review_boundary_test.py run_producer_test.py producer_flow_test.py` in `.github/stronsium`: 103 tests and 154 subtests passed locally on Python 3.12. The original branch head also passed the repository producer-unit workflow configured for Python 3.14. The revised head needs its own fresh CI result.
+
+The registered callables are now checked against the code the verified file defines (`trusted_program_mismatch`), so a miswired wiring entry cannot run an unrelated check under an approved definition digest.
 
 `MissingArtifactBoundary` exercises the repository's real `SelectedArtifactProof` adapter: absent/invalid artifact id cannot create a proof source, a GitHub artifact 404 raises instead of returning a receipt, and neither `None` nor a successful job-shaped dictionary passes `receipt_matches`. These are repository-library tests with injected transport failure, not a live deployed-consumer test.
 

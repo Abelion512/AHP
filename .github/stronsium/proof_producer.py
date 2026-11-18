@@ -19,19 +19,39 @@ from proof_evidence import ProducerPolicy,ProofVerifier,REPO,MAX_BYTES,SHA,HASH
 
 _PERMITTED_BUILTINS=('len','str','ValueError','sorted','all','any','tuple','list','dict','set','range','enumerate','zip','type','int','bool','isinstance','Exception','min','max','sum')
 
+def _code_fingerprint(code):
+    """Structural identity of a code object, ignoring file name and line numbers."""
+    constants=tuple(_code_fingerprint(c) if isinstance(c,types.CodeType) else (type(c).__name__,repr(c))
+        for c in code.co_consts)
+    return (code.co_code,constants,code.co_names,code.co_varnames,code.co_freevars,code.co_cellvars,
+        code.co_argcount,code.co_posonlyargcount,code.co_kwonlyargcount,code.co_nlocals,code.co_stacksize)
+
 def freeze_function(function):
     """Clone a trusted function with a frozen globals snapshot and minimal builtins.
 
     A static dispatch callable must not observe later mutations of its defining
     module globals; the exec loader previously gave every check a fresh namespace.
     This keeps that isolation without compiling or executing source at runtime.
+    Mutable container globals are copied, and defaults/closure/keyword defaults
+    are carried over so the clone behaves like the original.
     """
     if type(function) is not types.FunctionType:raise ValueError('trusted_program_missing')
-    namespace={key:value for key,value in function.__globals__.items()
-        if key not in ('__builtins__','__name__','__loader__','__spec__','__package__','__file__','__cached__')}
+    namespace={}
+    for key,value in function.__globals__.items():
+        if key in ('__builtins__','__name__','__loader__','__spec__','__package__','__file__','__cached__'):continue
+        if type(value) in (list,dict,set,bytearray):
+            try:value=copy.deepcopy(value)
+            except Exception:pass
+        namespace[key]=value
     namespace['__builtins__']={key:getattr(builtins,key) for key in _PERMITTED_BUILTINS}
     namespace['__name__']='trusted_checks'
-    return types.FunctionType(function.__code__,namespace,function.__name__)
+    clone=types.FunctionType(function.__code__,namespace,function.__name__,
+        function.__defaults__,function.__closure__)
+    clone.__kwdefaults__=copy.deepcopy(function.__kwdefaults__)
+    clone.__annotations__=dict(function.__annotations__)
+    clone.__doc__=function.__doc__
+    clone.__module__='trusted_checks'
+    return clone
 
 @dataclass(frozen=True)
 class FrozenProgram:
@@ -83,6 +103,14 @@ class FrozenProgram:
                         raise ValueError('definition_function_format')
                 else:raise ValueError('definition_top_level_code')
             blobs[name]=(raw,tree);manifest.append([name,got])
+        # Compile the hash-verified, policy-pinned source. Nothing is executed:
+        # the code objects only give load() a way to require that a registered
+        # callable really is the function this file defines.
+        codes={}
+        for name,(_,tree) in blobs.items():
+            module=compile(tree,str(root/name),'exec')
+            codes[name]={const.co_name:_code_fingerprint(const)
+                for const in module.co_consts if isinstance(const,types.CodeType)}
         def selected(spec):
             if (type(spec) is not tuple or len(spec)!=2 or any(type(v) is not str for v in spec)
                     or spec[0] not in blobs or not spec[1].isidentifier() or spec[1].startswith('__')):
@@ -99,7 +127,7 @@ class FrozenProgram:
             ids.add(item[0]);checks.append([item[0],*selected(item[1:])])
         definition={'files':sorted(manifest),'classifier':classifier,'checks':checks}
         digest=hashlib.sha256(json.dumps(definition,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()
-        return root,blobs,digest
+        return root,blobs,digest,codes
 
     def definition_digest(self):
         return self._verified()[2]
@@ -109,7 +137,7 @@ class FrozenProgram:
         # No dynamic code execution: the caller registers the exact functions,
         # and the manifest digest must equal the policy-pinned digest before any
         # callable is returned.
-        _root,blobs,digest=self._verified()
+        _root,blobs,digest,codes=self._verified()
         if type(expected_digest) is not str or digest!=expected_digest:
             raise ValueError('test_definition_changed')
         supplied=dict(self.functions)
@@ -118,6 +146,11 @@ class FrozenProgram:
             if (type(name) is not tuple or len(name)!=2 or not callable(function)
                     or getattr(function,'__name__',None)!=name[1]):
                 raise ValueError('trusted_program_missing')
+            # Same name is not enough: the callable must be the exact code the
+            # verified file defines, so miswired wiring cannot run an unrelated
+            # check while the proof records the approved definition digest.
+            if _code_fingerprint(function.__code__)!=codes[name[0]].get(name[1]):
+                raise ValueError('trusted_program_mismatch')
             return function
         classifier=resolve(self.classifier)
         checks=tuple((identifier,resolve((file,function))) for identifier,file,function in self.checks)

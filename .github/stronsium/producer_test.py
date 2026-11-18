@@ -156,11 +156,24 @@ class ProducerTest(unittest.TestCase):
             name='alias/program.py';prog=FrozenProgram(root,((name,hashlib.sha256(file.read_bytes()).hexdigest()),),(name,'classify_fixture'),(('synthetic-source',name,'check_source'),))
             with self.assertRaisesRegex(ValueError,'definition_symlink'):prog.load('0'*64)
     def test_import_or_eager_module_code_rejected(self):
-        for extra in ('import os\n','SIDE_EFFECT = len("x")\n','@decorator\ndef altered(c,a):pass\n'):
+        # Each case must fail at source validation, before the digest check, so
+        # assert the specific reason instead of any ValueError.
+        cases=(('import os\n','definition_imports_not_supported'),
+            ('SIDE_EFFECT = len("x")\n','definition_top_level_code'),
+            ('@decorator\ndef altered(c,a):pass\n','definition_function_format'))
+        for extra,reason in cases:
             with self.subTest(extra=extra),tempfile.TemporaryDirectory() as tmp:
                 file=pathlib.Path(tmp)/'producer_fixture_program.py';file.write_bytes((ROOT/file.name).read_bytes()+extra.encode())
                 prog=replace(program(),root=pathlib.Path(tmp),files=((file.name,hashlib.sha256(file.read_bytes()).hexdigest()),))
-                with self.assertRaises(ValueError):prog.load('0'*64)
+                with self.assertRaisesRegex(ValueError,reason):prog.load('0'*64)
+    def test_callable_with_matching_name_but_other_code_rejected(self):
+        def check_source(context,assertions):
+            return True
+        prog=program()
+        bad=replace(prog,functions=((( 'producer_fixture_program.py','classify_fixture'),freeze_function(F.classify_fixture)),
+            (('producer_fixture_program.py','check_source'),freeze_function(check_source))))
+        with self.assertRaisesRegex(ValueError,'trusted_program_mismatch'):
+            bad.load(prog.definition_digest())
     def test_raw_line_endings_and_unicode_preserved(self):
         context=self.collect();self.assertEqual(context['sources']['docs/猫.md'],F.EXPECTED_SOURCE)
         self.assertIn('\r\n',context['diff']);self.assertFalse(context['sources']['docs/猫.md'].endswith('\n'))
