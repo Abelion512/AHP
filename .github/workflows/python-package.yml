@@ -31,7 +31,9 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        python -m pip install --only-binary ':all:' flake8==7.3.0 pytest==9.1.1 pyyaml==6.0.3
+        # packaging and PyYAML are imported by the .github/scripts tests; pin
+        # them explicitly instead of relying on pytest's transitive packaging.
+        python -m pip install --only-binary ':all:' flake8==7.3.0 pytest==9.1.1 pyyaml==6.0.3 packaging==26.3
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
