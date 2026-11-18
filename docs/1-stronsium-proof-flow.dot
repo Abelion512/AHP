@@ -1,0 +1,16 @@
+digraph G {
+ graph [rankdir=TB,bgcolor="white",pad="0.3",nodesep="0.4",ranksep="0.4",label="Stronsium: bounded evidence, not approval",labelloc=t,fontsize=24,fontname="DejaVu Sans"];
+ node [shape=box,style="rounded,filled",fillcolor="#EEF3FA",fontname="DejaVu Sans",fontsize=15,margin="0.2,0.12"];
+ edge [fontname="DejaVu Sans",fontsize=12,color="#62738A"];
+ event [label="PR opened / synchronized / reopened\npull_request_target runs base-branch code\nRead-only token; no candidate checkout"];
+ context [label="GET current head + base, files, diff, reviews\nBound size, schema and pagination\nReject movement before / after checking"];
+ semantic [label="Existing Python files only\nReverse-apply complete ordered hunks\nCompare AST; reject directives / source reflection"];
+ reject [label="Unsupported or malformed\nFAIL CLOSED: no proof",fillcolor="#FBE6E3"];
+ proof [label="Pinned definition assertions + logs\nBind context, closure, runner and attempt\nUpload one bounded proof.json artifact"];
+ verify [label="Separate consumer policy required\nVerify GitHub run / artifact digest / closure\nReject stale context or mismatched anchors"];
+ limit [label="NOT general runtime test evidence\nNOT autonomous approval or merge\nOwner observational acceptance remains FALSE",fillcolor="#FFF2D9"];
+ event -> context -> semantic;
+ semantic -> reject [label="out of scope / finding / mismatch"];
+ semantic -> proof [label="narrow AST-equivalent case"];
+ proof -> verify -> limit;
+}
