@@ -39,20 +39,21 @@ def freeze_function(function):
     namespace={}
     for key,value in function.__globals__.items():
         if key in ('__builtins__','__name__','__loader__','__spec__','__package__','__file__','__cached__'):continue
-        # Copy every non-callable, non-module, non-class value; those keep their
-        # reference on purpose. Sharing a reference for objects deepcopy cannot
-        # handle is a documented boundary, not isolation from hostile code.
+        # Copy every non-callable, non-module, non-class value; those three keep
+        # their reference on purpose. A value that cannot be copied would stay
+        # shared with the original module, so fail closed instead of silently
+        # freezing a check that can still observe live state.
         if not callable(value) and not isinstance(value,(types.ModuleType,type)):
             try:value=copy.deepcopy(value)
-            except Exception:pass
+            except Exception as exc:raise ValueError('trusted_program_unfreezable') from exc
         namespace[key]=value
     namespace['__builtins__']={key:getattr(builtins,key) for key in _PERMITTED_BUILTINS}
     namespace['__name__']='trusted_checks'
     try:defaults=copy.deepcopy(function.__defaults__)
-    except Exception:defaults=function.__defaults__
+    except Exception as exc:raise ValueError('trusted_program_unfreezable') from exc
     clone=types.FunctionType(function.__code__,namespace,function.__name__,defaults,function.__closure__)
     try:clone.__kwdefaults__=copy.deepcopy(function.__kwdefaults__)
-    except Exception:clone.__kwdefaults__=function.__kwdefaults__
+    except Exception as exc:raise ValueError('trusted_program_unfreezable') from exc
     clone.__annotations__=dict(function.__annotations__)
     clone.__doc__=function.__doc__
     clone.__module__='trusted_checks'
