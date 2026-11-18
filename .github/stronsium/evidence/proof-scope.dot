@@ -1,0 +1,20 @@
+digraph proof_scope {
+ graph [rankdir=TB, bgcolor="#FFFFFF", pad=0.25, nodesep=0.3, ranksep=0.4];
+ node [shape=box, style="rounded,filled", fillcolor="#F1F5F9", color="#94A3B8", fontname="Arial", fontsize=13, margin="0.18,0.13"];
+ edge [fontname="Arial", fontsize=11, color="#64748B"];
+ identity [label="Canonical AHP identity + default-branch producer"];
+ fail [label="Invalid identity/context/test\nFAIL CLOSED", fillcolor="#FEE2E2"];
+ scope [label="Read PR metadata + bounded context\nKeep existing P4 eligibility limits"];
+ na [label="Outside proof scope\nNOT APPLICABLE\nNo proof artifact / no auto-approval", fillcolor="#FEF3C7"];
+ checks [label="Existing Python AST-equivalent lane\nExact diff/source coverage + findings checks"];
+ proof [label="Produce snapshot-bound proof.json\nUpload only when proof_available=true", fillcolor="#DBEAFE"];
+ verify [label="Separate pinned consumer verifies proof\nOwner-acceptance flag remains FALSE\nNo merge or wider approval granted"];
+ identity -> fail [label="invalid"];
+ identity -> scope [label="valid"];
+ scope -> na [label="fork / draft / >30 files"];
+ scope -> checks [label="within limits"];
+ checks -> na [label="known non-P4 change"];
+ checks -> fail [label="malformed / stale /\nfailed check"];
+ checks -> proof;
+ proof -> verify;
+}
