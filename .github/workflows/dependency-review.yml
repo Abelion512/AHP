@@ -10,10 +10,12 @@ on:
   pull_request:
     branches: [ "main" ]
 
-# Read-only token. No PR comment is posted, so this also works for fork PRs,
-# where GitHub downgrades the token to read-only regardless of this block.
+# Read-only token. `pull-requests: read` is required to list the pull request's
+# changed files; no PR comment is posted, so this also works for fork PRs, where
+# GitHub downgrades the token to read-only regardless of this block.
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   dependency-review:
@@ -28,6 +30,10 @@ jobs:
         with:
           # Explicit policy instead of relying on the action default.
           fail-on-severity: moderate
+          # The default is to post a PR summary comment, which needs
+          # `pull-requests: write` and breaks fork PRs. Keep this check
+          # comment-free; the job result is the report.
+          comment-summary-in-pr: never
           # No license policy is configured on purpose: plugin dependencies are
           # not license-audited by this repository.
           # deny-licenses: GPL-1.0-or-later, LGPL-2.0-or-later
