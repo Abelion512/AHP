@@ -224,7 +224,8 @@ class ScopeReporting(unittest.TestCase):
         for reason in ['p4_sem_not_python', 'p4_sem_ast_changed', 'p4_sem_source_sensitive',
                        'p4_sem_status_not_modified', 'p4_sem_directive_comment_changed', 'p4_sem_header_lines_changed',
                        'p4_sem_structural_change', 'p4_sem_unparseable', 'p4_sem_source_out_of_bounds',
-                       'p4_sem_review_context_out_of_bounds', 'open_findings_unverified']:
+                       'p4_sem_review_context_out_of_bounds', 'p4_sem_context_out_of_bounds',
+                       'open_findings_unverified']:
             with self.subTest(reason=reason):
                 self.call(failure=S.ScopeNotApplicable(reason)).assert_called_once()
                 self.assertEqual(self.status()['status'], 'not_applicable')

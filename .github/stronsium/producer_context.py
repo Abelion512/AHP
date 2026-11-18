@@ -72,9 +72,15 @@ def collect_context(gh,pr_number,*,repo_id,bot_id,owner_id,bot_slug,request_comm
         diff=gh.request(ROOT+'/compare/'+base+'...'+head,raw=True)
         if type(diff) is bytes:diff=diff.decode('utf-8','strict')
         if type(diff) is not str:raise ValueError('producer_diff_type')
-        context=normalize_context({'pr':pr_number,'sha':head,'base':base,'paths':paths,'sources':sources,
-            'diff':diff,'comments_fingerprint':fingerprint,
-            'finding_ids':[str(d['kind'])+':'+str(d['id']) for d in discussions]})
+        try:
+            context=normalize_context({'pr':pr_number,'sha':head,'base':base,'paths':paths,'sources':sources,
+                'diff':diff,'comments_fingerprint':fingerprint,
+                'finding_ids':[str(d['kind'])+':'+str(d['id']) for d in discussions]})
+        except ValueError as exc:
+            # A context over MAX_CONTEXT is out of this lane's bounds, not malformed
+            # evidence: no proof, not a producer failure.
+            if str(exc)!='context_limit':raise
+            raise ScopeNotApplicable('p4_sem_context_out_of_bounds') from exc
         newest=gh.request(ROOT+'/pulls/'+str(pr_number))
         if (newest['head']['sha']!=head or newest['base']['sha']!=base or newest['state']!='open'
                 or newest.get('draft') is not False or type(newest.get('changed_files')) is not int or newest.get('changed_files')!=len(files)):raise ValueError('producer_head_or_base_changed')

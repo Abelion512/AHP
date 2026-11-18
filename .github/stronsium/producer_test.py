@@ -115,7 +115,8 @@ class ProducerTest(unittest.TestCase):
         # An oversized changed file is out of this lane's bounds: no proof, not a failure.
         with self.assertRaisesRegex(S.ScopeNotApplicable,'p4_sem_source_out_of_bounds'):self.collect(gh)
         gh=ReadService();gh.diff='x'*240001
-        with self.assertRaisesRegex(ValueError,'context_limit'):self.collect(gh)
+        # A context over MAX_CONTEXT is out of bounds too: no proof, not a failure.
+        with self.assertRaisesRegex(S.ScopeNotApplicable,'p4_sem_context_out_of_bounds'):self.collect(gh)
     def test_proof_log_limit_no_archive(self):
         with tempfile.TemporaryDirectory() as tmp:
             file=pathlib.Path(tmp)/'producer_fixture_program.py'
