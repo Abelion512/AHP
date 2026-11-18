@@ -120,6 +120,7 @@ jobs:
           public_values = {
               "plugins/aero/docs/PHOTO-VERIFICATION.md": (
                   "b63d27fd97b883c8acd35fc44acb1c27d57300c9297a127efbd55e88753aba0f",
+                  "55c243b9d9e7d4ec7557a2754952ebe6f3c55be3526b94c1bf9ef72680cc1f9b",
                   "0cfd12ee5425c82030dfb72abbcbb715251b0e25005fae622ba0388606cfb108",
               ),
               "plugins/aero/tests/runtime/photo-fixtures.mjs": (

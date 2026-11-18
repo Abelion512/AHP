@@ -11,4 +11,5 @@ window.photoRender=(raw,sessionId='owner-A',streaming=false)=>root.render(React.
  const parsed=segmentTranscriptDirectives(text)?.find(p=>p.kind==='directive')?.directive
  return parsed?React.createElement('section',{key:i},renderers.get(parsed.name)({attrs:parsed.attrs,source:parsed.source,sessionId,streaming})):null
 })))
-window.photoSwitch=()=>state.activeSessionId.set('rt-'+Math.random())
+let switchSequence=0
+window.photoSwitch=()=>state.activeSessionId.set('rt-'+(++switchSequence))

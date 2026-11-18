@@ -6,8 +6,10 @@ This is a partial reference-imitation implementation, not completion of the full
 
 - `desktop/src/aero-baseline.js` SHA256 `b63d27fd97b883c8acd35fc44acb1c27d57300c9297a127efbd55e88753aba0f` preserves PR30 head495624de's renderer.
 - `desktop/src/index.mjs` calls the existing registration and adds the photo directives. Public SDK session state closes a retained viewer on navigation; renderer-owner changes and unmount also close it. X/Escape restore the original photo trigger; navigation does not restore focus to the old card.
-- `tests/runtime/build-plugin.mjs` rebuilds the committed bundle. Its SHA256 `0cfd12ee5425c82030dfb72abbcbb715251b0e25005fae622ba0388606cfb108` matches the independently exercised combined v8 artifact.
+- `tests/runtime/build-plugin.mjs` rebuilds the committed bundle. Its SHA256 `55c243b9d9e7d4ec7557a2754952ebe6f3c55be3526b94c1bf9ef72680cc1f9b` is the current Sonar-repair rebuild, not the artifact used for the full combined-v8 host matrix. It changes only the explicit alphabetical comparator; the test harness uses deterministic session IDs. Local checks:15Node tests, both Chromium harnesses,6Python contracts and8scanner groups. Independent targeted current-bundle full-host smoke passed: a/b photo order, legacy titles at1280without page overflow, viewer Escape/X restores exact trigger focus, programmatic session change clears overlay and focuses composer, and zero page errors. This narrow smoke does not repeat the full earlier matrix.
 - Test harness adapters now select the `ui` registration by name rather than assuming it is the last registered directive. Existing behavioral assertions remain.
+
+The full combined-v8 host matrix below exercised the earlier bundle SHA256 `0cfd12ee5425c82030dfb72abbcbb715251b0e25005fae622ba0388606cfb108`. It must not be attributed to the current rebuild.
 
 ## Evidence levels
 
