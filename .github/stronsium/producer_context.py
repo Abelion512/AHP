@@ -3,12 +3,27 @@ No candidate-supplied context/digest is accepted and no candidate code runs.
 """
 import base64
 import binascii
+import hashlib
 import re
 from urllib.parse import quote
 from proof_context import normalize_context
 from triage import collect
 
 MAX_PROOF_FILES = 30
+MAX_SOURCE_BYTES = 240000
+
+
+def source_text(raw):
+    """Deterministic text for a changed file; non-UTF-8 bytes are marked, never lossily decoded.
+
+    A binary file has no AST-equivalence proof. The marker keeps the context digest
+    reproducible across the producer's two independent collections, and the semantic
+    classifier refuses the file by path/status before its (non-text) diff section is parsed.
+    """
+    try:
+        return raw.decode('utf-8','strict')
+    except UnicodeDecodeError:
+        return 'binary-source sha256='+hashlib.sha256(raw).hexdigest()
 
 REPO='Abelion512/AHP'
 ROOT='/repos/'+REPO
@@ -47,8 +62,8 @@ def collect_context(gh,pr_number,*,repo_id,bot_id,owner_id,bot_slug,request_comm
             encoded=item['content']
             if type(encoded) is not str:raise ValueError('producer_source_encoding')
             raw=base64.b64decode(''.join(encoded.split()),validate=True)
-            if len(raw)>240000:raise ValueError('producer_source_limit')
-            sources[path]=raw.decode('utf-8','strict')
+            if len(raw)>MAX_SOURCE_BYTES:raise ValueError('producer_source_limit')
+            sources[path]=source_text(raw)
             paths.append({'filename':path,'status':status})
         diff=gh.request(ROOT+'/compare/'+base+'...'+head,raw=True)
         if type(diff) is bytes:diff=diff.decode('utf-8','strict')
