@@ -140,6 +140,10 @@ def classify_semantic(context):
             raise ScopeNotApplicable('p4_sem_status_not_modified')
         if not f['filename'].endswith('.py'):
             raise ScopeNotApplicable('p4_sem_not_python')
+        # A non-UTF-8 source is recorded as a marker rather than decoded text;
+        # it has no AST-equivalence proof and must not reach _tree() as a hard failure.
+        if context['sources'][f['filename']].startswith('binary-source sha256='):
+            raise ScopeNotApplicable('p4_sem_not_python')
     secs = _sections(context['diff'])
     paths = [f['filename'] for f in context['paths']]
     if sorted(secs) != sorted(paths):
