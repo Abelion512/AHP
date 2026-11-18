@@ -99,5 +99,139 @@ class Flow(unittest.TestCase):
         self.assertEqual(prod['closure_sha256'], local_closure_digest(str(ROOT)))
 
 
+class ScopeReporting(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        cwd = os.getcwd()
+        os.chdir(self.temp.name)
+        self.addCleanup(os.chdir, cwd)
+        self.env = dict(ENV, GITHUB_REPOSITORY=REPO, GITHUB_REF='refs/heads/main',
+                        GITHUB_OUTPUT='outputs.txt', GITHUB_STEP_SUMMARY='summary.md')
+        self.pr = {'state': 'open', 'draft': False, 'changed_files': 1,
+                   'head': {'sha': 'a' * 40, 'repo': {'id': I.IDENTITY['repo_id']}},
+                   'base': {'sha': 'b' * 40, 'repo': {'id': I.IDENTITY['repo_id'], 'full_name': REPO}}}
+
+    def call(self, *, failure=None, digest='d' * 64):
+        transport = mock.Mock()
+        transport.request.return_value = self.pr
+        with mock.patch.object(RC, 'GitHubProofTransport', return_value=transport), mock.patch.object(
+                RC, 'run', side_effect=failure, return_value=digest) as run:
+            RC.main(['producer', '30', '0', 'proof.json'], self.env)
+            return run
+
+    def status(self):
+        import json
+        return json.loads(pathlib.Path('proof-status.json').read_text())
+
+    def test_canonical_identity_and_old_name_refused(self):
+        from producer_context import REPO as collector_repo
+        self.assertEqual(REPO, 'Abelion512/AHP')
+        self.assertEqual(collector_repo, REPO)
+        I.load(self.env)
+        with self.assertRaises(ValueError):
+            I.load(dict(self.env, GITHUB_REPOSITORY='/'.join(['Abelion512', 'abelion-hermes-plugins'])))
+
+    def test_fork_scope_clears_stale_proof_and_never_runs(self):
+        pathlib.Path('proof.json').write_text('stale')
+        pathlib.Path('digest.txt').write_text('stale')
+        self.pr['head']['repo']['id'] = 9001
+        run = self.call()
+        run.assert_not_called()
+        self.assertEqual(self.status(), {'status': 'not_applicable', 'proof_available': False,
+                         'autoapprove_granted': False, 'reason': 'fork_head_outside_proof_scope'})
+        self.assertFalse(pathlib.Path('proof.json').exists())
+        self.assertFalse(pathlib.Path('digest.txt').exists())
+        self.assertEqual(pathlib.Path('outputs.txt').read_text(), 'proof_available=false\n')
+        self.assertIn('No proof artifact and no auto-approval', pathlib.Path('summary.md').read_text())
+
+    def test_file_limit_and_draft_do_not_expand_scope(self):
+        for change, reason in [({'changed_files': 31}, 'changed_file_limit_outside_proof_scope'),
+                               ({'draft': True}, 'draft_pr')]:
+            with self.subTest(reason=reason):
+                original = dict(self.pr)
+                self.pr.update(change)
+                self.call().assert_not_called()
+                self.assertEqual(self.status()['reason'], reason)
+                self.pr = original
+
+    def test_known_semantic_refusals_are_no_proof_only(self):
+        for reason in ['p4_sem_not_python', 'p4_sem_ast_changed', 'p4_sem_source_sensitive',
+                       'p4_sem_status_not_modified', 'p4_sem_directive_comment_changed', 'p4_sem_header_lines_changed']:
+            with self.subTest(reason=reason):
+                self.call(failure=S.ScopeNotApplicable(reason)).assert_called_once()
+                self.assertEqual(self.status()['status'], 'not_applicable')
+                self.assertFalse(pathlib.Path('proof.json').exists())
+
+    def test_malformed_provenance_and_unknown_failures_still_fail(self):
+        for field, value in [('base', {}), ('head', {}), ('changed_files', True), ('draft', 'false')]:
+            with self.subTest(field=field):
+                previous = self.pr[field]
+                self.pr[field] = value
+                with self.assertRaises(ValueError):
+                    self.call()
+                self.assertFalse(pathlib.Path('proof-status.json').exists())
+                self.pr[field] = previous
+        for failure in [ValueError('producer_head_or_base_changed'), ValueError('test_failed'),
+                        S.ScopeNotApplicable('unexpected_reason')]:
+            with self.subTest(failure=failure), self.assertRaises(ValueError):
+                self.call(failure=failure)
+
+    def test_wrong_event_and_missing_runner_cannot_be_skip(self):
+        for update in [{'GITHUB_EVENT_NAME': 'pull_request'}, {'GITHUB_RUN_ID': ''},
+                       {'GITHUB_REPOSITORY': 'other/repo'}, {'GITHUB_REF': 'refs/heads/other'}]:
+            with self.subTest(update=update):
+                original = self.env
+                self.env = dict(original, **update)
+                with self.assertRaises(ValueError):
+                    self.call()
+                self.env = original
+
+    def test_draft_rule_matches_existing_collector(self):
+        service = T.ReadService()
+        original = service.request
+        def request(path, **kwargs):
+            result = original(path, **kwargs)
+            if path.endswith('/pulls/1'):
+                result['draft'] = True
+            return result
+        service.request = request
+        with self.assertRaisesRegex(ValueError, 'producer_pr_not_eligible'):
+            collect_context(service, 1, request_comment_id=0, **FIX)
+        self.pr['draft'] = True
+        self.assertEqual(RC.eligibility(mock.Mock(request=mock.Mock(return_value=self.pr)), 1, I.IDENTITY), 'draft_pr')
+
+    def test_shared_file_limit_matches_collector_boundary(self):
+        from producer_context import MAX_PROOF_FILES
+        self.assertEqual(MAX_PROOF_FILES, 30)
+        self.pr['changed_files'] = MAX_PROOF_FILES
+        service = mock.Mock(request=mock.Mock(return_value=self.pr))
+        self.assertIsNone(RC.eligibility(service, 1, I.IDENTITY))
+        self.pr['changed_files'] += 1
+        self.assertEqual(RC.eligibility(service, 1, I.IDENTITY), 'changed_file_limit_outside_proof_scope')
+
+    def test_real_main_classifier_refusal_has_no_proof(self):
+        class CanonicalService(Svc):
+            def request(service, path, **kwargs):
+                value = super().request(path, **kwargs)
+                if path.endswith('/pulls/1'):
+                    value['head']['repo']['id'] = I.IDENTITY['repo_id']
+                    value['base']['repo'] = {'id': I.IDENTITY['repo_id'], 'full_name': REPO}
+                return value
+        self.env['GITHUB_WORKSPACE'] = str(ROOT)
+        with mock.patch.object(RC, 'GitHubProofTransport', return_value=CanonicalService(diff=BAD)):
+            RC.main(['producer', '1', '0', 'proof.json'], self.env)
+        self.assertEqual(self.status()['reason'], 'p4_sem_ast_changed')
+        self.assertFalse(pathlib.Path('proof.json').exists())
+        self.assertFalse(pathlib.Path('digest.txt').exists())
+
+    def test_success_outputs_proof_available_not_autoapproval(self):
+        self.call().assert_called_once()
+        self.assertEqual(self.status()['status'], 'proof_produced')
+        self.assertFalse(self.status()['autoapprove_granted'])
+        self.assertIn('proof_available=true', pathlib.Path('outputs.txt').read_text())
+        self.assertFalse(S.OBSERVATIONAL_SCOPE_OWNER_ACCEPTED)
+
+
 if __name__ == '__main__':
     unittest.main()

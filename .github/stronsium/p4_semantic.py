@@ -17,6 +17,10 @@ The remaining "observational scope" (line-number and external-tool visibility) i
 OBSERVATIONAL_SCOPE_OWNER_ACCEPTED stays False and the Approve gate keeps denying until a merged PR flips it.
 Docs, markdown, YAML and every non-.py file are NOT covered by this lane: legitimate docs-only P4 PRs stay denied (no proof exists)."""
 
+class ScopeNotApplicable(ValueError):
+    """No positive P4 proof can be issued. Never an approval receipt."""
+
+
 OBSERVATIONAL_SCOPE_OWNER_ACCEPTED = False
 import ast
 import re
@@ -132,19 +136,19 @@ def classify_semantic(context):
     for f in context['paths']:
         p = f['filename']
         if f['status'] != 'modified':
-            raise ValueError('p4_sem_status_not_modified')
+            raise ScopeNotApplicable('p4_sem_status_not_modified')
         if not p.endswith('.py'):
-            raise ValueError('p4_sem_not_python:' + p)
+            raise ScopeNotApplicable('p4_sem_not_python')
         head = context['sources'][p]
         base = reverse_apply(head, secs[p])
         if _tree(base) != _tree(head):
-            raise ValueError('p4_sem_ast_changed:' + p)
+            raise ScopeNotApplicable('p4_sem_ast_changed')
         if _SOURCE_READING.search(base) or _SOURCE_READING.search(head):
-            raise ValueError('p4_sem_source_sensitive:' + p)
+            raise ScopeNotApplicable('p4_sem_source_sensitive')
         if _directive_lines(base) != _directive_lines(head):
-            raise ValueError('p4_sem_directive_comment_changed:' + p)
+            raise ScopeNotApplicable('p4_sem_directive_comment_changed')
         if _header(base) != _header(head):
-            raise ValueError('p4_sem_header_lines_changed:' + p)
+            raise ScopeNotApplicable('p4_sem_header_lines_changed')
     return {'scope': {'classification': 'P4_python_ast_equivalent', 'ast_equivalent_only': True,
                       'coverage_complete': True,
                       'reasons': ['Every changed file is an existing .py file whose AST is identical before and after '

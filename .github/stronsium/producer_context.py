@@ -8,7 +8,9 @@ from urllib.parse import quote
 from proof_context import normalize_context
 from triage import collect
 
-REPO='Abelion512/abelion-hermes-plugins'
+MAX_PROOF_FILES = 30
+
+REPO='Abelion512/AHP'
 ROOT='/repos/'+REPO
 
 def collect_context(gh,pr_number,*,repo_id,bot_id,owner_id,bot_slug,request_comment_id):
@@ -29,7 +31,7 @@ def collect_context(gh,pr_number,*,repo_id,bot_id,owner_id,bot_slug,request_comm
             raise ValueError('invalid_producer_sha')
         discussions,fingerprint,_=collect(gh,pr_number,bot_id,request_comment_id,owner_id,bot_slug)
         files=gh.pages(ROOT+'/pulls/'+str(pr_number)+'/files')
-        if type(files) is not list or not 0<len(files)<=30:raise ValueError('producer_file_count')
+        if type(files) is not list or not 0<len(files)<=MAX_PROOF_FILES:raise ValueError('producer_file_count')
         if type(pr.get('changed_files')) is not int or pr['changed_files']!=len(files):raise ValueError('producer_file_coverage_mismatch')
         paths=[];sources={}
         for f in files:

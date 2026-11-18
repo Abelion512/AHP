@@ -3,7 +3,10 @@ import unittest
 from unittest.mock import patch
 from producer_test import ReadService
 from producer_context import collect_context
-from github_proof_transport import GitHubProofTransport
+from github_proof_transport import GitHubProofTransport, SelectedArtifactProof
+from proof_evidence import receipt_matches
+from proof_test import CONTEXT
+import producer_test as T
 from p4_semantic import reverse_apply
 
 IDENTITY = dict(repo_id=1111,bot_id=4242,owner_id=777,bot_slug='stronsium',request_comment_id=1)
@@ -39,7 +42,7 @@ class ReviewBoundaries(unittest.TestCase):
     def test_transport_rejects_empty_segments(self):
         gh=GitHubProofTransport(lambda:'test-placeholder')
         with self.assertRaisesRegex(ValueError,'api_path_outside_repository'):
-            gh._api('/repos/Abelion512/abelion-hermes-plugins/contents/a//b.py')
+            gh._api('/repos/Abelion512/AHP/contents/a//b.py')
 
     def test_zero_count_add_delete_and_unicode_line_separator(self):
         self.assertEqual(reverse_apply('x=1\n','@@ -0,0 +1,1 @@\n+x=1\n'),'')
@@ -48,5 +51,24 @@ class ReviewBoundaries(unittest.TestCase):
         section='@@ -1,1 +1,2 @@\n x="a\u2028b"\n+# explain\n'
         self.assertEqual(reverse_apply(head,section),'x="a\u2028b"\n')
         self.assertEqual(reverse_apply(head.replace('\n','\r\n'),section.replace('\n','\r\n')),'x="a\u2028b"\n')
+
+class MissingArtifactBoundary(unittest.TestCase):
+    def test_no_artifact_id_cannot_create_proof_source(self):
+        transport = GitHubProofTransport(lambda:'test-placeholder')
+        policy = T.policy(T.program())
+        for artifact_id in (None, 0, False, -1):
+            with self.subTest(artifact_id=artifact_id), self.assertRaisesRegex(ValueError, 'invalid_selected_proof'):
+                SelectedArtifactProof(policy, transport, run_id=10, attempt=1, artifact_id=artifact_id)
+
+    def test_missing_artifact_download_cannot_yield_receipt(self):
+        import urllib.error
+        transport = GitHubProofTransport(lambda:'test-placeholder')
+        selected = SelectedArtifactProof(T.policy(T.program()), transport, run_id=10, attempt=1, artifact_id=11)
+        with patch.object(transport, 'artifact_zip', side_effect=urllib.error.HTTPError(
+                'https://api.github.com', 404, 'not found', {}, None)):
+            with self.assertRaises(urllib.error.HTTPError):
+                selected(CONTEXT)
+        self.assertFalse(receipt_matches(None, CONTEXT))
+        self.assertFalse(receipt_matches({'status':'success', 'conclusion':'success'}, CONTEXT))
 
 if __name__=='__main__':unittest.main()
