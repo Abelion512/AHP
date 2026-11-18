@@ -11,6 +11,7 @@ import producer_fixture_program as F
 
 ROOT=pathlib.Path(__file__).resolve().parent
 HEAD='a'*40;BASE='b'*40;WORKFLOW='c'*40
+BINARY_SOURCE=b'\x89PNG\r\n\x1a\n\xff\xfe'
 
 def program(fn=F.check_source):
     name='producer_fixture_program.py'
@@ -205,9 +206,17 @@ class ProducerTest(unittest.TestCase):
             with self.subTest(attribute=attribute):
                 gh=ReadService();setattr(gh,attribute,True)
                 with self.assertRaises(ValueError):self.collect(gh)
-    def test_collector_rejects_non_utf8_and_duplicate_paths(self):
-        gh=ReadService();gh.source=b'\xff'
-        with self.assertRaisesRegex(ValueError,'malformed_producer_source'):self.collect(gh)
+    def test_collector_marks_non_utf8_and_rejects_duplicate_paths(self):
+        # A binary changed file is collected as a deterministic marker (never lossily
+        # decoded) so the classifier can refuse it by path instead of crashing the producer.
+        class Binary(ReadService):
+            def request(s, path, method='GET', **kw):
+                if '/contents/' in path:
+                    return {'type':'file','encoding':'base64','content':base64.b64encode(BINARY_SOURCE).decode()}
+                return super().request(path, method, **kw)
+        context=self.collect(Binary())
+        self.assertEqual(context['sources']['docs/猫.md'],
+                         'binary-source sha256='+hashlib.sha256(BINARY_SOURCE).hexdigest())
         gh=ReadService();original=gh.pages
         def pages(path,**kw):
             result=original(path,**kw);return result*2 if path.endswith('/files') else result

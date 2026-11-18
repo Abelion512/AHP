@@ -36,8 +36,23 @@ class T(unittest.TestCase):
    diff=d('a.py',"@@ -1 +1 @@\n-#a\n+#b\n").replace("index 1..2 100644","index 1..2 100644"+bad.rstrip("\n"))
    with self.assertRaises(ValueError):S.classify_semantic(ctx('a.py',"#b\n",diff))
   with self.assertRaisesRegex(ValueError,'open_findings'):S.classify_semantic(ctx('a.py',"#b\n",d('a.py',"@@ -1 +1 @@\n-#a\n+#b\n"),findings=['review:1']))
+  with self.assertRaisesRegex(S.ScopeNotApplicable,'open_findings_unverified'):
+   S.classify_semantic(ctx('a.py',"#b\n",d('a.py',"@@ -1 +1 @@\n-#a\n+#b\n"),findings=['review:1']))
   c=ctx('a.py',"#b\n",d('b.py',"@@ -1 +1 @@\n-#a\n+#b\n"))
   with self.assertRaises(ValueError):S.classify_semantic(c)
+ def test_non_provable_files_refused_before_diff_is_parsed(self):
+  # A binary or non-Python file has no AST-equivalence proof. It must be refused by
+  # path/status even when its diff section is a non-text "Binary files" record that
+  # _sections cannot parse; parsing first would crash the producer instead of refusing.
+  binary="diff --git a/docs/a.png b/docs/a.png\nnew file mode 100644\nindex 0..1\nBinary files /dev/null and b/docs/a.png differ\n"
+  with self.assertRaisesRegex(S.ScopeNotApplicable,'p4_sem_status_not_modified'):
+   S.classify_semantic(ctx('docs/a.png',"x = 1\n",binary,status='added'))
+  with self.assertRaisesRegex(S.ScopeNotApplicable,'p4_sem_not_python'):
+   S.classify_semantic(ctx('docs/a.md',"x = 1\n",binary,status='modified'))
+ def test_structural_binary_change_is_a_scope_refusal(self):
+  diff=d('a.py',"@@ -1 +1 @@\n-#a\n+#b\n").replace("index 1..2 100644","index 1..2 100644\nBinary files a/a.py and b/a.py differ")
+  with self.assertRaisesRegex(S.ScopeNotApplicable,'p4_sem_structural_change'):
+   S.classify_semantic(ctx('a.py',"#b\n",diff))
  def test_unparseable_rejected(self):
   with self.assertRaisesRegex(ValueError,'p4_sem_unparseable'):S.classify_semantic(ctx('a.py',"def (:\n",d('a.py',"@@ -1 +1 @@\n-#a\n+def (:\n")))
  def test_multi_hunk_and_crlf(self):
