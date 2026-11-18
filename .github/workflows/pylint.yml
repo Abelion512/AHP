@@ -17,6 +17,7 @@ jobs:
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
+        fetch-depth: 0  # diff against the PR/push base commit
         persist-credentials: false
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -25,11 +26,30 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --only-binary ':all:' pylint==4.1.4
-    - name: Analyse the code with pylint
-      # Errors only: the current tree carries pre-existing style/refactor debt
-      # and Ruff is this repository's style gate. import-error is disabled
-      # because the plugin imports the pinned Hermes host, which is not
-      # installed in this lint job.
+    - name: Analyse changed Python files with pylint
+      # Full Pylint (errors + warnings) on files this change touches. Legacy
+      # files keep their existing debt instead of blocking unrelated PRs;
+      # convention/refactor categories are disabled in .pylintrc because Ruff
+      # is this repository's style gate. import-error is disabled there too:
+      # the plugin imports the pinned Hermes host, which this job does not install.
+      env:
+        EVENT: ${{ github.event_name }}
+        PR_BASE: ${{ github.event.pull_request.base.sha }}
+        PUSH_BEFORE: ${{ github.event.before }}
       run: |
-        git ls-files -z '*.py' ':(exclude)**/tests/**' ':(exclude).github/**' \
-          | xargs -0 -r pylint --errors-only --disable=import-error
+        base=""
+        [ "$EVENT" = "pull_request" ] && base="$PR_BASE"
+        [ "$EVENT" = "push" ] && base="$PUSH_BEFORE"
+        if [ -z "$base" ] || echo "$base" | grep -qE '^0+$' || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+          echo "::notice::no comparable base commit; no changed Python files to lint"
+          exit 0
+        fi
+        git diff -z --name-only --diff-filter=ACMRT "$base" HEAD -- '*.py' \
+          | grep -zvE '(^|/)(tests|e2e)/|^\.github/' > changed.z || true
+        if [ ! -s changed.z ]; then
+          echo "No changed Python files require linting."
+          exit 0
+        fi
+        echo "Linting:"
+        tr '\0' '\n' < changed.z
+        xargs -0 -r pylint < changed.z

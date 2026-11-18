@@ -1,0 +1,17 @@
+[MAIN]
+# Minimum runtime supported by the repo (AGENTS.md), not the CI matrix version.
+py-version = 3.11
+jobs = 0
+
+[MESSAGES CONTROL]
+# Ruff owns formatting, naming and refactor style in this repository. Pylint is
+# kept as a correctness gate: errors and warnings stay on, convention/refactor
+# noise is off. `unused-argument` is disabled because Hermes hook signatures are
+# fixed by the host, and `broad-exception-caught` because guard code fails closed
+# by catching broad exceptions.
+disable =
+    C,
+    R,
+    import-error,
+    unused-argument,
+    broad-exception-caught
