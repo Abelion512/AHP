@@ -18,9 +18,9 @@ This is a partial reference-imitation implementation, not completion of the full
 | Photo schema test | Bounds, URL refusal, required price/note pair | Remote media trust or data accuracy |
 | Chromium legacy smoke + photo browser | Pinned parser, fake SDK atoms/composer;320/390/1280; viewer boundary/zoom/close/owner switch/unsafe values/zero sends | Full Hermes or live model output |
 | Native-module10group run, private v8 candidate | Actual host Markdown/SDK module graph with cached image interception and separate focus delta | Full shell or model selection |
-| Independent combined-v8 full-shell check | Manual fixture in isolated Hermes, desktop1280 and mobile390; all8legacy types+2photo cards, real touch scroll, X/Escape exact opener focus, actual SDK-state navigation closes overlay, saved combined reopen | Real model generation, all legacy form-field mappings, universal listener cleanup or unpatched-core compatibility |
+| Independent combined-v8 full-shell check | Manual fixture in isolated Hermes, desktop1280 and mobile390; all8legacy types+2photo cards, real touch scroll, X/Escape exact opener focus, actual SDK-state navigation closes overlay, saved combined reopen | Real model generation, every legacy action permutation, universal listener cleanup or unpatched-core compatibility |
 
-The full-shell form reached the same owning chat with a fake-provider acknowledgment. Notes-field mapping was not individually exercised at the recorded checkpoint. Repeated reopen/close showed one viewer and no observed page errors; this is not a proof that every listener is absent. No previous isolated v7/v7.3 pass is counted as combined-v8 acceptance.
+A later combined-v8 full-shell probe individually targeted the Name and Notes fields and verified the exact structured form payload as a sent message in an unchanged owning-session hash, with zero page errors. The response was a scripted fake-provider acknowledgment, not live-model proof or a composer-prefill-only observation. Repeated reopen/close showed one viewer and no observed page errors; this is not a proof that every listener is absent. No previous isolated v7/v7.3 pass is counted as combined-v8 acceptance.
 
 ## Visual evidence
 
