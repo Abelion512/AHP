@@ -1,5 +1,5 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+# Python syntax/lint gate plus the repository script test suite.
+# See https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 
 name: Python package
 
@@ -22,16 +22,16 @@ jobs:
         python-version: ["3.14"]
 
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+      uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install flake8==7.3.0 pytest==9.1.1
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        python -m pip install --only-binary ':all:' flake8==7.3.0 pytest==9.1.1 pyyaml==6.0.3
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
