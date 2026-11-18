@@ -8,6 +8,7 @@ from proof_producer import FrozenProgram,ProofProducer,collect_and_produce,Asser
 from proof_test import CLOSURE,serve
 from producer_context import collect_context
 import producer_fixture_program as F
+import p4_semantic as S
 
 ROOT=pathlib.Path(__file__).resolve().parent
 HEAD='a'*40;BASE='b'*40;WORKFLOW='c'*40
@@ -111,7 +112,8 @@ class ProducerTest(unittest.TestCase):
             with self.subTest(count=count),self.assertRaisesRegex(ValueError,'producer_file_coverage_mismatch'):self.collect(gh)
     def test_source_and_context_size_caps(self):
         gh=ReadService();gh.source='x'*240001
-        with self.assertRaisesRegex(ValueError,'producer_source_limit'):self.collect(gh)
+        # An oversized changed file is out of this lane's bounds: no proof, not a failure.
+        with self.assertRaisesRegex(S.ScopeNotApplicable,'p4_sem_source_out_of_bounds'):self.collect(gh)
         gh=ReadService();gh.diff='x'*240001
         with self.assertRaisesRegex(ValueError,'context_limit'):self.collect(gh)
     def test_proof_log_limit_no_archive(self):

@@ -118,7 +118,8 @@ def main(argv,env):
         # This type is raised only for known scope refusals by the pinned classifier.
         allowed = {'p4_sem_status_not_modified', 'p4_sem_not_python', 'p4_sem_ast_changed',
                    'p4_sem_source_sensitive', 'p4_sem_directive_comment_changed', 'p4_sem_header_lines_changed',
-                   'p4_sem_structural_change', 'open_findings_unverified'}
+                   'p4_sem_structural_change', 'p4_sem_unparseable', 'p4_sem_source_out_of_bounds',
+                   'p4_sem_review_context_out_of_bounds', 'open_findings_unverified'}
         if str(exc) not in allowed:
             raise
         report_outcome(env, reason=str(exc))

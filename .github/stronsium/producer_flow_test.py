@@ -46,6 +46,54 @@ class BinarySvc(Svc):
         return super().request(path, method, **kw)
 
 
+class RemovedSvc(Svc):
+    """A PR that deletes a file: no head source, no AST-equivalence proof."""
+    def pages(s, path, **kw):
+        if path.endswith('/files'):
+            s.calls.append(('GET', path)); return [{'filename': 'plugins/a/m.py', 'status': 'removed'}]
+        return super().pages(path, **kw)
+
+
+class OversizeSvc(Svc):
+    """A PR whose only changed file exceeds MAX_SOURCE_BYTES."""
+    def request(s, path, method='GET', **kw):
+        if '/contents/' in path:
+            s.calls.append(('GET', path))
+            return {'type': 'file', 'encoding': 'base64', 'content': base64.b64encode(b'x' * 240001).decode()}
+        return super().request(path, method, **kw)
+
+
+class ManyCommentsSvc(Svc):
+    """A PR with more review comments than the lane is bounded to read."""
+    def pages(s, path, **kw):
+        if '/pulls/' in path and path.endswith('/comments'):
+            s.calls.append(('GET', path))
+            return [{'id': i, 'user': {'id': 900 + i}, 'body': 'finding', 'updated_at': 'before'} for i in range(51)]
+        return super().pages(path, **kw)
+
+
+class CanonicalIds:
+    """Rewrite the synthetic PR so the collector's repository check accepts it."""
+    def request(self, path, method='GET', **kwargs):
+        value = super().request(path, method, **kwargs)
+        if path.endswith('/pulls/1'):
+            value['head']['repo']['id'] = I.IDENTITY['repo_id']
+            value['base']['repo'] = {'id': I.IDENTITY['repo_id'], 'full_name': REPO}
+        return value
+
+
+class CanonicalRemoved(CanonicalIds, RemovedSvc):
+    pass
+
+
+class CanonicalOversize(CanonicalIds, OversizeSvc):
+    pass
+
+
+class CanonicalManyComments(CanonicalIds, ManyCommentsSvc):
+    pass
+
+
 class Flow(unittest.TestCase):
     def setUp(self):
         self.d = tempfile.TemporaryDirectory(); self.addCleanup(self.d.cleanup)
@@ -175,7 +223,8 @@ class ScopeReporting(unittest.TestCase):
     def test_known_semantic_refusals_are_no_proof_only(self):
         for reason in ['p4_sem_not_python', 'p4_sem_ast_changed', 'p4_sem_source_sensitive',
                        'p4_sem_status_not_modified', 'p4_sem_directive_comment_changed', 'p4_sem_header_lines_changed',
-                       'p4_sem_structural_change', 'open_findings_unverified']:
+                       'p4_sem_structural_change', 'p4_sem_unparseable', 'p4_sem_source_out_of_bounds',
+                       'p4_sem_review_context_out_of_bounds', 'open_findings_unverified']:
             with self.subTest(reason=reason):
                 self.call(failure=S.ScopeNotApplicable(reason)).assert_called_once()
                 self.assertEqual(self.status()['status'], 'not_applicable')
@@ -283,6 +332,23 @@ class ScopeReporting(unittest.TestCase):
                          'autoapprove_granted': False, 'reason': 'open_findings_unverified'})
         self.assertFalse(pathlib.Path('proof.json').exists())
         self.assertFalse(pathlib.Path('digest.txt').exists())
+
+    def expect_not_applicable(self, service, reason):
+        self.env['GITHUB_WORKSPACE'] = str(ROOT)
+        with mock.patch.object(RC, 'GitHubProofTransport', return_value=service):
+            RC.main(['producer', '1', '0', 'proof.json'], self.env)
+        self.assertEqual(self.status()['reason'], reason)
+        self.assertFalse(pathlib.Path('proof.json').exists())
+        self.assertFalse(pathlib.Path('digest.txt').exists())
+
+    def test_removed_file_is_no_proof_not_a_failure(self):
+        self.expect_not_applicable(CanonicalRemoved(), 'p4_sem_status_not_modified')
+
+    def test_oversize_source_is_no_proof_not_a_failure(self):
+        self.expect_not_applicable(CanonicalOversize(), 'p4_sem_source_out_of_bounds')
+
+    def test_review_comment_bound_is_no_proof_not_a_failure(self):
+        self.expect_not_applicable(CanonicalManyComments(), 'p4_sem_review_context_out_of_bounds')
 
     def test_success_outputs_proof_available_not_autoapproval(self):
         self.call().assert_called_once()

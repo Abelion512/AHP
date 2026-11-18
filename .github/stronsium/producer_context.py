@@ -8,6 +8,7 @@ import re
 from urllib.parse import quote
 from proof_context import normalize_context
 from triage import collect
+from p4_semantic import ScopeNotApplicable
 
 MAX_PROOF_FILES = 30
 MAX_SOURCE_BYTES = 240000
@@ -51,7 +52,10 @@ def collect_context(gh,pr_number,*,repo_id,bot_id,owner_id,bot_slug,request_comm
         paths=[];sources={}
         for f in files:
             path=f['filename'];status=f['status']
-            if type(path) is not str or status not in ('added','modified'):raise ValueError('producer_source_status')
+            if type(path) is not str or type(status) is not str:raise ValueError('producer_source_status')
+            # A removed or renamed file has no head source and no AST-equivalence proof.
+            # Refuse the PR for this lane instead of failing the producer.
+            if status not in ('added','modified'):raise ScopeNotApplicable('p4_sem_status_not_modified')
             if (not path or path.startswith('/') or '\\' in path
                     or any(part in ('','.','..') for part in path.split('/'))
                     or any(ord(c)<32 for c in path)):
@@ -62,7 +66,7 @@ def collect_context(gh,pr_number,*,repo_id,bot_id,owner_id,bot_slug,request_comm
             encoded=item['content']
             if type(encoded) is not str:raise ValueError('producer_source_encoding')
             raw=base64.b64decode(''.join(encoded.split()),validate=True)
-            if len(raw)>MAX_SOURCE_BYTES:raise ValueError('producer_source_limit')
+            if len(raw)>MAX_SOURCE_BYTES:raise ScopeNotApplicable('p4_sem_source_out_of_bounds')
             sources[path]=source_text(raw)
             paths.append({'filename':path,'status':status})
         diff=gh.request(ROOT+'/compare/'+base+'...'+head,raw=True)
