@@ -1,0 +1,16 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node build-plugin.mjs --check && node --test interaction.test.mjs photo.test.mjs",
+    "test:browser": "node browser-smoke.mjs && node photo-browser.mjs",
+    "build:plugin": "node build-plugin.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "esbuild": "0.28.2",
+    "jsdom": "31.0.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  }
+}
