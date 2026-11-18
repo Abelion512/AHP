@@ -1,6 +1,7 @@
 """Read all PR review discussions as untrusted data, without executing them."""
 import hashlib,json,re
 from proof_evidence import REPO
+from p4_semantic import ScopeNotApplicable
 MARK='<!-- abelink-review:v1 -->'  # review marker; must equal the worker's marker
 MAX_COMMENT_CHARS=60000
 
@@ -22,7 +23,7 @@ def collect(gh,pr,bot_id,request_comment_id,owner_id=None,bot_slug=None):
    comments.append({'kind':kind,'id':c['id'],'author_id':c['user']['id'],'body':body,'path':c.get('path'),'line':c.get('line'),'commit_id':c.get('commit_id'),'updated_at':c.get('updated_at'),'html_url':c.get('html_url')})
  comments.sort(key=lambda c:(c['kind'],c['id']))
  serial=json.dumps(comments,sort_keys=True,ensure_ascii=False)
- if len(comments)>50 or len(serial)>MAX_COMMENT_CHARS:raise ValueError('review_comments_limit')
+ if len(comments)>50 or len(serial)>MAX_COMMENT_CHARS:raise ScopeNotApplicable('p4_sem_review_context_out_of_bounds')
  fingerprint=hashlib.sha256(serial.encode()).hexdigest()
  prior.sort(key=lambda c:(c.get('updated_at') or '',c['id']),reverse=True)
  return comments,fingerprint,prior[0] if prior else None
