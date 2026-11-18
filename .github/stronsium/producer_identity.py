@@ -7,10 +7,11 @@ The closure digest pins CONTENT (closure_manifest.json members), not the exact c
 the worker pin valid. workflow_id is not known inside a run and the producer never uses it (placeholder 1; the verifier
 checks the real id)."""
 import hashlib, os, pathlib, re
+import p4_checks_program as checks
 import p4_semantic
 from proof_closure import local_closure_digest
 from proof_evidence import ProducerPolicy
-from proof_producer import FrozenProgram
+from proof_producer import FrozenProgram, freeze_function
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
@@ -24,7 +25,10 @@ SEMANTIC = p4_semantic.classify_semantic
 def program():
     d = hashlib.sha256((HERE / CHECK_FILE).read_bytes()).hexdigest()
     return FrozenProgram(HERE, ((CHECK_FILE, d),), (CHECK_FILE, 'classify_unused'),
-                         (('diff-covers-files', CHECK_FILE, 'check_diff_covers_exactly_the_changed_files'),))
+                         (('diff-covers-files', CHECK_FILE, 'check_diff_covers_exactly_the_changed_files'),),
+                         (((CHECK_FILE, 'classify_unused'), freeze_function(checks.classify_unused)),
+                          ((CHECK_FILE, 'check_diff_covers_exactly_the_changed_files'),
+                           freeze_function(checks.check_diff_covers_exactly_the_changed_files))))
 
 
 def load(env, event='pull_request_target'):
