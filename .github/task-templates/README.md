@@ -144,3 +144,7 @@ Before marking the task complete, confirm:
 - [ ] CI still makes sense for the new shape (detection, labeler, audit, secret scan)
 
 A change that touches the plugin but not its docs/tests is incomplete by default.
+
+## Intelligent UI reference patches
+
+For visual and interaction fidelity work, also use the [reference contribution guide](../../experiments/intelligent-ui-reference/README.md) and its reference-case, incident, patch-plan and verification templates. They supplement these existing task templates, not the runtime plugin docs/skills contract.

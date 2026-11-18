@@ -93,3 +93,7 @@ components over a second chat shell, learning-oriented criteria and limits.
 The chart uses paired nonnegative values; unknown data is not a zero. Flow is an
 ordered sequence, not an arbitrary graph. Exploration stays local until an
 explicit choice submit. A picture alone is not evidence of better comprehension.
+
+## Contributor reference workflow
+
+Reference observations, sanitized improvement records and patch templates live in [the experiment guide](../../experiments/intelligent-ui-reference/README.md). The [manual contributor skill](../../.plugins/intelligent-ui-reference/SKILL.md) does not change runtime registration. These are pending UI references, not new accepted Aero behavior.
