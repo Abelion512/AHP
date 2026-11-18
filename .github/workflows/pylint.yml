@@ -26,4 +26,4 @@ jobs:
         pip install pylint==4.1.4
     - name: Analysing the code with pylint
       run: |
-        pylint $(git ls-files '*.py')
+        git ls-files -z '*.py' ':(exclude)**/tests/**' ':(exclude).github/**' | xargs -0 -r pylint
