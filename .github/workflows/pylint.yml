@@ -15,15 +15,21 @@ jobs:
       matrix:
         python-version: ["3.14"]
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+      uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install pylint==4.1.4
-    - name: Analysing the code with pylint
+        python -m pip install --only-binary ':all:' pylint==4.1.4
+    - name: Analyse the code with pylint
+      # Errors only: the current tree carries pre-existing style/refactor debt
+      # and Ruff is this repository's style gate. import-error is disabled
+      # because the plugin imports the pinned Hermes host, which is not
+      # installed in this lint job.
       run: |
-        git ls-files -z '*.py' ':(exclude)**/tests/**' ':(exclude).github/**' | xargs -0 -r pylint
+        git ls-files -z '*.py' ':(exclude)**/tests/**' ':(exclude).github/**' \
+          | xargs -0 -r pylint --errors-only --disable=import-error
