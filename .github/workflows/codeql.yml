@@ -19,6 +19,12 @@ on:
   schedule:
     - cron: '17 15 * * 0'
 
+# Least privilege: public repository, no private CodeQL packs, so only these
+# two scopes are needed. security-events: write is required to upload results.
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
@@ -28,16 +34,6 @@ jobs:
     #   - https://gh.io/using-larger-runners (GitHub.com only)
     # Consider using larger runners or machines with greater resources for possible analysis time improvements.
     runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
-    permissions:
-      # required for all workflows
-      security-events: write
-
-      # required to fetch internal or private CodeQL packs
-      packages: read
-
-      # only required for workflows in private repositories
-      actions: read
-      contents: read
 
     strategy:
       fail-fast: false
@@ -58,6 +54,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
     # Add any setup steps before running the `github/codeql-action/init` action.
     # This includes steps like installing compilers or runtimes (`actions/setup-node`
