@@ -77,6 +77,15 @@ class DirectiveContractTests(unittest.TestCase):
         self.assertLessEqual(len(desc), 60)
         self.assertTrue(desc.startswith("skill_view('aero:aero')"), desc)
 
+    def test_skill_documents_blank_line_rule(self):
+        # Host v0.23.2 only segments text-only paragraphs; its soft-break step
+        # makes directives one newline apart share a paragraph that then renders
+        # NONE of them. SKILL.md must teach blank-line separation, and the
+        # fixture examples must follow it.
+        skill = (PLUGIN / "skills" / "aero" / "SKILL.md").read_text()
+        self.assertIn("one blank line before and after", skill)
+        self.assertIn("4800", skill)
+
     def test_limits_are_bounded(self):
         limits = self.contract["limits"]
         self.assertLessEqual(limits["title_chars"], 120)

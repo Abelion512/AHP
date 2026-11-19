@@ -147,6 +147,17 @@ Fixture-rendered kinds are verified with the deterministic harness and host
 screenshots. Live-model generation of directives is tracked separately; the
 desktop renderer does not depend on which model produced the directive.
 
+Host rendering constraints (v0.23.2, demonstrated in the harness, not
+plugin-fixable): the host only segments a paragraph into directives when the
+paragraph is text-only, and its soft-break preprocessing turns a single
+newline into a break node. Two directives one newline apart - or a directive
+with prose on the next line - therefore share a paragraph and none of them
+render; they remain raw text. Directives must be blank-line separated (the
+SKILL.md authoring rule). A paragraph over 4800 characters is not segmented
+at all, one brace body is capped at 2048 characters, and attribute values
+cannot contain braces. Unsupported or unregistered directive names stay
+visible raw text by host design.
+
 ### Skill discovery contract (model-facing)
 
 Hermes clips every skill description to 60 characters
