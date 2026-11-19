@@ -1,0 +1,83 @@
+name: auto-fix
+
+# Opt-in lane. Disabled unless repository variable AUTOFIX_ENABLED is true.
+# AGENTS.md requires human approval before enabling: this job can push commits.
+# It never executes PR code in the privileged context and only accepts PRs whose
+# head branch lives in this repository.
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Open, same-repo PR number to fix'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  fix:
+    if: ${{ vars.AUTOFIX_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      HERMES_PIN: 9a85916c87d56c2ca00b02fad8918f93ef1816e9
+    steps:
+      # actions/checkout v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.14"
+      - name: Read and validate PR eligibility
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          if ! [[ "$PR_NUMBER" =~ ^[0-9]{1,9}$ ]]; then echo 'invalid PR number'; exit 1; fi
+          gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER" > pr.json
+          repo_id=$(gh api "repos/${{ github.repository }}" --jq .id)
+          python .github/scripts/autofix_eligibility.py pr.json "$repo_id"
+          echo "HEAD_REF=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER" --jq .head.ref)" >> "$GITHUB_ENV"
+      - name: Build bounded task from review comments
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER/comments" --paginate > comments.json
+          python .github/scripts/autofix_task.py comments.json > task.md
+      - name: Checkout PR head branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: gh pr checkout "$PR_NUMBER"
+      - name: Checkout pinned Hermes runtime
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: Abelion512/hermes-4gent
+          ref: ${{ env.HERMES_PIN }}
+          path: hermes-core
+          persist-credentials: false
+      - name: Install pinned Hermes runtime
+        run: |
+          python -m pip install uv==0.13.5
+          uv sync --project hermes-core --no-dev
+      - name: Run agent on the bounded task
+        env:
+          AUTOFIX_API_KEY: ${{ secrets.AUTOFIX_API_KEY }}
+        run: bash .github/scripts/autofix_run.sh task.md
+      - name: Push fixes to the PR branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet; then echo 'no changes to push'; exit 0; fi
+          git config user.name 'stronsium[bot]'
+          git config user.email 'stronsium[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix(auto): apply review findings'
+          git push origin "HEAD:$HEAD_REF"
