@@ -94,8 +94,8 @@ class TriggerContractTest(unittest.TestCase):
 
     def test_pages_concurrency_expression_is_valid(self):
         group = load(PAGES)["concurrency"]["group"]
-        self.assertNotIn(" ? ", group)
-        self.assertIn("&& 'main' || github.run_id", group)
+        self.assertNotIn("?", group)
+        self.assertIn("pages-${{ (github.event_name == 'push' || github.ref == 'refs/heads/main') && 'main' || github.run_id }}", group)
 
 
 if __name__ == "__main__":
