@@ -50,3 +50,5 @@ the registered skill the agent never sees the plugin's guidance.
 - Every documented command exists in the Hermes version claimed; every
   relative link resolves; every limit named honestly (what passes, what is
   blocked, what is not covered).
+## Naming, PR titles, images
+Visible plugin names, example PR titles and the images note live in docs/title-reference.md. Read it before naming a plugin or opening a PR.
