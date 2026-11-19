@@ -180,6 +180,12 @@ class ProducerTest(unittest.TestCase):
             (('producer_fixture_program.py','check_source'),freeze_function(check_source))))
         with self.assertRaisesRegex(ValueError,'trusted_program_mismatch'):
             bad.load(prog.definition_digest())
+    def test_unfrozen_callable_rejected(self):
+        prog=program()
+        bad=replace(prog,functions=((( 'producer_fixture_program.py','classify_fixture'),F.classify_fixture),
+            (('producer_fixture_program.py','check_source'),freeze_function(F.check_source))))
+        with self.assertRaisesRegex(ValueError,'trusted_program_not_frozen'):
+            bad.load(prog.definition_digest())
     def test_raw_line_endings_and_unicode_preserved(self):
         context=self.collect();self.assertEqual(context['sources']['docs/猫.md'],F.EXPECTED_SOURCE)
         self.assertIn('\r\n',context['diff']);self.assertFalse(context['sources']['docs/猫.md'].endswith('\n'))

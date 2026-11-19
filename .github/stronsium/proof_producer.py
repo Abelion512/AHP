@@ -156,9 +156,15 @@ class FrozenProgram:
         supplied=dict(self.functions)
         def resolve(name):
             function=supplied.get(name)
-            if (type(name) is not tuple or len(name)!=2 or not callable(function)
-                    or getattr(function,'__name__',None)!=name[1]):
+            if (type(name) is not tuple or len(name)!=2 or type(function) is not types.FunctionType
+                    or function.__name__!=name[1]):
                 raise ValueError('trusted_program_missing')
+            # Wiring must supply freeze_function output, not a raw module function
+            # with unrestricted globals and builtins.
+            if (getattr(function,'__module__',None)!='trusted_checks'
+                    or function.__globals__.get('__name__')!='trusted_checks'
+                    or not isinstance(function.__globals__.get('__builtins__'),dict)):
+                raise ValueError('trusted_program_not_frozen')
             # Same name is not enough: the callable must be the exact code the
             # verified file defines, so miswired wiring cannot run an unrelated
             # check while the proof records the approved definition digest.

@@ -26,7 +26,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        python -m pip install --only-binary ':all:' pylint==4.1.4
+        python -m pip install --prefer-binary pylint==4.1.4
     - name: Analyse changed Python files with pylint
       # Full Pylint (errors + warnings) on files this change touches. Legacy
       # files keep their existing debt instead of blocking unrelated PRs;

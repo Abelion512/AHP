@@ -62,6 +62,9 @@ python .github/scripts/test_plugin_install_step.py
 PYTHONPATH=.github/scripts python -m pytest .github/scripts -q
 ```
 
+The script tests import PyYAML and `packaging`; install the pinned versions
+first: `python -m pip install --only-binary ':all:' pyyaml==6.0.3 packaging==26.3`.
+
 The diagrams are generated from `docs/flows/`. Regenerate and confirm the
 committed PNGs have not drifted (needs Pillow >= 10.1):
 
