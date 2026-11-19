@@ -28,6 +28,7 @@ plugins/<id>/
 │   └── <first behavior area>.py
 └── e2e/
     ├── README.md
+    ├── host.json          # pinned repository + full commit SHA for E2E
     ├── conftest.py
     └── <first real-host behavior>.py
 ```
@@ -75,7 +76,6 @@ If the plugin refuses legacy hosts, say so explicitly and raise/return in a way 
 Update in the same change:
 
 - `hermes.json` → add to `plugins[]`
-- `update-plugins.sh` → add to the sync list
 - Root `README.md` → add a row to the active plugin table
 - `.github/labeler.yml` → add the plugin label(s)
 - `.github/task-templates/README.md` → mention the new plugin only if it changes the repeating-task shape
@@ -91,6 +91,7 @@ If the plugin bundles third-party viewer/runtime code, also add `docs/VENDOR.md`
 - One unit/regression area in `tests/` that exercises the plugin's own logic without a real Hermes host.
 - One real-host E2E area in `e2e/` with synthetic data and a disposable profile.
 - `e2e/README.md` describing the CI contract and limits.
+- `e2e/host.json` with the exact host repository and full commit SHA. CI groups suites by this file, checks out that commit, and fails if it is missing or not a full SHA.
 
 Do not claim an E2E proves something it only skips.
 

@@ -36,7 +36,7 @@ Every workflow pins third-party actions to full commit SHAs and declares explici
 
 | Workflow | What it blocks |
 |---|---|
-| `ci.yml` | Plugin syntax/tests, dependency-floor audit, real-host E2E, secret scan, manifest/docs lint. |
+| `ci.yml` | Plugin syntax and mandatory tests, dependency-floor audit, per-plugin pinned-host E2E, secret scan, and the shared plugin contract. |
 | `codeql.yml` | Semantic CodeQL analysis for Actions and Python on PRs, pushes and a weekly schedule. |
 | `dependency-review.yml` | A PR that introduces a dependency with a known vulnerability (moderate or higher). |
 | `pylint.yml` | Errors and warnings in Python files changed by the PR; legacy debt is not re-litigated. |
@@ -48,7 +48,7 @@ Details, permission scopes, and the current workflow audit live in [`docs/CI.md`
 
 ## Validation
 
-CI runs each plugin's own tests and dependency checks, plus a real-host E2E suite with a synthetic loopback provider, disposable profiles, and the exact core commit above. No real provider or production credentials are used. A green CI run is evidence for its tested commit and paths only.
+CI runs each plugin's own tests and dependency checks, plus a real-host E2E suite with a synthetic loopback provider and disposable profiles. Each E2E suite pins its host in `e2e/host.json`; CI groups suites by that pin, checks out the exact commit, and verifies the imported source. No real provider or production credentials are used. A green CI run is evidence for its tested commit and paths only.
 
 ### Privacy regression strategy
 
@@ -60,7 +60,7 @@ The “2.8T” target is not treated as a count of test cases or as a privacy gu
 
 ## Installation and migration
 
-`update-plugins.sh` syncs the active plugin folders into `~/.hermes/plugins/`. It now stops before pulling or syncing if it detects the retired `pii_mask_abelion`, `screen`, or `output-redact-abelion` directories. It does not guess the active profile, edit Hermes configuration, or delete plugin state. Complete the backed-up native migration and quarantine procedure in [`docs/PLUGIN_MIGRATION.md`](docs/PLUGIN_MIGRATION.md) first. Never delete plugin directories from a live profile, and never disable required Privacy Guard merely to hide a migration failure.
+`update-plugins.sh` syncs every plugin listed in `hermes.json` into `~/.hermes/plugins/`. It stops before pulling or syncing if it detects the retired `pii_mask_abelion`, `screen`, or `output-redact-abelion` directories. It does not guess the active profile, edit Hermes configuration, or delete plugin state. Complete the backed-up native migration and quarantine procedure in [`docs/PLUGIN_MIGRATION.md`](docs/PLUGIN_MIGRATION.md) first. Never delete plugin directories from a live profile, and never disable required Privacy Guard merely to hide a migration failure.
 
 Retired source can be recovered from Git history as documented in [`.github/retired-source-recovery.md`](.github/retired-source-recovery.md). An old installed copy is separate state and is not deleted merely because its source was removed from this repository.
 

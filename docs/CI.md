@@ -15,7 +15,7 @@ commit, not a mutable ref. Compare with `git grep -n "uses:" origin/main --
 
 | Workflow | Trigger | Token permissions | Notes |
 |---|---|---|---|
-| `ci.yml` | push `main`, PR, weekly schedule, manual | `contents: read` | Plugin matrix, dependency audit, real-host E2E, gitleaks with pinned checksum, docs/manifest lint. |
+| `ci.yml` | push `main`, PR, weekly schedule, manual | `contents: read` | Plugin matrix, mandatory plugin tests, dependency audit, per-plugin pinned-host E2E, gitleaks with pinned checksum, and the shared plugin contract. |
 | `codeql.yml` | push/PR `main`, weekly schedule | `contents: read`, `security-events: write` | Pinned CodeQL action; no private query packs. |
 | `dependency-review.yml` | PR to `main` | `contents: read`, `pull-requests: read` | Reads the PR's changed manifests; no PR comment (`comment-summary-in-pr: never`), so fork PRs work with GitHub's forced read-only token. `fail-on-severity: moderate`. |
 | `pylint.yml` | push `main`, PR | `contents: read` | Errors + warnings on changed Python files, including `.github/scripts`; `.pylintrc` disables Ruff-owned style categories and exempts only uninstalled modules from `import-error`. Stronsium and E2E harness fixtures are excluded and covered by their own suites. |
