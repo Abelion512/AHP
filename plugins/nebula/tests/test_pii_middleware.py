@@ -1,5 +1,6 @@
 import copy
 import importlib
+import logging
 import sys
 from pathlib import Path
 
@@ -57,6 +58,13 @@ def test_request_not_mutated_and_untouched_messages_shared():
 
 def test_no_change_returns_none():
     assert pii.pii_middleware({"messages": [{"role": "user", "content": "hi"}]}) is None
+
+
+def test_mask_log_never_prints_sensitivity_level(caplog):
+    with caplog.at_level(logging.INFO, logger="nebula.pii_middleware"):
+        pii.pii_middleware({"messages": [{"role": "user", "content": "key sk-abcdef1234"}]})
+    assert "Masked 1 items" in caplog.text
+    assert "CONFIDENTIAL" not in caplog.text
 
 
 def test_output_redact_paren_and_plain():

@@ -270,7 +270,7 @@ def pii_middleware(
         return {"request": HELD_REQUEST}
     if total_masked == 0:
         return None
-    logger.info("[PII] Masked %d items in request (level=%s)", total_masked, CONFIDENTIAL)
+    logger.info("[PII] Masked %d items in request", total_masked)
     return {"request": new_request}
 
 
