@@ -93,15 +93,16 @@ jobs:
           RUNNER_TEMP: ${{ runner.temp }}
         working-directory: pr
         run: |
-          env -u GH_TOKEN -u GITHUB_TOKEN -u GITHUB_API_URL -u GITHUB_GRAPHQL_URL \
+          env -i PATH="$PATH" HOME="$HOME" GITHUB_WORKSPACE="$GITHUB_WORKSPACE" \
+            AUTOFIX_API_KEY="$AUTOFIX_API_KEY" RUNNER_TEMP="$RUNNER_TEMP" \
             bash "$GITHUB_WORKSPACE/.github/scripts/autofix_run.sh" "$RUNNER_TEMP/task.md"
       - name: Revalidate the PR and push fixes
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ inputs.pr_number }}
         run: |
-          current=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER" --jq .head.sha)
-          if [[ "$current" != "$HEAD_SHA" ]]; then echo 'PR head moved; aborting push'; exit 1; fi
+          current=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER" --jq '[.head.sha,.head.ref] | @tsv')
+          if [[ "$current" != "$HEAD_SHA"$'\t'"$HEAD_REF" ]]; then echo 'PR head moved; aborting push'; exit 1; fi
           cd pr
           remote="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           push() { git -c core.hooksPath=/dev/null push -q "$remote" "HEAD:$HEAD_REF"; }

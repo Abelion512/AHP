@@ -96,7 +96,7 @@ class TaskTest(unittest.TestCase):
         self.assertIn("vars.AUTOFIX_ENABLED == 'true'", workflow)
         self.assertNotIn('pull_request_target:', workflow)
         self.assertIn('autofix_eligibility.py', workflow)
-        self.assertIn('env -u GH_TOKEN', workflow)
+        self.assertIn('env -i PATH=', workflow)
         self.assertIn('core.hooksPath=/dev/null', workflow)
         self.assertIn('pull-requests: read', workflow)
 
