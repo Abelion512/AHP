@@ -124,7 +124,7 @@ def write_skeleton(root: Path, pid: str, description: str, category: str,
             "name: %s\ndescription: %s\nversion: 0.1.0\nauthor: Abelion\n"
             "kind: standalone\npython_dependencies: []\n"
             "metadata:\n  hermes:\n    category: %s\n    tags: [%s]\n"
-            % (json.dumps(pid), json.dumps(description), json.dumps(category), pid)
+            % (json.dumps(pid), json.dumps(description), json.dumps(category), json.dumps(pid))
         ),
         base / "README.md": (
             "# %s\n\n%s\n\n## Install\n\nUse `update-plugins.sh` after the catalog entry is merged.\n\n"
