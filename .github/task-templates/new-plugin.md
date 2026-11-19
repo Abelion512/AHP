@@ -4,6 +4,8 @@ Use this when adding a plugin folder that will live under `plugins/<id>/` and be
 
 ## 1. Decide the stable identifier first
 
+Pick the plugin name from `docs/title-reference.md` (Stellarium is the full celestial pool, not only the Milky Way; Elements and Light & Time remain valid). Name the chosen family in the PR body. Do not invent a name outside those families.
+
 - Folder: `plugins/<stable-id>/`
 - Hermes plugin `name` in `plugin.yaml`: the installed plugin name
 - Monorepo public ID used by `hermes.json`, `update-plugins.sh`, README, labeler: pick one stable token and reuse it everywhere
@@ -107,7 +109,11 @@ Do not claim an E2E proves something it only skips.
 - Secret scan: the repo-level `secret-scan` job already covers the whole tree; do not add per-plugin secret logic that weakens it.
 - If the plugin needs extra CI shape, add that shape in the shared workflow, not as a one-off script that only the author remembers.
 
-## 9. Default limits to state early
+## 9. PR body follows the repository template
+
+Open the PR with `.github/PULL_REQUEST_TEMPLATE.md` unchanged: all eight sections, one real image in "How it works", and command + result labels in "Verification". The `pr-body-check` workflow rejects a body that leaves required sections blank. Fill the checklist; do not delete sections.
+
+## 10. Default limits to state early
 
 - What the plugin does not cover
 - What "required" means, if anything, and which host contract it needs
