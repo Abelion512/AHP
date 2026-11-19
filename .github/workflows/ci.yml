@@ -13,6 +13,12 @@ on:
 permissions:
   contents: read
 
+# Cancel a superseded pull_request run when a new commit is pushed to the same PR.
+# Push, schedule and manual runs get a unique group and are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # Finds every plugin folder (any dir with a plugin.yaml). Runs only the plugins
   # touched by the change. A change outside any plugin folder (shared files such as
@@ -83,6 +89,7 @@ jobs:
           python -m pip install --only-binary ':all:' pyyaml==6.0.3
           python .github/scripts/test_labeler_merge_step.py
           python .github/scripts/test_plugin_install_step.py
+          python .github/scripts/test_ci_concurrency.py
 
   # Strict pre-merge credential guard: a PR that introduces a leaked secret, a
   # missing plugin manifest, or a bare provider-supplied key shape must not
@@ -104,6 +111,8 @@ jobs:
         run: |
           python - <<'PY' || exit 7
           import os, sys, re, subprocess
+          sys.path.insert(0, ".github/scripts")
+          from url_filter import strip_url_structure
 
           base = os.environ.get("PR_BASE", "").strip()
           if not base or re.fullmatch(r"0+", base):
@@ -160,9 +169,13 @@ jobs:
                   # Exact token, not a prefix inside a larger credential/URL.
                   line = re.sub(r"(?<![^\s\"'`])" + re.escape(value) + r"(?![^\s\"'`])", "PUBLIC_VALUE", line)
               low = line.lower()
-              if re.search(r'(?<![A-Za-z0-9])[A-Za-z0-9+/]{40}(?![A-Za-z0-9+/=])', line):
+              # A URL's scheme and host hold long benign runs. Keep path, query,
+              # fragment and userinfo in `scanned`, so a secret there is still
+              # checked. Explicit token shapes below use the full line.
+              scanned = strip_url_structure(line)
+              if re.search(r'(?<![A-Za-z0-9])[A-Za-z0-9+/]{40}(?![A-Za-z0-9+/=])', scanned):
                   suspicious.append(("long_base64_like", line[:120]))
-              if re.search(r'(?<![A-Za-z0-9])[0-9a-f]{32,}(?![A-Za-z0-9])', low):
+              if re.search(r'(?<![A-Za-z0-9])[0-9a-f]{32,}(?![A-Za-z0-9])', scanned.lower()):
                   suspicious.append(("long_hex_like", line[:120]))
               if re.search(r'sk-(?:prod|pro|proj|live|test)-[A-Za-z0-9_\-]{20,}', low):
                   suspicious.append(("openai_key_shape", line[:120]))

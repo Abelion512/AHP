@@ -1,0 +1,49 @@
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "docs/**"
+      - "README.md"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# A dispatch on a non-main ref gets a unique group so it cannot replace a
+# queued main deployment. Only main publishes; other refs skip the job.
+concurrency:
+  group: "pages-${{ (github.event_name == 'push' || github.ref == 'refs/heads/main') ? 'main' : github.run_id }}"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Manual dispatch can select any ref, and a rerun replays its original ref.
+    # Only main may publish, and checkout is pinned to main. GitHub runs the
+    # default-branch workflow file for workflow_dispatch, so a selected ref
+    # cannot change these privileged steps.
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      # actions/checkout v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          persist-credentials: false
+      # actions/configure-pages v6.0.0
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d
+      # actions/upload-pages-artifact v5.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
+        with:
+          path: site
+      # actions/deploy-pages v5.0.1
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346

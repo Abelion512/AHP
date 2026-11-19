@@ -20,7 +20,7 @@ try{
   await page.setViewportSize({width,height:900});await page.evaluate(raw=>window.photoRender(raw),raw)
   await page.getByRole('article').nth(1).waitFor();assert.equal(await page.locator('.vc-price').count(),2)
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
-  const trigger=page.getByRole('article').first().getByRole('button');await trigger.click()
+  const trigger=page.getByRole('article').first().getByRole('button',{name:/^Perbesar gambar/});await trigger.click()
   const modal=page.getByRole('dialog');await modal.waitFor()
   assert.equal(await modal.locator('h3,ul,.vc-summary,.vc-caveat').count(),0)
   assert.equal(await modal.getByRole('link').getAttribute('href'),product.source)

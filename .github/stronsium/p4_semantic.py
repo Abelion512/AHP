@@ -41,7 +41,7 @@ def _sections(diff):
         for bad in ('\nold mode ', '\nnew mode ', '\nnew file mode', '\ndeleted file mode', '\nrename ',
                     '\ncopy ', '\nsimilarity ', '\nBinary files', '\nGIT binary patch'):
             if bad in '\n' + sec:
-                raise ValueError('p4_sem_structural_change')
+                raise ScopeNotApplicable('p4_sem_structural_change')
         out[names[0]] = sec
     return out
 
@@ -106,7 +106,7 @@ def _tree(text):
     try:
         return ast.dump(ast.parse(text.replace('\r\n', '\n')), include_attributes=False)
     except (SyntaxError, ValueError, RecursionError, MemoryError):
-        raise ValueError('p4_sem_unparseable')
+        raise ScopeNotApplicable('p4_sem_unparseable')
 
 
 _SOURCE_READING = re.compile(r'\b(inspect|linecache|getsource|getsourcelines|getsourcefile|traceback|co_firstlineno|f_lineno|tb_lineno|'
@@ -128,17 +128,28 @@ def _header(text):
 def classify_semantic(context):
     """Return {'scope','findings'} when every file is AST-identical, else raise ValueError(reason)."""
     if context['finding_ids']:
-        raise ValueError('open_findings_unverified')
+        # Open review findings: this lane cannot prove anything about them, so it issues
+        # no proof. Refusal, not a pass and not a producer fault.
+        raise ScopeNotApplicable('open_findings_unverified')
+    # Refuse files this lane cannot prove BEFORE parsing the diff. An added file, a
+    # non-.py file (docs/YAML/images) or a binary file has no AST-equivalence proof,
+    # and its diff section may be a non-text "Binary files" record rather than hunks.
+    # Parsing sections first would crash on such a PR instead of refusing it.
+    for f in context['paths']:
+        if f['status'] != 'modified':
+            raise ScopeNotApplicable('p4_sem_status_not_modified')
+        if not f['filename'].endswith('.py'):
+            raise ScopeNotApplicable('p4_sem_not_python')
+        # A non-UTF-8 source is recorded as a marker rather than decoded text;
+        # it has no AST-equivalence proof and must not reach _tree() as a hard failure.
+        if context['sources'][f['filename']].startswith('binary-source sha256='):
+            raise ScopeNotApplicable('p4_sem_not_python')
     secs = _sections(context['diff'])
     paths = [f['filename'] for f in context['paths']]
     if sorted(secs) != sorted(paths):
         raise ValueError('p4_sem_diff_path_mismatch')
     for f in context['paths']:
         p = f['filename']
-        if f['status'] != 'modified':
-            raise ScopeNotApplicable('p4_sem_status_not_modified')
-        if not p.endswith('.py'):
-            raise ScopeNotApplicable('p4_sem_not_python')
         head = context['sources'][p]
         base = reverse_apply(head, secs[p])
         if _tree(base) != _tree(head):

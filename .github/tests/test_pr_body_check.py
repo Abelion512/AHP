@@ -23,46 +23,47 @@ class BodyCheckTest(unittest.TestCase):
         self.assertEqual(module.missing_sections(body()), [])
 
     def test_legacy(self):
-        self.assertEqual(module.missing_sections(body(legacy=True)), [])
+        missing = module.missing_sections(body(legacy=True))
+        self.assertFalse({'What changed', 'Why merge this now', 'Verification'} & set(missing))
 
     def test_all_annotated_placeholders(self):
         for placeholder in module.PLACEHOLDERS:
             with self.subTest(placeholder=placeholder):
-                self.assertEqual(len(module.missing_sections(body(placeholder + ': details will follow later'))), 3)
+                self.assertEqual(len(module.missing_sections(body(placeholder + ': details will follow later'))), len(module.SECTIONS))
 
     def test_fixes_is_allowed_in_real_explanation(self):
         self.assertEqual(module.missing_sections(body('Fixes invalid input handling with explicit regression tests.')), [])
 
     def test_missing(self):
-        self.assertEqual(len(module.missing_sections('')), 3)
+        self.assertEqual(len(module.missing_sections('')), len(module.SECTIONS))
 
     def test_all_scaffolds(self):
         for answer in ['', 'TODO', 'TODO: implementation will be added', 'WIP - details will follow', 'later with more information', 'coming soon', 'abcdefghijklmnopqrst', 'wip wip wip', '- [ ]', '| check | result | label |\n|---|---|---|\n| | | |', '<!-- Actual meaningful evidence but commented -->']:
             with self.subTest(answer=answer):
-                self.assertEqual(len(module.missing_sections(body(answer))), 3)
+                self.assertEqual(len(module.missing_sections(body(answer))), len(module.SECTIONS))
 
     def test_blank_canonical_template(self):
-        self.assertEqual(len(module.missing_sections((ROOT / '.github/PULL_REQUEST_TEMPLATE.md').read_text())), 3)
+        self.assertEqual(len(module.missing_sections((ROOT / '.github/PULL_REQUEST_TEMPLATE.md').read_text())), len(module.SECTIONS))
 
     def test_new_section_does_not_fill_previous(self):
         value = body().replace('## What changed\nMeaningful implementation evidence from actual tests.', '## What changed\n## Unrelated\nMeaningful implementation evidence from actual tests.')
         self.assertEqual(module.missing_sections(value), ['What changed'])
 
     def test_fake_commented_headings(self):
-        self.assertEqual(len(module.missing_sections('<!--' + body() + '-->')), 3)
+        self.assertEqual(len(module.missing_sections('<!--' + body() + '-->')), len(module.SECTIONS))
 
     def test_code_block_headings(self):
-        self.assertEqual(len(module.missing_sections('```markdown\n' + body() + '\n```')), 3)
+        self.assertEqual(len(module.missing_sections('```markdown\n' + body() + '\n```')), len(module.SECTIONS))
 
     def test_long_unclosed_fence_and_comment_are_bounded(self):
         for value in ['<!--' + 'x' * 250000, '```markdown\n' + body() + '\n' + ' ' * 250000]:
             start = time.monotonic()
-            self.assertEqual(len(module.missing_sections(value)), 3)
+            self.assertEqual(len(module.missing_sections(value)), len(module.SECTIONS))
             self.assertLess(time.monotonic() - start, 3)
 
     def test_tilde_fences_and_unclosed_fences(self):
         for value in ['~~~markdown\n' + body() + '\n~~~', '```markdown\n' + body()]:
-            self.assertEqual(len(module.missing_sections(value)), 3)
+            self.assertEqual(len(module.missing_sections(value)), len(module.SECTIONS))
 
     def test_crlf_case(self):
         self.assertEqual(module.missing_sections(body().upper().replace('\n', '\r\n')), [])

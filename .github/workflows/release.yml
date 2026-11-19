@@ -1,0 +1,86 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # create the GitHub Release
+    steps:
+      # actions/checkout v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate tag against hermes.json
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import json, os, re, sys
+          from pathlib import Path
+
+          tag = os.environ["TAG"]
+          match = re.fullmatch(r"v(\d+\.\d+\.\d+)", tag)
+          if not match:
+              sys.exit(f"invalid release tag: {tag!r} (expected vMAJOR.MINOR.PATCH)")
+          version = json.loads(Path("hermes.json").read_text(encoding="utf-8")).get("version")
+          if version != match.group(1):
+              sys.exit(f"tag {tag!r} does not match hermes.json version {version!r}")
+          print(f"tag {tag} matches hermes.json {version}")
+          PY
+      - name: Require the tagged commit to be on main
+        # A tag is a ref anyone with push access can create. Releasing from an
+        # unreviewed commit would publish unmerged code, so fail closed unless the
+        # tagged commit is already in main's history.
+        run: |
+          if ! git rev-parse --verify --quiet origin/main >/dev/null; then
+            # Public repository: an unauthenticated fetch is enough here, and the
+            # step still fails closed if main cannot be resolved.
+            git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          fi
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::tag $GITHUB_REF_NAME points to a commit that is not on main"
+            exit 1
+          fi
+          echo "tag $GITHUB_REF_NAME is reachable from main"
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Recheck immediately before publishing: a writer could force-move the
+          # tag after the ancestry check. The release must point at the commit
+          # that was checked as reachable from main.
+          # ^{} peels annotated tags to their commit; lightweight tags resolve too.
+          # ^{} peels annotated tags; lightweight tags have no peeled ref, so fall back.
+          remote_sha=$(git ls-remote origin "refs/tags/$GITHUB_REF_NAME^{}" | awk '{print $1}')
+          if [ -z "$remote_sha" ]; then
+            remote_sha=$(git ls-remote origin "refs/tags/$GITHUB_REF_NAME" | awk '{print $1}')
+          fi
+          if [ -z "$remote_sha" ] || [ "$remote_sha" != "$GITHUB_SHA" ]; then
+            echo "::error::tag $GITHUB_REF_NAME no longer points at $GITHUB_SHA"
+            exit 1
+          fi
+          # A rerun of the same tag must not report failure once the release exists.
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "release $GITHUB_REF_NAME already exists; nothing to do"
+            exit 0
+          fi
+          if ! gh release create "$GITHUB_REF_NAME" \
+            --verify-tag \
+            --generate-notes \
+            --title "Abelion Hermes Plugins $GITHUB_REF_NAME"; then
+            # A concurrent run may have created it between the view and create.
+            if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+              echo "release $GITHUB_REF_NAME was created by a concurrent run"
+              exit 0
+            fi
+            exit 1
+          fi

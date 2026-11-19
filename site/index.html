@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nebula — Privacy Guard for Hermes Agent</title>
+  <meta name="description" content="Session-local privacy masking for Hermes Agent, with a pinned host and published verification evidence.">
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #e3e8e4;
+      --sheet: #eef1ec;
+      --ink: #16211d;
+      --muted: #53605a;
+      --line: #bfc6bd;
+      --verdigris: #1f5d4d;
+      --oxide: #8a3b2e;
+      --mono: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      --step: 0.25rem;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 1rem/1.65 var(--sans);
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--verdigris); text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
+    a:hover { color: var(--oxide); }
+    :focus-visible { outline: 3px solid var(--oxide); outline-offset: 3px; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 3rem); }
+
+    .masthead {
+      display: flex; flex-wrap: wrap; gap: 0.5rem 2rem;
+      align-items: baseline; justify-content: space-between;
+      padding-block: 1.5rem; border-bottom: 1px solid var(--ink);
+    }
+    .masthead .name { font-weight: 700; letter-spacing: -0.02em; }
+    .masthead nav ul { display: flex; flex-wrap: wrap; gap: 1.25rem; list-style: none; margin: 0; padding: 0; }
+    .masthead nav a { color: var(--ink); font-size: 0.9rem; }
+
+    .hero { padding-block: clamp(3rem, 8vw, 6rem) clamp(2rem, 5vw, 4rem); }
+    .hero h1 {
+      font-size: clamp(2.4rem, 6vw, 4.4rem); line-height: 1.05;
+      letter-spacing: -0.035em; margin: 0 0 1.25rem; max-width: 22ch;
+    }
+    .hero p { max-width: 62ch; font-size: 1.15rem; color: var(--muted); margin: 0 0 2.5rem; }
+    .token {
+      display: block; overflow-x: auto; white-space: nowrap;
+      font: clamp(1.1rem, 3.6vw, 2.6rem)/1.2 var(--mono);
+      letter-spacing: -0.02em; color: var(--verdigris);
+      border-left: 4px solid var(--oxide); padding: 0.4rem 0 0.4rem 1rem;
+    }
+    .token small { display: block; font: 0.8rem/1.5 var(--sans); color: var(--muted); letter-spacing: 0; }
+
+    .layout { display: grid; grid-template-columns: 14rem minmax(0, 1fr); gap: clamp(2rem, 6vw, 5rem); }
+    .index { align-self: start; position: sticky; top: 2rem; }
+    .index h2 { font-size: 0.95rem; color: var(--muted); margin: 0 0 0.75rem; }
+    .index ol { list-style: none; margin: 0; padding: 0; }
+    .index li { margin-bottom: 0.4rem; }
+    .index a { color: var(--ink); text-decoration: none; }
+    .index a:hover { text-decoration: underline; }
+
+    section.panel { padding-block: 1rem 3.5rem; scroll-margin-top: 2rem; }
+    section.panel > h2 { font-size: 1.6rem; letter-spacing: -0.02em; margin: 0 0 0.75rem; }
+    section.panel > p { max-width: 68ch; color: var(--muted); }
+    .sheet { background: var(--sheet); border: 1px solid var(--line); padding: 1.25rem 1.5rem; }
+    .sheet table { width: 100%; border-collapse: collapse; }
+    .sheet th, .sheet td { text-align: left; vertical-align: top; padding: 0.7rem 0.5rem; border-bottom: 1px solid var(--line); }
+    .sheet tr:last-child th, .sheet tr:last-child td { border-bottom: 0; }
+    .sheet th { width: 8.5rem; font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+    .yes { color: var(--verdigris); }
+    .no { color: var(--oxide); }
+
+    ul.plain { list-style: none; padding: 0; margin: 0; }
+    ul.plain li { padding: 0.8rem 0; border-bottom: 1px solid var(--line); }
+    ul.plain li:last-child { border-bottom: 0; }
+    ul.plain code { font-family: var(--mono); font-size: 0.9em; }
+    .meta { color: var(--muted); font-size: 0.9rem; }
+
+    pre {
+      background: var(--sheet); border: 1px solid var(--line);
+      padding: 1rem; overflow-x: auto; font: 0.9rem/1.6 var(--mono); margin: 0;
+    }
+    footer { border-top: 1px solid var(--ink); margin-top: 2rem; padding-block: 1.5rem 3rem; color: var(--muted); font-size: 0.9rem; }
+    @media (max-width: 760px) {
+      .layout { grid-template-columns: 1fr; }
+      .index { position: static; }
+      .sheet th { width: auto; display: block; padding-bottom: 0.1rem; }
+      .sheet td { display: block; padding-top: 0.1rem; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="masthead">
+      <span class="name">Nebula / Privacy Guard</span>
+      <nav aria-label="Sections">
+        <ul>
+          <li><a href="#boundary">Boundary</a></li>
+          <li><a href="#evidence">Evidence</a></li>
+          <li><a href="#skills">Skills</a></li>
+          <li><a href="#install">Install</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main>
+      <div class="hero">
+        <h1>One privacy boundary, verified.</h1>
+        <p>
+          Nebula masks credentials, personal data and local paths inside a Hermes
+          session, then restores only the tokens that have a documented local use.
+          It is evidence for one pinned host commit and the paths tested there,
+          not a claim about every laptop or provider.
+        </p>
+        <div class="token" role="img" aria-label="Example masked token with a 24 digit session nonce and a 24 digit random value">
+          &lt;HG:7f3a1c9d2e8b4a6f0d5713c8:9c1d4e8b2a6f073c5d9e1a4b&gt;
+          <small>A value in process memory. The original never returns from the model side.</small>
+        </div>
+      </div>
+
+      <div class="layout">
+        <aside class="index" aria-label="Page index">
+          <h2>On this page</h2>
+          <ol>
+            <li><a href="#boundary">Where the boundary sits</a></li>
+            <li><a href="#evidence">What was actually tested</a></li>
+            <li><a href="#skills">Registered skills</a></li>
+            <li><a href="#install">Install and migrate</a></li>
+          </ol>
+        </aside>
+
+        <div>
+          <section class="panel" id="boundary">
+            <h2>Where the boundary sits</h2>
+            <p>The plugin owns masking and local restoration. The pinned host owns enforcement.</p>
+            <div class="sheet">
+              <table>
+                <tbody>
+                  <tr><th class="yes">Covered</th><td>Session-local masking of PII, credentials and paths; held-output redaction; fail-closed required mode on the pinned core.</td></tr>
+                  <tr><th class="no">Not covered</th><td>Direct tool or service traffic, MCP, media generation, unknown encodings, persisted prompts, UI and logs, or unsupported provider transports.</td></tr>
+                  <tr><th>Ownership</th><td>Host enforcement, lifecycle and execution guarantees live in the Hermes core fork, not in this plugin.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel" id="evidence">
+            <h2>What was actually tested</h2>
+            <p>A green run is evidence only for the paths it exercised. Read the audit before installing.</p>
+            <ul class="plain">
+              <li><a href="https://github.com/Abelion512/AHP/blob/main/docs/CI.md">CI audit</a> <span class="meta">— unit tests, dependency floors, secret scan, pinned-host E2E.</span></li>
+              <li><a href="https://github.com/Abelion512/AHP/blob/main/docs/VERSIONING.md">Versioning and releases</a> <span class="meta">— workflow lands before badge; merging is not a release.</span></li>
+              <li><a href="https://github.com/Abelion512/hermes-4gent">Pinned host fork</a> <span class="meta">— required mode needs commit <code>9a85916</code>.</span></li>
+            </ul>
+          </section>
+
+          <section class="panel" id="skills">
+            <h2>Registered skills</h2>
+            <p>Four skills ship with the plugin and register on hosts with the native skill API.</p>
+            <ul class="plain">
+              <li><code>privacy-mask-placeholders</code> <span class="meta">— work inside the mask/restore mapping.</span></li>
+              <li><code>redacted-output-handling</code> <span class="meta">— interpret held and redacted output.</span></li>
+              <li><code>nebula-plugin-setup</code> <span class="meta">— install and configure the plugin.</span></li>
+              <li><code>nebula-plugin-debug</code> <span class="meta">— diagnose a policy denial or missing protection.</span></li>
+            </ul>
+          </section>
+
+          <section class="panel" id="install">
+            <h2>Install and migrate</h2>
+            <p>Clone the repository to the path the sync script expects, then restart the process and start a new session.</p>
+            <pre><code>git clone https://github.com/Abelion512/AHP.git \
+  "$HOME/.hermes/abelion-hermes-plugins"
+cd "$HOME/.hermes/abelion-hermes-plugins" &amp;&amp; ./update-plugins.sh</code></pre>
+            <p class="meta">Read the <a href="https://github.com/Abelion512/AHP/blob/main/docs/PLUGIN_MIGRATION.md">migration procedure</a> before upgrading an existing profile.</p>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      Static documentation. No telemetry, no external assets. Merging a pull request does not
+      install the plugin or publish a release.
+    </footer>
+  </div>
+</body>
+</html>
