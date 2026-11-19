@@ -29,8 +29,9 @@ Match name to characteristic. Adapt to module semantics; don't copy external tie
 
 ## Visible name vs id
 - Id (plugin.yaml `name`, hermes.json `id`, folder name): technical and stable. Never rename it for display.
-- Visible name (what Hermes Desktop shows in Plugins): one core word from the tiers above, no suffix (this limit applies to the visible name only). Examples: Aero, Nebula.
-- Where the visible name comes from: plugin.yaml has no separate display-name field. For a plugin with a desktop entry, the Plugins page shows that entry's `name` (checked on Hermes Desktop v0.23.2). Set it there; leave plugin.yaml `name` as the id.
+- Visible name (what Hermes Desktop shows in Plugins): one core word from the tiers above, no suffix. The no-suffix limit applies to the visible name only, not to descriptions, PR titles or other text. Examples: Aero, Nebula.
+- Where the visible name comes from: plugin.yaml has no separate display-name field. A desktop entry is the object a plugin's `desktop/plugin.js` exports by default, shaped `{ id, name, register(ctx) }`. The Plugins page shows that entry's `name` (checked on Hermes Desktop v0.23.2). Set it there; leave plugin.yaml `name` as the id.
+- A plugin with no desktop entry (Nebula has none in this repo): this reference does not say where its visible name comes from. Check the host before you claim one.
 - The description may be technical. The visible name must not be.
 
 ## Example PR titles
