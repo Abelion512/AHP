@@ -47,6 +47,8 @@ from the question. Do not ask them to write a directive or name a component.
 |---|---|---|
 | Clickable interview | choice | options="Diagram\|Example\|Text" multiple="false" |
 | Visual sequence | flow | nodes="Input\|Validate\|Render" details="Understand the ask\|Check allowed data\|Draw native controls" |
+| Several linked questions with one decision | interview | groups="Scope\|Trigger" g1_options="Verify::Status only\|Merge::After approval" g2_options="Webhook::On change\|Manual::On command" submit="Save decision" |
+| Practice questions with feedback | quiz | questions="Q1" q1_options="A\|B\|C" q1_answer="B" q1_explain="Why B" |
 | Numeric comparison | chart | labels="A\|B\|C" values="12\|8\|20" unit="units" source="Illustrative example" |
 
 Examples, one per ordinary request:
@@ -54,6 +56,10 @@ Examples, one per ordinary request:
 ::ui{version="1" id="learn-choice-01" kind="choice" title="How should we explore this?" options="See the process|Try an example|Compare the data" multiple="true"}
 
 ::ui{version="1" id="learn-flow-01" kind="flow" title="How a card appears" nodes="Model|Validator|Renderer" details="Choose a supported representation|Reject malformed data|Show native controls"}
+
+::ui{version="1" id="learn-interview-01" kind="interview" title="Review decision" groups="Merge authority|Trigger" g1_options="Verifier only::App reports status, owner merges|Owner approved::App merges only with explicit owner approval" g2_options="Webhook::Runs when the PR changes|Command::Runs only when asked" submit="Save decision"}
+
+::ui{version="1" id="learn-quiz-01" kind="quiz" title="Check understanding" questions="Which stage validates the data?" q1_options="Model|Validator|Renderer" q1_answer="B" q1_explain="The validator rejects malformed data before anything renders."}
 
 ::ui{version="1" id="learn-chart-01" kind="chart" title="Illustrative quantities" labels="A|B|C" values="12|8|20" unit="units" source="Fictional teaching data"}
 
@@ -94,7 +100,7 @@ For development, run the Python contract suite and the locked React/browser test
 
 ## Product/place media cards
 
-The same Aero renderer additionally claims `visualcard` and `visualcards`. These do not change the eight `ui` kinds. Prefer short text when grounded image/source data is missing. Do not invent photos, prices, hours, availability or a map.
+The same Aero renderer additionally claims `visualcard` and `visualcards`. These do not change the existing `ui` kinds. Prefer short text when grounded image/source data is missing. Do not invent photos, prices, hours, availability or a map.
 
 A `visualcard` requires `kind` (`product` or `place`), title (90chars), summary (180), fact1 (100), caveat (180), source/image HTTPS URLs (600each), and alt (120). Optional fact2-fact4 have the same100char limit. Optional price (80) and pricenote (120) must appear together. State uncertainty in the card, not only nearby prose. Label family illustrations and reused photos; neither proves a particular variant. External image requests occur when the card renders; do not use private, credentialed or tracking-bearing URLs. HTTPS validation is not a claim that every remote source is trustworthy.
 
