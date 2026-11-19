@@ -28,6 +28,7 @@ def _probe(code):
     env["HOME"] = os.environ.get("RUNNER_TEMP", tempfile.gettempdir())
     r = subprocess.run(
         [HERMES_PYTHON, "-c", code], env=env, capture_output=True, text=True,
+        shell=False, check=False,
     )
     return r.stdout.strip() if r.returncode == 0 else None
 
@@ -77,8 +78,13 @@ def make_profile(tmp: Path, base_url: str, plugins=(), extra_config=""):
 
 
 def run_hermes(home: Path, argv, timeout=100, extra_env=None, cwd=None):
+    if type(argv) not in (list, tuple) or any(type(arg) is not str for arg in argv):
+        raise TypeError("run_hermes argv must be a list/tuple of strings")
+    # Fixed executable, one argument per item, never a shell. Prompts and paths
+    # stay data arguments; nothing in argv is interpreted by a command shell.
     return subprocess.run([HERMES_PYTHON, "-m", "hermes_cli.main", *argv], env=hermetic_env(home, extra_env),
-                          cwd=str(cwd or home), capture_output=True, text=True, timeout=timeout, stdin=subprocess.DEVNULL)
+                          cwd=str(cwd or home), capture_output=True, text=True, timeout=timeout,
+                          stdin=subprocess.DEVNULL, shell=False, check=False)
 
 
 def wire_text(req) -> str:

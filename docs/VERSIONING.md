@@ -9,6 +9,10 @@ Version numbers have two scopes:
 
 A merge is not a release. Nothing is published or installed by merging a PR.
 
+When workflows are added in separate PRs, land each workflow PR before any PR
+whose README badges or `docs/CI.md` entry reference it. A badge or gate table
+that points at a workflow not yet on `main` reads as broken until that PR merges.
+
 ## Release process
 
 1. Bump `hermes.json` `version` in a normal PR and merge it.

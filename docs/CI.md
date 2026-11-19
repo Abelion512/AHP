@@ -18,9 +18,9 @@ commit, not a mutable ref. Compare with `git grep -n "uses:" origin/main --
 | `ci.yml` | push `main`, PR, weekly schedule, manual | `contents: read` | Plugin matrix, dependency audit, real-host E2E, gitleaks with pinned checksum, docs/manifest lint. |
 | `codeql.yml` | push/PR `main`, weekly schedule | `contents: read`, `security-events: write` | Pinned CodeQL action; no private query packs. |
 | `dependency-review.yml` | PR to `main` | `contents: read`, `pull-requests: read` | Reads the PR's changed manifests; no PR comment (`comment-summary-in-pr: never`), so fork PRs work with GitHub's forced read-only token. `fail-on-severity: moderate`. |
-| `pylint.yml` | push `main`, PR | `contents: read` | Errors + warnings on Python files changed by the diff; `.pylintrc` disables Ruff-owned style categories and exempts only the uninstalled Hermes host modules (`agent`, `hermes_cli`) from `import-error`. |
+| `pylint.yml` | push `main`, PR | `contents: read` | Errors + warnings on changed Python files, including `.github/scripts`; `.pylintrc` disables Ruff-owned style categories and exempts only uninstalled modules from `import-error`. Stronsium and E2E harness fixtures are excluded and covered by their own suites. |
 | `python-package.yml` | push/PR `main` | `contents: read` | flake8 syntax/undefined-name gate plus `.github/scripts` tests with pinned PyYAML and packaging. |
-| `pr-title.yml` | PR | `contents: read` | Conventional title check. |
+| `pr-title.yml` | PR | `pull-requests: read` | Conventional title check. |
 | `pr-body-check.yml` | PR events | `contents: read` | Advisory rationale gate; PR-controlled code runs with a read-only token and no secrets. |
 | `labeler.yml` | `pull_request_target` | job: `contents: read`, `pull-requests: write`, `issues: write` | Reads base-branch labels and changed file names only; never checks out or runs PR code. Write scopes are required to create/sync labels. |
 | `stronsium-proof.yml` | `pull_request_target` | `contents: read`, `pull-requests: read` | Runs the pinned default-branch producer through the GitHub API; never checks out PR code. |
@@ -60,6 +60,18 @@ python .github/scripts/test_dependency_floor_audit.py
 python .github/scripts/test_labeler_merge_step.py
 python .github/scripts/test_plugin_install_step.py
 PYTHONPATH=.github/scripts python -m pytest .github/scripts -q
+```
+
+The script tests import PyYAML and `packaging`; install the pinned versions
+first: `python -m pip install --only-binary ':all:' pyyaml==6.0.3 packaging==26.3`.
+
+The diagrams are generated from `docs/flows/`. Regenerate and confirm the
+committed PNGs have not drifted (needs Pillow >= 10.1):
+
+```bash
+python3 docs/flows/ci-flow.py
+python3 docs/flows/secret-scan-how-it-works.py
+git diff --exit-code -- docs/assets
 ```
 
 E2E requires the pinned Hermes host; see `AGENTS.md`. A green CI run is evidence

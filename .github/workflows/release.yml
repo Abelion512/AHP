@@ -55,12 +55,27 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Recheck immediately before publishing: a writer could force-move the
+          # tag after the ancestry check. The release must point at the commit
+          # that was checked as reachable from main.
+          remote_sha=$(git ls-remote origin "refs/tags/$GITHUB_REF_NAME" | awk '{print $1}')
+          if [ -z "$remote_sha" ] || [ "$remote_sha" != "$GITHUB_SHA" ]; then
+            echo "::error::tag $GITHUB_REF_NAME no longer points at $GITHUB_SHA"
+            exit 1
+          fi
           # A rerun of the same tag must not report failure once the release exists.
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             echo "release $GITHUB_REF_NAME already exists; nothing to do"
             exit 0
           fi
-          gh release create "$GITHUB_REF_NAME" \
+          if ! gh release create "$GITHUB_REF_NAME" \
             --verify-tag \
             --generate-notes \
-            --title "Abelion Hermes Plugins $GITHUB_REF_NAME"
+            --title "Abelion Hermes Plugins $GITHUB_REF_NAME"; then
+            # A concurrent run may have created it between the view and create.
+            if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+              echo "release $GITHUB_REF_NAME was created by a concurrent run"
+              exit 0
+            fi
+            exit 1
+          fi
