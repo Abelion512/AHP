@@ -120,6 +120,14 @@
         "q1_explain..q5_explain"
       ],
       "description": "1-5 single-answer questions; local state only: letter options, correct/incorrect after pick, optional explanation, Next, final score. Answer key is model-supplied teaching data, not a secret."
+    },
+    "table": {
+      "attrs": [
+        "title",
+        "columns",
+        "rows"
+      ],
+      "description": "Headered data table; columns pipe-separated, rows pipe-separated with cells semicolon-separated."
     }
   },
   "limits": {
@@ -141,7 +149,10 @@
     "quiz_options": 4,
     "quiz_question_chars": 160,
     "quiz_option_chars": 80,
-    "quiz_explain_chars": 180
+    "quiz_explain_chars": 180,
+    "table_columns": 5,
+    "table_rows": 8,
+    "table_cell_chars": 60
   },
   "values_are_untrusted": true,
   "secrets_allowed": false,

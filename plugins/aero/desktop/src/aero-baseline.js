@@ -42,6 +42,7 @@ export const catalog = Object.freeze({
   chart: { input: 'labels', max: 6, min: 1, event: 'local' },
   interview: { input: 'groups', max: 4, min: 1, event: 'answer' },
   quiz: { input: 'questions', max: 5, min: 1, event: 'local' },
+  table: { input: 'columns', max: 5, min: 1, event: 'local' },
 })
 const KINDS = new Set(Object.keys(catalog))
 
@@ -49,7 +50,7 @@ const KINDS = new Set(Object.keys(catalog))
 // Legacy five-kind inputs retain their established caps and behavior.
 export function normalize(attrs) {
   const kind = text(attrs.kind, 20)
-  if (!['choice', 'flow', 'chart', 'interview', 'quiz'].includes(kind)) return null
+  if (!['choice', 'flow', 'chart', 'interview', 'quiz', 'table'].includes(kind)) return null
   if (kind === 'interview') return normalizeInterview(attrs)
   if (kind === 'quiz') return normalizeQuiz(attrs)
   const spec = catalog[kind]
@@ -63,6 +64,7 @@ export function normalize(attrs) {
   }
   if (kind === 'choice') return normalizeChoice(attrs, values)
   if (kind === 'flow') return normalizeFlow(attrs, values)
+  if (kind === 'table') return normalizeTable(attrs, values)
   return normalizeChart(attrs, values)
 }
 
@@ -84,6 +86,15 @@ function normalizeChart(attrs, values) {
     return { error: 'Angka grafik tidak valid. Nilai harus nonnegatif dan berpasangan dengan label.' }
   }
   return { kind: 'chart', labels: values, values: numbers.map(Number), unit: text(attrs.unit, 16), source: text(attrs.source, 100) }
+}
+
+function normalizeTable(attrs, values) {
+  if (typeof attrs.rows !== 'string' || attrs.rows.length > 2048) return { error: 'Data tabel belum lengkap. Gunakan jawaban teks.' }
+  const rows = attrs.rows.split('|').map(v => v.trim()).filter(v => v !== '')
+  if (!rows.length || rows.length > 8) return { error: 'Data tabel tidak valid. Gunakan jawaban teks.' }
+  const cells = rows.map(row => row.split(';').map(c => c.trim()))
+  if (cells.some(r => r.length !== values.length || r.some(c => !c || c.length > 60))) return { error: 'Setiap baris tabel harus berpasangan dengan kolom.' }
+  return { kind: 'table', columns: values, rows: cells }
 }
 
 function text(value, max) {
@@ -214,6 +225,15 @@ function renderChart(p) {
       jsx('tbody', { children: model.labels.map((label, index) => jsxs('tr', { key: index, children: [jsx('th', { scope: 'row', style: { ...line, textAlign: 'left' }, children: label }), jsx('td', { style: { ...line, textAlign: 'center' }, children: model.values[index] })] })) }),
     ] }))
   return children
+}
+
+function renderTable(p) {
+  const { model, line } = p
+  const head = { padding: '9px 8px 9px 0', borderBottom: '1px solid var(--ui-stroke-secondary, var(--border))', textAlign: 'left', fontWeight: 600 }
+  return [jsx('div', { key: 'table-wrap', style: { overflowX: 'auto', marginTop: 8 }, children: jsxs('table', { style: { width: '100%', borderCollapse: 'collapse' }, children: [
+    jsx('thead', { children: jsxs('tr', { children: model.columns.map((col, i) => jsx('th', { key: i, scope: 'col', style: head, children: col })) }) }),
+    jsx('tbody', { children: model.rows.map((row, ri) => jsxs('tr', { key: ri, children: row.map((cell, ci) => jsx('td', { key: ci, style: { ...line, textAlign: 'left', paddingRight: 8 }, children: cell })) })) }),
+  ] }) })]
 }
 
 function Card({ attrs, streaming, sessionId, storage }) {
@@ -469,6 +489,7 @@ function Card({ attrs, streaming, sessionId, storage }) {
   if (kind === 'choice') children.push(...renderChoice(learningProps))
   else if (kind === 'flow') children.push(...renderFlow(learningProps))
   else if (kind === 'chart') children.push(...renderChart(learningProps))
+  else if (kind === 'table') children.push(...renderTable(learningProps))
   else if (kind === 'interview') children.push(jsx(InterviewView, { key: 'interview', model, title, owner, send, setError }))
   else if (kind === 'quiz') children.push(jsx(QuizView, { key: 'quiz', model, title }))
 

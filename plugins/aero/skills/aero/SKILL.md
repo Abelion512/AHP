@@ -50,6 +50,7 @@ from the question. Do not ask them to write a directive or name a component.
 | Several linked questions with one decision | interview | groups="Scope\|Trigger" g1_options="Verify::Status only\|Merge::After approval" g2_options="Webhook::On change\|Manual::On command" submit="Save decision" |
 | Practice questions with feedback | quiz | questions="Q1" q1_options="A\|B\|C" q1_answer="B" q1_explain="Why B" |
 | Numeric comparison | chart | labels="A\|B\|C" values="12\|8\|20" unit="units" source="Illustrative example" |
+| Tabular data | table | columns="Name\|Price\|Source" rows="Item A;10;shop-a.example\|Item B;20;shop-b.example" |
 
 Examples, one per ordinary request:
 
@@ -62,6 +63,7 @@ Examples, one per ordinary request:
 ::ui{version="1" id="learn-quiz-01" kind="quiz" title="Check understanding" questions="Which stage validates the data?" q1_options="Model|Validator|Renderer" q1_answer="B" q1_explain="The validator rejects malformed data before anything renders."}
 
 ::ui{version="1" id="learn-chart-01" kind="chart" title="Illustrative quantities" labels="A|B|C" values="12|8|20" unit="units" source="Fictional teaching data"}
+::ui{version="1" id="learn-table-01" kind="table" title="Illustrative items" columns="Name|Price|Source" rows="Item A;10;shop-a.example|Item B;20;shop-b.example"}
 
 New kinds use 1-6 rows (choice/flow require at least 2). Labels are 1-60
 characters. Flow requires exactly one 1-180 character detail per node. Chart

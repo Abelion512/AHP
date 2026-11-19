@@ -168,6 +168,26 @@ test('flow exploration and chart focus/table are local, truthful numeric views',
   await chart.close()
 })
 
+test('table kind renders a headered data table locally with bounded data', async () => {
+  sdk.calls.length = 0
+  const card = await mounted({ kind: 'table', title: 'Laptop', columns: 'Merk|Harga|Sumber', rows: 'Asus;Rp 8 jt;plazait.com|Lenovo;Rp 9 jt;erablue.id' })
+  assert.equal(card.node.querySelectorAll('thead th').length, 3)
+  assert.equal(card.node.querySelectorAll('tbody tr').length, 2)
+  assert.ok(card.node.textContent.includes('plazait.com'))
+  assert.equal(sdk.calls.length, 0)
+  await card.close()
+  for (const attrs of [
+    { kind: 'table', columns: 'A|B' },
+    { kind: 'table', columns: 'A|B', rows: 'x;y|z' },
+    { kind: 'table', columns: 'A', rows: 'x|'.repeat(9) + 'x' },
+  ]) {
+    const bad = await mounted(attrs)
+    assert.ok(bad.node.querySelector('[role=status]'), JSON.stringify(attrs))
+    assert.equal(bad.node.querySelector('table'), null)
+    await bad.close()
+  }
+})
+
 test('data-rich cards reject malformed types, pairings and nonfinite/negative numbers', async () => {
   for (const attrs of [
     { kind: 'choice', options: 'Only' }, { kind: 'choice', options: 'Same|Same' },
@@ -191,7 +211,7 @@ test('published catalog, contract and model examples agree', () => {
   assert.deepEqual(Object.keys(catalog).sort(), Object.keys(contract.kinds).sort())
   for (const kind of Object.keys(catalog)) assert.ok(skill.includes('| ' + kind + ' |'))
   assert.equal(Object.isFrozen(catalog), true)
-  for (const kind of ['choice', 'flow', 'chart', 'interview', 'quiz']) {
+  for (const kind of ['choice', 'flow', 'chart', 'interview', 'quiz', 'table']) {
     const line = skill.split('\n').find(s => s.startsWith('::ui{') && s.includes('kind="' + kind + '"'))
     assert.ok(line, kind)
     const attrs = Object.fromEntries([...line.matchAll(/(\w+)="([^"]*)"/g)].map(m => [m[1], m[2]]))
