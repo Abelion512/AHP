@@ -50,7 +50,8 @@ def add_catalog_entry(root: Path, pid: str, description: str) -> None:
     catalog = json.loads(path.read_text(encoding="utf-8"))
     plugins = catalog.setdefault("plugins", [])
     plugins.append({"id": pid, "path": "plugins/" + pid, "description": description})
-    path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    trusted_file(root, "hermes.json").write_text(
+        json.dumps(catalog, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def add_readme_row(root: Path, pid: str, description: str) -> None:
@@ -64,7 +65,7 @@ def add_readme_row(root: Path, pid: str, description: str) -> None:
             break
     else:
         raise ValueError("README.md has no active plugins table row")
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    trusted_file(root, "README.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def write_skeleton(root: Path, pid: str, description: str, category: str) -> list[str]:
