@@ -11,6 +11,7 @@ TITLE = Path(os.environ.get("PR_TITLE_WORKFLOW", ROOT / ".github/workflows/pr-ti
 BODY = Path(os.environ.get("PR_BODY_WORKFLOW", ROOT / ".github/workflows/pr-body-check.yml"))
 LABELER = Path(os.environ.get("LABELER_WORKFLOW", ROOT / ".github/workflows/labeler.yml"))
 RELEASE = Path(os.environ.get("RELEASE_WORKFLOW", ROOT / ".github/workflows/release.yml"))
+PAGES = Path(os.environ.get("PAGES_WORKFLOW", ROOT / ".github/workflows/pages.yml"))
 
 
 def load(path):
@@ -90,6 +91,11 @@ class TriggerContractTest(unittest.TestCase):
         self.assertIn('if [ -z "$remote_sha" ]', text)
         # The release must be pinned to the checked commit, not the tag name.
         self.assertIn('--target "$GITHUB_SHA"', text)
+
+    def test_pages_concurrency_expression_is_valid(self):
+        text = PAGES.read_text(encoding="utf-8")
+        self.assertNotIn(" ? ", text)
+        self.assertIn("&& 'main' || github.run_id", text)
 
 
 if __name__ == "__main__":
