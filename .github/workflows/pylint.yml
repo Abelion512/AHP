@@ -32,11 +32,13 @@ jobs:
       # files keep their existing debt instead of blocking unrelated PRs;
       # convention/refactor categories are disabled in .pylintrc because Ruff
       # is this repository's style gate. import-error stays enabled; only the
-      # Hermes host modules this job cannot install are exempted.
+      # modules this job cannot install are exempted. PYTHONPATH includes
+      # plugins/ and .github/scripts/ so their imports resolve.
       env:
         EVENT: ${{ github.event_name }}
         PR_BASE: ${{ github.event.pull_request.base.sha }}
         PUSH_BEFORE: ${{ github.event.before }}
+        PYTHONPATH: ${{ github.workspace }}/plugins:${{ github.workspace }}/.github/scripts
       run: |
         base=""
         [ "$EVENT" = "pull_request" ] && base="$PR_BASE"
@@ -45,8 +47,14 @@ jobs:
           echo "::notice::no comparable base commit; no changed Python files to lint"
           exit 0
         fi
-        git diff -z --name-only --diff-filter=ACMRT "$base" HEAD -- '*.py' \
-          | grep -zvE '(^|/)(tests|e2e)/|^\.github/' > changed.z || true
+        # Fail on a diff error instead of treating an empty failed diff as "clean".
+        if ! git diff -z --name-only --diff-filter=ACMRT "$base" HEAD -- '*.py' > changed.raw; then
+          echo "::error::git diff failed; refusing to skip lint"
+          exit 1
+        fi
+        # Harness fixtures (stronsium) and E2E support have their own suites;
+        # other .github/ Python files, including scripts, are linted here.
+        grep -zvE '(^|/)(tests|e2e)/|^\.github/(stronsium|e2e_support)/' changed.raw > changed.z || true
         if [ ! -s changed.z ]; then
           echo "No changed Python files require linting."
           exit 0

@@ -31,7 +31,7 @@ def _code_fingerprint(code):
         for c in code.co_consts)
     return (code.co_code,constants,code.co_names,code.co_varnames,code.co_freevars,code.co_cellvars,
         code.co_argcount,code.co_posonlyargcount,code.co_kwonlyargcount,code.co_nlocals,code.co_stacksize,
-        code.co_flags)
+        code.co_flags,getattr(code,'co_exceptiontable',None))
 
 def freeze_function(function):
     """Clone a trusted function with a frozen globals snapshot and minimal builtins.

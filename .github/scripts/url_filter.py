@@ -1,27 +1,32 @@
-"""Strip only the structural part of a URL before credential-shape scanning.
+"""Strip only URL host structure before credential-shape scanning.
 
-Query strings, fragments and userinfo are kept on purpose: secrets leak there,
-and removing the whole URL would hide those shapes from the credential guard.
+Paths, query strings, fragments and userinfo stay in the text that gets
+scanned: secrets leak there. Only the scheme and host are structural noise.
+The repository's own docs URL prefix is trimmed as known-benign path noise.
 """
 
 import re
 
-_URL = re.compile(r"https?://\S+")
+# Stop at common markdown/HTML delimiters so adjacent URLs stay separate.
+_URL = re.compile(r"https?://[^\s<>\"')\]]+", re.IGNORECASE)
+_BENIGN_PATH_PREFIXES = ("Abelion512/AHP/",)
 
 
 def strip_url_structure(text):
-    """Remove scheme, host and path from URLs; keep userinfo, query and fragment."""
+    """Remove scheme and host from URLs; keep userinfo, path, query and fragment."""
     def replace(match):
         rest = match.group(0).split("://", 1)[1]
-        authority = rest.split("/", 1)[0]
+        authority, separator, tail = rest.partition("/")
         keep = ""
         if "@" in authority:
-            keep += authority.split("@", 1)[0] + "@"
-        for marker in ("?", "#"):
-            index = rest.find(marker)
-            if index != -1:
-                keep += rest[index:]
-                break
+            # Keep everything before the final @; an earlier @ may be part of the secret.
+            keep += authority.rsplit("@", 1)[0] + "@"
+        if separator:
+            for prefix in _BENIGN_PATH_PREFIXES:
+                if tail.startswith(prefix):
+                    tail = tail[len(prefix):]
+                    break
+            keep += "/" + tail
         return keep
 
     return _URL.sub(replace, text)

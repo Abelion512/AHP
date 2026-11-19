@@ -15,15 +15,18 @@ permissions:
   pages: write
   id-token: write
 
+# A dispatch on a non-main ref gets a unique group so it cannot replace a
+# queued main deployment. Only main publishes; other refs skip the job.
 concurrency:
-  group: pages
+  group: "pages-${{ (github.event_name == 'push' || github.ref == 'refs/heads/main') ? 'main' : github.run_id }}"
   cancel-in-progress: false
 
 jobs:
   deploy:
     # Manual dispatch can select any ref, and a rerun replays its original ref.
-    # Only main may publish, and the checkout is pinned to main so an older run
-    # cannot replace the live site with unreviewed content.
+    # Only main may publish, and checkout is pinned to main. GitHub runs the
+    # default-branch workflow file for workflow_dispatch, so a selected ref
+    # cannot change these privileged steps.
     if: github.ref == 'refs/heads/main'
     environment:
       name: github-pages

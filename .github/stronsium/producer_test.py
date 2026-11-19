@@ -144,6 +144,9 @@ class ProducerTest(unittest.TestCase):
                 file=pathlib.Path(tmp)/'producer_fixture_program.py';file.write_bytes((ROOT/file.name).read_bytes()+extra.encode())
                 prog=replace(program(),root=pathlib.Path(tmp),files=((file.name,hashlib.sha256(file.read_bytes()).hexdigest()),))
                 with self.assertRaisesRegex(ValueError,reason):prog.load('0'*64)
+        # Both cases fail source selection: `missing` has no definition, and
+        # adding `check_source` duplicates the one the fixture already defines.
+        # The digest check is never reached, so selected_check_missing is correct.
         for name,extra in [('missing',''),('check_source','\ndef check_source(c,a):pass\n')]:
             with self.subTest(name=name),tempfile.TemporaryDirectory() as tmp:
                 file=pathlib.Path(tmp)/'producer_fixture_program.py';file.write_bytes((ROOT/file.name).read_bytes()+extra.encode())
