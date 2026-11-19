@@ -26,7 +26,10 @@
       "choice.note",
       "flow.stage",
       "chart.focus",
-      "chart.table"
+      "chart.table",
+      "interview.picked",
+      "quiz.picks",
+      "quiz.index"
     ]
   },
   "events": {
@@ -98,6 +101,25 @@
         "source"
       ],
       "description": "Nonnegative numeric bars, visible values, focus and equivalent data table."
+    },
+    "interview": {
+      "attrs": [
+        "title",
+        "groups",
+        "g1_options..g4_options",
+        "submit"
+      ],
+      "description": "One bordered card with 1-4 radio groups; option 'title::explanation'; submit sends one owning-chat answer after every group is answered."
+    },
+    "quiz": {
+      "attrs": [
+        "title",
+        "questions",
+        "q1_options..q5_options",
+        "q1_answer..q5_answer",
+        "q1_explain..q5_explain"
+      ],
+      "description": "1-5 single-answer questions; local state only: letter options, correct/incorrect after pick, optional explanation, Next, final score. Answer key is model-supplied teaching data, not a secret."
     }
   },
   "limits": {
@@ -110,7 +132,16 @@
     "learning_rows": 6,
     "flow_detail_chars": 180,
     "choice_note_chars": 80,
-    "numeric_max": 999999999.9999
+    "numeric_max": 999999999.9999,
+    "interview_groups": 4,
+    "interview_options": 6,
+    "interview_option_title_chars": 60,
+    "interview_option_desc_chars": 180,
+    "quiz_questions": 5,
+    "quiz_options": 4,
+    "quiz_question_chars": 160,
+    "quiz_option_chars": 80,
+    "quiz_explain_chars": 180
   },
   "values_are_untrusted": true,
   "secrets_allowed": false,
