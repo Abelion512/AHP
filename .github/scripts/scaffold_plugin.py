@@ -72,10 +72,12 @@ def catalog_ids(root: Path) -> set[str]:
 
 
 def _atomic_write(path: Path, text: str) -> None:
-    """Write via one replace, so a failure cannot leave a half-written file."""
-    temp = path.with_name(path.name + ".scaffold.tmp")
-    temp.write_text(text, encoding="utf-8")
-    temp.replace(path)
+    """Write a fixed trusted file via one replace, then validate its location."""
+    target = trusted_file(path.parent, path.name)
+    temp = target.with_name(target.name + ".scaffold.tmp")
+    with temp.open("w", encoding="utf-8") as handle:
+        handle.write(text)
+    temp.replace(target)
 
 
 def add_catalog_entry(root: Path, pid: str, description: str) -> None:
