@@ -15,7 +15,7 @@ on:
 # GitHub downgrades the token to read-only regardless of this block.
 permissions:
   contents: read
-  pull-requests: read
+  pull-requests: read  # enumerates changed files; no write scope needed
 
 jobs:
   dependency-review:
@@ -33,7 +33,7 @@ jobs:
           # The default is to post a PR summary comment, which needs
           # `pull-requests: write` and breaks fork PRs. Keep this check
           # comment-free; the job result is the report.
-          comment-summary-in-pr: never
+          comment-summary-in-pr: never  # explicit: no PR comment, fork-safe
           # No license policy is configured on purpose: plugin dependencies are
           # not license-audited by this repository.
           # deny-licenses: GPL-1.0-or-later, LGPL-2.0-or-later
