@@ -106,7 +106,7 @@ def _tree(text):
     try:
         return ast.dump(ast.parse(text.replace('\r\n', '\n')), include_attributes=False)
     except (SyntaxError, ValueError, RecursionError, MemoryError):
-        raise ValueError('p4_sem_unparseable')
+        raise ScopeNotApplicable('p4_sem_unparseable')
 
 
 _SOURCE_READING = re.compile(r'\b(inspect|linecache|getsource|getsourcelines|getsourcefile|traceback|co_firstlineno|f_lineno|tb_lineno|'
