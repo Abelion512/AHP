@@ -118,8 +118,8 @@
           It is evidence for one pinned host commit and the paths tested there,
           not a claim about every laptop or provider.
         </p>
-        <div class="token" role="img" aria-label="Example masked token HG colon seven f three a colon nonce">
-          &lt;HG:7f3a:9c1d4e8b2a6f&gt;
+        <div class="token" role="img" aria-label="Example masked token with a 24 digit session nonce and a 24 digit random value">
+          &lt;HG:7f3a1c9d2e8b4a6f0d5713c8:9c1d4e8b2a6f073c5d9e1a4b&gt;
           <small>A value in process memory. The original never returns from the model side.</small>
         </div>
       </div>
@@ -173,8 +173,10 @@
 
           <section class="panel" id="install">
             <h2>Install and migrate</h2>
-            <p>Sync the plugin into a profile, then restart the process and start a new session.</p>
-            <pre><code>./update-plugins.sh</code></pre>
+            <p>Clone the repository to the path the sync script expects, then restart the process and start a new session.</p>
+            <pre><code>git clone https://github.com/Abelion512/AHP.git \
+  "$HOME/.hermes/abelion-hermes-plugins"
+cd "$HOME/.hermes/abelion-hermes-plugins" &amp;&amp; ./update-plugins.sh</code></pre>
             <p class="meta">Read the <a href="https://github.com/Abelion512/AHP/blob/main/docs/PLUGIN_MIGRATION.md">migration procedure</a> before upgrading an existing profile.</p>
           </section>
         </div>

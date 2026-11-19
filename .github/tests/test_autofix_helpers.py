@@ -30,6 +30,17 @@ def pr(**changes):
     return value
 
 
+def threads(nodes):
+    return {'data': {'repository': {'pullRequest': {'reviewThreads': {'nodes': nodes}}}}}
+
+
+def thread(body, *, resolved=False, outdated=False, path='a.py'):
+    return {
+        'isResolved': resolved, 'isOutdated': outdated,
+        'comments': {'nodes': [{'path': path, 'line': 7, 'body': body}]},
+    }
+
+
 class EligibilityTest(unittest.TestCase):
     def test_eligible(self):
         self.assertIsNone(ELIGIBILITY.eligible(pr(), 42))
@@ -48,35 +59,46 @@ class EligibilityTest(unittest.TestCase):
             with self.subTest(reason=reason):
                 self.assertEqual(ELIGIBILITY.eligible(value, 42), reason)
 
+    def test_cli_rejects_non_ascii_digits(self):
+        result = subprocess.run([sys.executable, str(ROOT / '.github/scripts/autofix_eligibility.py'), '٤٢'],
+                                input='{}', capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2)
+
 
 class TaskTest(unittest.TestCase):
-    def test_strips_comments_and_caps_body(self):
-        comments = [
-            {'path': 'a.py', 'line': 7, 'body': '<!-- hidden --> real finding'},
-            {'path': 'b.py', 'body': 'x' * 5000},
-        ]
-        out = TASK.build(comments, limit=100)
-        self.assertIn('a.py:7 - real finding', out)
-        self.assertNotIn('hidden', out)
-        self.assertLessEqual(len(out.split('b.py:? - ')[1]), 101)
+    def test_skips_resolved_and_outdated_threads(self):
+        data = threads([
+            thread('stale finding', resolved=True),
+            thread('outdated finding', outdated=True),
+            thread('current finding'),
+        ])
+        out = TASK.build(data)
+        self.assertIn('current finding', out)
+        self.assertNotIn('stale finding', out)
+        self.assertNotIn('outdated finding', out)
+
+    def test_redacts_secrets_and_caps_size(self):
+        data = threads([thread('token ghp_' + 'a' * 40 + ' here'), thread('x' * 5000)])
+        out = TASK.build(data, limit=100)
+        self.assertIn('[REDACTED]', out)
+        self.assertNotIn('a' * 40, out)
+        self.assertLessEqual(len(out), TASK.MAX_CHARS + 200)
 
     def test_cli_is_shell_safe(self):
-        payload = json.dumps([{'path': 'a.py', 'body': '$(exit 9)'}])
+        payload = json.dumps(threads([thread('$(exit 9)')]))
         result = subprocess.run([sys.executable, str(ROOT / '.github/scripts/autofix_task.py')],
                                 input=payload, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0)
         self.assertIn('$(exit 9)', result.stdout)
 
-    def test_cli_rejects_path_argument(self):
-        result = subprocess.run([sys.executable, str(ROOT / '.github/scripts/autofix_eligibility.py'), '42', 'pr.json'],
-                                input='{}', capture_output=True, text=True)
-        self.assertEqual(result.returncode, 2)
-
-    def test_workflow_is_disabled_by_default(self):
+    def test_workflow_is_disabled_and_isolated(self):
         workflow = (ROOT / '.github/workflows/auto-fix.yml').read_text()
         self.assertIn("vars.AUTOFIX_ENABLED == 'true'", workflow)
         self.assertNotIn('pull_request_target:', workflow)
         self.assertIn('autofix_eligibility.py', workflow)
+        self.assertIn('env -u GH_TOKEN', workflow)
+        self.assertIn('core.hooksPath=/dev/null', workflow)
+        self.assertIn('pull-requests: read', workflow)
 
 
 if __name__ == '__main__':

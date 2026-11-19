@@ -1,9 +1,9 @@
 name: auto-fix
 
-# Opt-in lane. Disabled unless repository variable AUTOFIX_ENABLED is true.
+# Opt-in. Disabled unless repository variable AUTOFIX_ENABLED is true.
 # AGENTS.md requires human approval before enabling: this job can push commits.
-# It never executes PR code in the privileged context and only accepts PRs whose
-# head branch lives in this repository.
+# The workflow file itself comes from the default branch. The PR tree is checked
+# out into a separate directory and never executed in the credentialed steps.
 on:
   workflow_dispatch:
     inputs:
@@ -16,6 +16,10 @@ permissions:
   contents: read
   pull-requests: read
 
+concurrency:
+  group: autofix-${{ inputs.pr_number }}
+  cancel-in-progress: false
+
 jobs:
   fix:
     if: ${{ vars.AUTOFIX_ENABLED == 'true' }}
@@ -23,40 +27,55 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: write
-      pull-requests: write
+      pull-requests: read
     env:
       HERMES_PIN: 9a85916c87d56c2ca00b02fad8918f93ef1816e9
     steps:
-      # actions/checkout v7.0.1
+      # actions/checkout v7.0.1 — trusted default-branch files, including the helper.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: "3.14"
-      - name: Read and validate PR eligibility
+      - name: Validate PR and freeze its head
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ inputs.pr_number }}
+          RUNNER_TEMP: ${{ runner.temp }}
         run: |
           if ! [[ "$PR_NUMBER" =~ ^[0-9]{1,9}$ ]]; then echo 'invalid PR number'; exit 1; fi
-          gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER" > pr.json
+          gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER" > "$RUNNER_TEMP/pr.json"
           repo_id=$(gh api "repos/${{ github.repository }}" --jq .id)
-          python .github/scripts/autofix_eligibility.py "$repo_id" < pr.json
-          echo "HEAD_REF=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER" --jq .head.ref)" >> "$GITHUB_ENV"
-      - name: Build bounded task from review comments
+          python .github/scripts/autofix_eligibility.py "$repo_id" < "$RUNNER_TEMP/pr.json"
+          echo "HEAD_SHA=$(jq -r .head.sha "$RUNNER_TEMP/pr.json")" >> "$GITHUB_ENV"
+          echo "HEAD_REF=$(jq -r .head.ref "$RUNNER_TEMP/pr.json")" >> "$GITHUB_ENV"
+      - name: Build bounded task from unresolved findings
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ inputs.pr_number }}
+          RUNNER_TEMP: ${{ runner.temp }}
         run: |
-          gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER/comments" --paginate > comments.json
-          python .github/scripts/autofix_task.py < comments.json > task.md
-      - name: Checkout PR head branch
+          gh api graphql -f query='
+            query($owner:String!,$name:String!,$pr:Int!){
+              repository(owner:$owner,name:$name){pullRequest(number:$pr){
+                reviewThreads(first:100){nodes{isResolved isOutdated
+                  comments(first:100){nodes{path line originalLine body}}}}}}}' \
+            -F owner="${{ github.repository_owner }}" \
+            -F name="${GITHUB_REPOSITORY#*/}" -F pr="$PR_NUMBER" > "$RUNNER_TEMP/threads.json"
+          python .github/scripts/autofix_task.py < "$RUNNER_TEMP/threads.json" > "$RUNNER_TEMP/task.md"
+      - name: Checkout the frozen PR head
         env:
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ inputs.pr_number }}
-        run: gh pr checkout "$PR_NUMBER"
-      - name: Checkout pinned Hermes runtime
+        run: |
+          mkdir pr
+          git -C pr init -q
+          git -C pr remote add origin "https://github.com/${{ github.repository }}.git"
+          git -C pr fetch -q --depth 1 origin "$HEAD_SHA"
+          git -C pr checkout -q --detach "$HEAD_SHA"
+          git -C pr config user.name 'stronsium[bot]'
+          git -C pr config user.email 'stronsium[bot]@users.noreply.github.com'
+      - name: Checkout pinned Hermes runtime outside the PR tree
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Abelion512/hermes-4gent
@@ -68,17 +87,31 @@ jobs:
           python -m pip install --only-binary ':all:' uv==0.13.5
           # Pinned lockfile and no source builds: no setup scripts run from PR input.
           uv sync --project hermes-core --locked --no-build --no-dev
-      - name: Run agent on the bounded task
+      - name: Run agent on the bounded task without workflow credentials
         env:
           AUTOFIX_API_KEY: ${{ secrets.AUTOFIX_API_KEY }}
-        run: bash .github/scripts/autofix_run.sh task.md
-      - name: Push fixes to the PR branch
+          RUNNER_TEMP: ${{ runner.temp }}
+        working-directory: pr
+        run: |
+          env -u GH_TOKEN -u GITHUB_TOKEN -u GITHUB_API_URL -u GITHUB_GRAPHQL_URL \
+            bash "$GITHUB_WORKSPACE/.github/scripts/autofix_run.sh" "$RUNNER_TEMP/task.md"
+      - name: Revalidate the PR and push fixes
         env:
           GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
         run: |
-          if git diff --quiet; then echo 'no changes to push'; exit 0; fi
-          git config user.name 'stronsium[bot]'
-          git config user.email 'stronsium[bot]@users.noreply.github.com'
-          git add -A
-          git commit -m 'fix(auto): apply review findings'
-          git push origin "HEAD:$HEAD_REF"
+          current=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER" --jq .head.sha)
+          if [[ "$current" != "$HEAD_SHA" ]]; then echo 'PR head moved; aborting push'; exit 1; fi
+          cd pr
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          push() { git -c core.hooksPath=/dev/null push -q "$remote" "HEAD:$HEAD_REF"; }
+          # Agent output may have installed hooks. Never run them with a token.
+          if [[ "$(git rev-parse HEAD)" != "$HEAD_SHA" ]]; then
+            push; exit 0
+          fi
+          git -c core.hooksPath=/dev/null add -A
+          if git -c core.hooksPath=/dev/null diff --cached --quiet; then
+            echo 'no changes to push'; exit 0
+          fi
+          git -c core.hooksPath=/dev/null commit -q -m 'fix(auto): apply review findings'
+          push

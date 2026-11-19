@@ -4,6 +4,7 @@ Reads a PR JSON object from disk and a trusted repository id. Never reads PR
 text as code. Returns a fixed reason constant, never model or PR prose.
 """
 import json
+import re
 import sys
 
 
@@ -35,7 +36,7 @@ def eligible(pr, repo_id):
 
 
 def main(argv):
-    if len(argv) != 2 or not argv[1].isdigit():
+    if len(argv) != 2 or not re.fullmatch(r'[0-9]{1,9}', argv[1]):
         print('usage: autofix_eligibility.py REPO_ID < pr.json')
         return 2
     # Read from stdin: a file path would be an untrusted command-line input.
