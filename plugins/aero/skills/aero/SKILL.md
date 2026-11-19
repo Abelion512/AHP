@@ -1,6 +1,6 @@
 ---
 name: aero
-description: Visual learning with interactive native cards.
+description: Interactive native cards rendered in chat - product cards with images and source links, quizzes, interviews, comparisons, process flows, charts, forms, wizards. Use when the user asks for product recommendations, a quiz, a survey/interview, or any visual interactive card UI.
 version: 0.4.0
 author: Abelion
 license: MIT

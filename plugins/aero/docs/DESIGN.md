@@ -84,3 +84,56 @@ learning outcomes is made without user testing or comparative measurements.
 Possible later steps: schema-derived prompts, typed host events, more measured
 model-selection cases and comprehension/usability checks using real questions.
 These should follow evidence, not a growing count of card kinds.
+
+## Interaction contract (current build)
+
+This section records how each visible element behaves today, which behaviors
+come from the ChatGPT/Gemini references, and which are deliberate extensions
+requested for this plugin. References were re-checked against live sessions on
+2026-11-18/19.
+
+### Reference patterns
+
+- ChatGPT product cards: only the product image is clickable; it opens a full
+  image viewer whose footer carries a small domain + listing source link.
+  Title, price and specs are plain text. There is no product-detail popup and
+  no source button on the card itself.
+- ChatGPT quiz/interview: lettered options, a next control anchored
+  bottom-right, selections stay local until submit.
+- Gemini quiz: live score in the header with a thin progress bar under it.
+- Gemini place cards: tapping a place opens a rich side panel with labeled
+  pill actions (Directions, Website, Open in Google Maps). Detail lives in the
+  panel, not on the card.
+
+### Shipped extensions (requested, beyond both references)
+
+| Element | Click behavior | Status |
+|---|---|---|
+| Product card body (title/specs area) | Opens a detail dialog with the full description and the source link | Shipped, host-verified |
+| Product image | Opens the image viewer ONLY (detail dialog does not open) | Shipped, host-verified |
+| Source link | Rendered as a labeled button carrying the real URL; raw URLs are never shown | Shipped; final label wording pending user decision |
+| Interview options | Lettered (A., B., ...) unless the title already starts with a letter marker; native radios, no custom focus decoration | Shipped, host-verified |
+| Interview submit | Disabled until every group has a pick; enabled state is solid black; submit posts the answer as a chat message ("Jawaban: ...") | Shipped, host-verified |
+| Quiz | Header shows "Soal X dari Y · Skor: N" with a thin progress bar; correct answer turns green, wrong answer red; "Berikutnya" bottom-right; completion screen shows "Skor N dari N" with "Ulangi" | Shipped, host-verified |
+
+### Layout rules
+
+- Black only for emphasis (enabled submit, primary actions). No Apple-blue.
+- Simplest possible rendering: native inputs, no extra focus frames when a
+  label and description sit adjacent.
+- Plugin roots keep right clearance from the host conversation-timeline rail:
+  measured 42-44px at 390px width, 42px (grid) / 244px (cards) at 1280px.
+- Two-column title/description layouts apply only on wide viewports; 390px
+  stacks vertically with no horizontal overflow (document width stays 390).
+
+### Support status per kind
+
+Supported `ui` kinds: wizard, status, compare, form, trace, choice, flow,
+chart, interview, quiz, plus the `visualcards` media directive. There is no
+map, table, calendar, or generic-widget kind; `chart` offers a table
+alternative. Unsupported or malformed directives fall back to visible text,
+never to a broken frame.
+
+Fixture-rendered kinds are verified with the deterministic harness and host
+screenshots. Live-model generation of directives is tracked separately; the
+desktop renderer does not depend on which model produced the directive.
