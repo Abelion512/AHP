@@ -4,6 +4,8 @@ Native prefix rules are consumed from Hermes at runtime (MIT). Field-name detect
 builds on this plugin's existing rules. A match is a risk signal, not format validation.
 """
 from __future__ import annotations
+# Shared credential helpers are internal to this plugin, not a public API.
+# pylint: disable=protected-access
 import json
 import math
 import re
@@ -81,6 +83,8 @@ class Guard:
         self.sessions = {}
         self.lock = threading.RLock()
         self.limits = max_sessions,max_entries,max_bytes,ttl
+        # Set by request()/required_policy() before walk(); a safe zero until then.
+        self.remaining = 0
 
     def session(self, sid):
         if not isinstance(sid,str) or not sid:

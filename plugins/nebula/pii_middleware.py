@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import Any, Optional
+from typing import Any
 
 from ._credentials import classify_field, mask_credentials, mask_value_for_key
 from ._patterns import PAREN_CRED_RE, PAREN_LABEL_RE
@@ -114,7 +114,7 @@ def mask_content(text: str, mask_char: str = "[REDACTED]") -> str:
         if pattern is PAREN_CRED_RE and not PAREN_LABEL_RE.search(result):
             continue
         new_result, count = pattern.subn(
-            lambda m: _mask_match(m, label, mask_char), result
+            lambda m, label=label: _mask_match(m, label, mask_char), result
         )
         if count > 0:
             changes += count
