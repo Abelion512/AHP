@@ -6,8 +6,8 @@ from url_filter import strip_url_structure
 
 class UrlFilterTest(unittest.TestCase):
     def test_benign_repo_url_noise_is_removed(self):
-        line = '+ <a href="https://github.com/Abelion512/AHP/blob/main/docs/VERSIONING.md">docs</a>'
-        self.assertNotIn("Abelion512/AHP", strip_url_structure(line))
+        line = '+ <a href="https://github.com/example-org/AHP/blob/main/docs/VERSIONING.md">docs</a>'
+        self.assertNotIn("example-org/AHP", strip_url_structure(line))
 
     def test_url_host_is_removed(self):
         line = "+ see https://docs.github.com/en/actions/reference for details"

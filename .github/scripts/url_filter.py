@@ -9,7 +9,7 @@ import re
 
 # Stop at common markdown/HTML delimiters so adjacent URLs stay separate.
 _URL = re.compile(r"https?://[^\s<>\"')\]]+", re.IGNORECASE)
-_BENIGN_PATH_PREFIXES = ("Abelion512/AHP/",)
+_BENIGN_PATH_MARKERS = ("AHP",)
 
 
 def strip_url_structure(text):
@@ -22,9 +22,10 @@ def strip_url_structure(text):
             # Keep everything before the final @; an earlier @ may be part of the secret.
             keep += authority.rsplit("@", 1)[0] + "@"
         if separator:
-            for prefix in _BENIGN_PATH_PREFIXES:
-                if tail.startswith(prefix):
-                    tail = tail[len(prefix):]
+            for marker in _BENIGN_PATH_MARKERS:
+                sentinel = marker + "/"
+                if sentinel in tail:
+                    tail = tail.split(sentinel, 1)[1]
                     break
             keep += "/" + tail
         return keep
