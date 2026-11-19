@@ -144,11 +144,17 @@ class ProducerTest(unittest.TestCase):
                 file=pathlib.Path(tmp)/'producer_fixture_program.py';file.write_bytes((ROOT/file.name).read_bytes()+extra.encode())
                 prog=replace(program(),root=pathlib.Path(tmp),files=((file.name,hashlib.sha256(file.read_bytes()).hexdigest()),))
                 with self.assertRaisesRegex(ValueError,reason):prog.load('0'*64)
-        for name,extra in [('missing',''),('check_source','\ndef check_source(c,a):pass\n')]:
+        # Split by failure path: a missing definition and a duplicate of the
+        # fixture's existing `check_source` both fail source selection; a new
+        # uniquely named definition passes selection but changes the digest.
+        cases=[('missing','','selected_check_missing'),
+            ('check_source','\ndef check_source(c,a):pass\n','selected_check_missing'),
+            ('added_check','\ndef added_check(c,a):pass\n','test_definition_changed')]
+        for name,extra,reason in cases:
             with self.subTest(name=name),tempfile.TemporaryDirectory() as tmp:
                 file=pathlib.Path(tmp)/'producer_fixture_program.py';file.write_bytes((ROOT/file.name).read_bytes()+extra.encode())
                 prog=replace(program(),root=pathlib.Path(tmp),files=((file.name,hashlib.sha256(file.read_bytes()).hexdigest()),),checks=(('synthetic-source',file.name,name),))
-                with self.assertRaisesRegex(ValueError,'selected_check_missing'):prog.load('0'*64)
+                with self.assertRaisesRegex(ValueError,reason):prog.load('0'*64)
     def test_exact_definition_symlink_guard(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=pathlib.Path(tmp);(root/'real').mkdir();(root/'alias').symlink_to(root/'real',target_is_directory=True)
@@ -173,6 +179,12 @@ class ProducerTest(unittest.TestCase):
         bad=replace(prog,functions=((( 'producer_fixture_program.py','classify_fixture'),freeze_function(F.classify_fixture)),
             (('producer_fixture_program.py','check_source'),freeze_function(check_source))))
         with self.assertRaisesRegex(ValueError,'trusted_program_mismatch'):
+            bad.load(prog.definition_digest())
+    def test_unfrozen_callable_rejected(self):
+        prog=program()
+        bad=replace(prog,functions=((( 'producer_fixture_program.py','classify_fixture'),F.classify_fixture),
+            (('producer_fixture_program.py','check_source'),freeze_function(F.check_source))))
+        with self.assertRaisesRegex(ValueError,'trusted_program_not_frozen'):
             bad.load(prog.definition_digest())
     def test_raw_line_endings_and_unicode_preserved(self):
         context=self.collect();self.assertEqual(context['sources']['docs/猫.md'],F.EXPECTED_SOURCE)

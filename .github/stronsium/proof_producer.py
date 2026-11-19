@@ -17,14 +17,21 @@ import zipfile
 from proof_context import canonical_bytes,normalize_context,context_digest
 from proof_evidence import ProducerPolicy,ProofVerifier,REPO,MAX_BYTES,SHA,HASH
 
-_PERMITTED_BUILTINS=('len','str','ValueError','sorted','all','any','tuple','list','dict','set','range','enumerate','zip','type','int','bool','isinstance','Exception','min','max','sum')
+_PERMITTED_BUILTINS=('len','str','ValueError','sorted','all','any','tuple','list','dict','set','range','enumerate','zip','int','bool','isinstance','Exception','min','max','sum')
 
 def _code_fingerprint(code):
-    """Structural identity of a code object, ignoring file name and line numbers."""
+    """Structural identity of a code object, ignoring file name and line numbers.
+
+    Defaults and closure cell values are runtime state, not source structure, so
+    they cannot be derived from the verified file. Registration stays trusted
+    wiring; this fingerprint only rules out a callable running code the approved
+    definition does not define.
+    """
     constants=tuple(_code_fingerprint(c) if isinstance(c,types.CodeType) else (type(c).__name__,repr(c))
         for c in code.co_consts)
     return (code.co_code,constants,code.co_names,code.co_varnames,code.co_freevars,code.co_cellvars,
-        code.co_argcount,code.co_posonlyargcount,code.co_kwonlyargcount,code.co_nlocals,code.co_stacksize)
+        code.co_argcount,code.co_posonlyargcount,code.co_kwonlyargcount,code.co_nlocals,code.co_stacksize,
+        code.co_flags,getattr(code,'co_exceptiontable',None))
 
 def freeze_function(function):
     """Clone a trusted function with a frozen globals snapshot and minimal builtins.
@@ -149,9 +156,15 @@ class FrozenProgram:
         supplied=dict(self.functions)
         def resolve(name):
             function=supplied.get(name)
-            if (type(name) is not tuple or len(name)!=2 or not callable(function)
-                    or getattr(function,'__name__',None)!=name[1]):
+            if (type(name) is not tuple or len(name)!=2 or type(function) is not types.FunctionType
+                    or function.__name__!=name[1]):
                 raise ValueError('trusted_program_missing')
+            # Wiring must supply freeze_function output, not a raw module function
+            # with unrestricted globals and builtins.
+            if (getattr(function,'__module__',None)!='trusted_checks'
+                    or function.__globals__.get('__name__')!='trusted_checks'
+                    or not isinstance(function.__globals__.get('__builtins__'),dict)):
+                raise ValueError('trusted_program_not_frozen')
             # Same name is not enough: the callable must be the exact code the
             # verified file defines, so miswired wiring cannot run an unrelated
             # check while the proof records the approved definition digest.
