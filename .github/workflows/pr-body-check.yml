@@ -20,3 +20,9 @@ jobs:
         env:
           PR_BODY: ${{ github.event.pull_request.body || '' }}
         run: python .github/scripts/check_pr_body.py
+      - name: Test non-empty PR check
+        run: python -m unittest discover -s .github/tests -p test_nonempty_pr.py
+      - name: Require non-empty PR
+        env:
+          PR_CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
+        run: python .github/scripts/check_nonempty_pr.py
