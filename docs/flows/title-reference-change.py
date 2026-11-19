@@ -1,13 +1,14 @@
 """Regenerate docs/assets/title-reference-change.png (the before/after diagram in PR #42).
 
 Run from the repo root:  python docs/flows/title-reference-change.py
-Needs Pillow and the DejaVu fonts. Edit the text lists below, then re-run.
+Needs Pillow >= 10.1 (fonts come from the shared _font helper). Edit the text lists below, then re-run.
 """
 import os
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
-FONT_DIR = '/usr/share/fonts/truetype/dejavu/'
-OUT = os.path.join(os.path.dirname(__file__), '..', 'assets', 'title-reference-change.png')
+from _font import BOLD, REG, font
+
+OUT = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', 'assets', 'title-reference-change.png'))
 
 BEFORE = ['BEFORE', '- Our Plugin: Nebula', '- Tier Naming sets', '- Usage Rule', '',
           'Missing:', '  visible-name rule', '  example PR titles', '  images note']
@@ -18,8 +19,8 @@ AFTER = ['AFTER (same file)', 'Unchanged: Our Plugin,', '  Tier Naming, Usage Ru
 def main():
     im = Image.new('RGB', (1200, 520), 'white')
     d = ImageDraw.Draw(im)
-    f = ImageFont.truetype(FONT_DIR + 'DejaVuSans.ttf', 20)
-    b = ImageFont.truetype(FONT_DIR + 'DejaVuSans-Bold.ttf', 22)
+    f = font(REG, 20)
+    b = font(BOLD, 22)
     d.text((30, 20), 'docs/title-reference.md: what changes (docs only)', font=b, fill='black')
 
     def box(x, lines, color):
