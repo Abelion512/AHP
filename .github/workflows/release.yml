@@ -58,7 +58,17 @@ jobs:
           # Recheck immediately before publishing: a writer could force-move the
           # tag after the ancestry check. The release must point at the commit
           # that was checked as reachable from main.
-          remote_sha=$(git ls-remote origin "refs/tags/$GITHUB_REF_NAME" | awk '{print $1}')
+          #
+          # An annotated tag (the form docs/VERSIONING.md prescribes) makes
+          # ls-remote report the tag object first and the tagged commit as
+          # `refs/tags/<tag>^{}`, while GITHUB_SHA is the commit. Compare the
+          # peeled commit and fall back to the plain ref for lightweight tags.
+          tag_ref="refs/tags/$GITHUB_REF_NAME"
+          refs=$(git ls-remote origin "$tag_ref" "$tag_ref^{}")
+          remote_sha=$(printf '%s\n' "$refs" | awk -v want="$tag_ref^{}" '$2==want {print $1}')
+          if [ -z "$remote_sha" ]; then
+            remote_sha=$(printf '%s\n' "$refs" | awk -v want="$tag_ref" '$2==want {print $1}')
+          fi
           if [ -z "$remote_sha" ] || [ "$remote_sha" != "$GITHUB_SHA" ]; then
             echo "::error::tag $GITHUB_REF_NAME no longer points at $GITHUB_SHA"
             exit 1
@@ -68,8 +78,12 @@ jobs:
             echo "release $GITHUB_REF_NAME already exists; nothing to do"
             exit 0
           fi
+          # Pin the release to the commit that passed the checks above. Resolving
+          # the tag name again would let a concurrent tag move publish a commit
+          # that was never verified as reachable from main.
           if ! gh release create "$GITHUB_REF_NAME" \
             --verify-tag \
+            --target "$GITHUB_SHA" \
             --generate-notes \
             --title "Abelion Hermes Plugins $GITHUB_REF_NAME"; then
             # A concurrent run may have created it between the view and create.

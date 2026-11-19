@@ -1,15 +1,10 @@
 name: pr-body-check
 
 on:
+  # No paths filter: a docs-only PR still needs its rationale and verification
+  # sections validated, and a skipped workflow leaves the check pending forever.
   pull_request:
     types: [opened, edited, reopened, synchronize, ready_for_review]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '**/*.png'
-      - '**/*.jpg'
-      - '**/*.jpeg'
-      - '**/*.svg'
 
 permissions:
   contents: read
