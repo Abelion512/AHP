@@ -7,12 +7,10 @@ desktop half.
 
 from pathlib import Path
 
-_SKILL_DESCRIPTION = (
-    "Interactive native cards rendered in chat - product cards with images and "
-    "source links, quizzes, interviews, comparisons, process flows, charts, "
-    "forms, wizards. Use when the user asks for product recommendations, a quiz, "
-    "a survey/interview, or any visual interactive card UI."
-)
+# 60-char budget: Hermes clips skill descriptions to SKILL_PROMPT_DESC_LIMIT
+# (60) in the system prompt's <available_skills> index, so the exact qualified
+# load name leads - models that call skill_view('aero') bare get "not found".
+_SKILL_DESCRIPTION = "skill_view('aero:aero'): kartu, kuis, tabel, peta, form"
 
 
 def register(ctx):

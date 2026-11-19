@@ -138,3 +138,15 @@ text, never to a broken frame.
 Fixture-rendered kinds are verified with the deterministic harness and host
 screenshots. Live-model generation of directives is tracked separately; the
 desktop renderer does not depend on which model produced the directive.
+
+### Skill discovery contract (model-facing)
+
+Hermes clips every skill description to 60 characters
+(`SKILL_PROMPT_DESC_LIMIT`) in the system prompt's `<available_skills>` index,
+so `_SKILL_DESCRIPTION` in `__init__.py` leads with the exact qualified load
+string `skill_view('aero:aero')` followed by trigger words (kartu, kuis,
+tabel, peta, form). Plugin skills resolve in `skill_view` only under the
+qualified `plugin:skill` name; a bare `skill_view('aero')` misses the plugin
+registry and fails with "not found", after which models fall back to building
+HTML file artifacts. When the task matches, the model must emit `::ui`
+directives inline in the chat answer, never a separate HTML file.

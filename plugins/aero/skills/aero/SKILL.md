@@ -1,6 +1,6 @@
 ---
 name: aero
-description: Interactive native cards rendered in chat - product cards with images and source links, quizzes, interviews, comparisons, process flows, charts, forms, wizards. Use when the user asks for product recommendations, a quiz, a survey/interview, or any visual interactive card UI.
+description: "Native interactive UI in chat: product cards with images and source links, quizzes, interviews, tables, comparisons, process flows, charts, forms, wizards, maps. Load with skill_view('aero:aero'). Use whenever the user asks to show/recommend products, run a quiz or interview, compare items, display a table or any visual interactive UI - emit ::ui directives inline in the answer, NEVER build a separate HTML file/artifact for these."
 version: 0.4.0
 author: Abelion
 license: MIT

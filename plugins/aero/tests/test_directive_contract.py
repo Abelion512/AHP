@@ -61,6 +61,22 @@ class DirectiveContractTests(unittest.TestCase):
             with self.subTest(title=bad), self.assertRaises(ValueError):
                 module.build_status_directive(bad)
 
+    def test_skill_description_fits_prompt_budget(self):
+        # Hermes clips skill descriptions to SKILL_PROMPT_DESC_LIMIT (60) in the
+        # system prompt's <available_skills> index; the exact qualified load
+        # name must lead so models call skill_view('aero:aero'), not bare 'aero'
+        # (bare names miss the plugin registry and fail with "not found").
+        import ast
+        init_path = PLUGIN / "__init__.py"
+        tree = ast.parse(init_path.read_text())
+        desc = None
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "_SKILL_DESCRIPTION":
+                desc = ast.literal_eval(node.value)
+        self.assertIsNotNone(desc)
+        self.assertLessEqual(len(desc), 60)
+        self.assertTrue(desc.startswith("skill_view('aero:aero')"), desc)
+
     def test_limits_are_bounded(self):
         limits = self.contract["limits"]
         self.assertLessEqual(limits["title_chars"], 120)
