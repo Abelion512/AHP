@@ -107,13 +107,15 @@ For development, run the Python contract suite and the locked React/browser test
 
 ## Product/place media cards
 
-The same Aero renderer additionally claims `visualcard` and `visualcards`. These do not change the existing `ui` kinds. Prefer short text when grounded image/source data is missing. Do not invent photos, prices, hours, availability or a map.
+The same Aero renderer additionally claims `visualcard` and `visualcards`. These do not change the existing `ui` kinds. Prefer the table kind or short text when grounded image/source data is missing. Do not invent photos, prices, hours, availability or a map.
 
 A `visualcard` requires `kind` (`product` or `place`), title (90chars), summary (180), fact1 (100), caveat (180), source/image HTTPS URLs (600each), and alt (120). Optional fact2-fact4 have the same100char limit. Optional price (80) and pricenote (120) must appear together. State uncertainty in the card, not only nearby prose. Label family illustrations and reused photos; neither proves a particular variant. External image requests occur when the card renders; do not use private, credentialed or tracking-bearing URLs. HTTPS validation is not a claim that every remote source is trustworthy.
 
 One `visualcard` on its own line, note the directive name is `visualcard` itself (not a `ui` kind) and it takes no `version` or `id`:
 
 ::visualcard{kind="product" title="Example Trail Backpack" summary="Fictional daypack for teaching the card format." fact1="22L, 900g (fictional)" caveat="Teaching example, not a real product." source="https://example.com/trail-backpack" image="https://example.com/trail-backpack.png" alt="Illustration of a fictional backpack" price="$0" pricenote="Fictional price for teaching"}
+
+The `example.com` URLs in that example are documentation placeholders. Never emit placeholder or invented URLs in an answer; without a grounded source or image URL from a tool result or the user, use the table kind or short text instead of a `visualcard`.
 
 Use `visualcards` for1-5peer cards by prefixing every attribute a_, b_, c_, d_, e_. Total directive attributes must remain within2000characters. Values are plain text, never code. Keep each directive on its own line, without braces/newlines inside values. Photo click opens only the image/source viewer; titles remain text. The row scrolls horizontally on small screens. No purchase, reservation, map API, video generation, download or arbitrary HTML is supplied by these directives.
 
