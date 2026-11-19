@@ -18,7 +18,7 @@ permissions:
 # A dispatch on a non-main ref gets a unique group so it cannot replace a
 # queued main deployment. Only main publishes; other refs skip the job.
 concurrency:
-  group: "pages-${{ (github.event_name == 'push' || github.ref == 'refs/heads/main') ? 'main' : github.run_id }}"
+  group: "pages-${{ (github.event_name == 'push' || github.ref == 'refs/heads/main') && 'main' || github.run_id }}"
   cancel-in-progress: false
 
 jobs:
