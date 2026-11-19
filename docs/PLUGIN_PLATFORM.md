@@ -18,8 +18,11 @@ plugin name only.
    - `README.md` — human quickstart
    - `docs/USAGE.md` — behavior contract and current status
    - `skills/<name>/SKILL.md` — agent-facing skill(s)
-4. **Tests and E2E.** Every plugin needs `tests/` and, when host behavior
-   matters, `e2e/`. A plugin with only syntax checks is incomplete, not broken.
+4. **Tests and E2E.** Every plugin needs `tests/` with at least one
+   `test_*.py`. When host behavior matters, `e2e/` also needs a test,
+   `README.md`, and `host.json` with the exact host repository and full commit
+   SHA. CI fails a plugin with no tests; it does not downgrade to a syntax-only
+   pass.
 5. **Reproducible ops.** Each plugin should make it easy to create, enable,
    debug, reproduce, test, and disable in a disposable profile. That guidance
    belongs in the plugin's own docs/skills, not only in repo-level notes.
@@ -42,8 +45,9 @@ plugin name only.
 
 ## What lives where
 
-- `hermes.json` — catalog entry.
-- `update-plugins.sh` — profile sync script for the repo's plugin(s).
+- `hermes.json` — catalog entry. The updater syncs exactly the catalog.
+- `update-plugins.sh` — profile sync script driven by `hermes.json`; adding a
+  plugin does not require editing the script.
 - `AGENTS.md` — repo onboarding and rules for humans and agents working here.
 - `.github/plugin-docs-standard.md` — docs trio standard and validation before
   merge.

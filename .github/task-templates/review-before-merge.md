@@ -35,8 +35,8 @@ Run this before calling a plugin change complete. It is a checklist, not a promi
 
 ## Shared infra
 
-- [ ] `hermes.json` synced if plugin set changed
-- [ ] `update-plugins.sh` synced if plugin set changed
+- [ ] `hermes.json` synced if plugin set changed (the updater reads it)
+- [ ] `e2e/host.json` present for every E2E suite
 - [ ] Root README table synced if plugin set changed
 - [ ] Labeler updated if plugin set or priority taxonomy changed
 - [ ] CI still makes sense for the new shape

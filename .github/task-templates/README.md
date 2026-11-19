@@ -8,7 +8,7 @@ These templates describe the *shape* every repeating agent task in this repo sho
 - Adding or changing a plugin skill
 - Adding or changing plugin docs
 - Adding or changing plugin tests / E2E
-- Updating `hermes.json`, `update-plugins.sh`, CI, or the labeler for a new plugin
+- Updating `hermes.json`, CI, or the labeler for a new plugin
 
 Do not start a plugin change until the affected plugin already has the three doc layers (README → docs/USAGE.md → skills) and at least one test layer. If a plugin folder is missing one, that is the first fix, not a follow-up.
 
@@ -124,7 +124,6 @@ import pytest
 When a plugin is added or removed from the active set, update in one change:
 
 - `hermes.json` → `plugins[]`
-- `update-plugins.sh` → `for d in ...`
 - `.github/workflows/ci.yml` → only if the change touches detection/labeler/shared behavior
 - `.github/labeler.yml` → plugin labels, and any new priority/label taxonomy if needed
 - Root `README.md` → plugin table
@@ -139,7 +138,7 @@ Before marking the task complete, confirm:
 - [ ] Status table / VALIDATION updated to reflect the real proof
 - [ ] Skill updated or added and registered
 - [ ] Test added or updated in the right layer (unit or E2E)
-- [ ] `hermes.json` and `update-plugins.sh` synced if plugin set changed
+- [ ] `hermes.json` catalog synced if plugin set changed (the updater reads it)
 - [ ] No new hardcoded credentials, tokens, keys, cookies, or session IDs in the diff
 - [ ] CI still makes sense for the new shape (detection, labeler, audit, secret scan)
 
