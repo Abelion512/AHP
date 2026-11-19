@@ -59,7 +59,11 @@ jobs:
           # tag after the ancestry check. The release must point at the commit
           # that was checked as reachable from main.
           # ^{} peels annotated tags to their commit; lightweight tags resolve too.
+          # ^{} peels annotated tags; lightweight tags have no peeled ref, so fall back.
           remote_sha=$(git ls-remote origin "refs/tags/$GITHUB_REF_NAME^{}" | awk '{print $1}')
+          if [ -z "$remote_sha" ]; then
+            remote_sha=$(git ls-remote origin "refs/tags/$GITHUB_REF_NAME" | awk '{print $1}')
+          fi
           if [ -z "$remote_sha" ] || [ "$remote_sha" != "$GITHUB_SHA" ]; then
             echo "::error::tag $GITHUB_REF_NAME no longer points at $GITHUB_SHA"
             exit 1

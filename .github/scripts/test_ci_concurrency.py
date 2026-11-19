@@ -10,6 +10,7 @@ CI = Path(os.environ.get("CI_WORKFLOW", ROOT / ".github/workflows/ci.yml"))
 TITLE = Path(os.environ.get("PR_TITLE_WORKFLOW", ROOT / ".github/workflows/pr-title.yml"))
 BODY = Path(os.environ.get("PR_BODY_WORKFLOW", ROOT / ".github/workflows/pr-body-check.yml"))
 LABELER = Path(os.environ.get("LABELER_WORKFLOW", ROOT / ".github/workflows/labeler.yml"))
+RELEASE = Path(os.environ.get("RELEASE_WORKFLOW", ROOT / ".github/workflows/release.yml"))
 
 
 def load(path):
@@ -58,6 +59,11 @@ class TriggerContractTest(unittest.TestCase):
     def test_labeler_does_not_start_on_title_edit(self):
         on = triggers(load(LABELER))
         self.assertNotIn("edited", event_types(on.get("pull_request_target")))
+
+    def test_release_tag_sha_recheck_handles_lightweight_tags(self):
+        text = RELEASE.read_text(encoding="utf-8")
+        self.assertIn('refs/tags/$GITHUB_REF_NAME^{}', text)
+        self.assertIn('if [ -z "$remote_sha" ]', text)
 
 
 if __name__ == "__main__":
