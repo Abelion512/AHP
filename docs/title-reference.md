@@ -29,8 +29,9 @@ Match name to characteristic. Adapt to module semantics; don't copy external tie
 
 ## Visible name vs id
 - Id (plugin.yaml `name`, hermes.json `id`, folder name): technical and stable. Never rename it for display.
-- Visible name (what Hermes Desktop shows in Plugins): one core word from the tiers above, no suffix. Examples: Aero, Nebula. No "(tool-media)", "card", version or model labels.
-- The description may be technical. The visible name may not.
+- Visible name (what Hermes Desktop shows in Plugins): one core word from the tiers above, no suffix (this limit applies to the visible name only). Examples: Aero, Nebula.
+- Where the visible name comes from: plugin.yaml has no separate display-name field. For a plugin with a desktop entry, the Plugins page shows that entry's `name` (checked on Hermes Desktop v0.23.2). Set it there; leave plugin.yaml `name` as the id.
+- The description may be technical. The visible name must not be.
 
 ## Example PR titles
 Use Conventional Commits and the same form for the PR title (see .github/PULL_REQUEST_TEMPLATE.md).
@@ -39,5 +40,5 @@ Use Conventional Commits and the same form for the PR title (see .github/PULL_RE
 - docs(title-reference): add visible-name rule
 
 ## Images
-- PR: one real image in "How it works" (see .github/PULL_REQUEST_TEMPLATE.md).
-- Plugin-produced images: not documented here. That means undocumented, not unsupported. State only what was verified, for example "shows a file through the tool-media route on host vX".
+- PR: one real image in "How it works" (see .github/PULL_REQUEST_TEMPLATE.md). For docs changes the template accepts a small accurate diagram of what changes.
+- Plugin-produced images: not documented here. That means undocumented, not unsupported. State only what you verified and on which host version.
