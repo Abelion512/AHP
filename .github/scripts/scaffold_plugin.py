@@ -36,8 +36,17 @@ def catalog_ids(root: Path) -> set[str]:
             if isinstance(entry, dict) and isinstance(entry.get("id"), str)}
 
 
+def trusted_file(root: Path, filename: str) -> Path:
+    """Return a fixed repo file path, never one derived from file content."""
+    base = root.resolve()
+    path = (base / filename).resolve()
+    if path.parent != base or path.name != filename:
+        raise ValueError("refusing to write outside the repository root")
+    return path
+
+
 def add_catalog_entry(root: Path, pid: str, description: str) -> None:
-    path = root / "hermes.json"
+    path = trusted_file(root, "hermes.json")
     catalog = json.loads(path.read_text(encoding="utf-8"))
     plugins = catalog.setdefault("plugins", [])
     plugins.append({"id": pid, "path": "plugins/" + pid, "description": description})
@@ -45,7 +54,7 @@ def add_catalog_entry(root: Path, pid: str, description: str) -> None:
 
 
 def add_readme_row(root: Path, pid: str, description: str) -> None:
-    path = root / "README.md"
+    path = trusted_file(root, "README.md")
     lines = path.read_text(encoding="utf-8").splitlines()
     for index, line in enumerate(lines):
         if line.startswith("| Privacy Guard |"):
