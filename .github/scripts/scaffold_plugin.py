@@ -34,8 +34,8 @@ def reference_names(reference: str) -> set[str]:
         if line.startswith("## "):
             heading = line[3:].strip()
             in_tiers = heading == "Our Plugin" or heading.startswith("Tier Naming")
-        elif line.startswith("### "):
-            in_tiers = True
+        elif line.startswith("### ") and in_tiers:
+            pass
         elif in_tiers and line.startswith("- "):
             head = re.split(r"[\u2014\u2013(:;,]", line[2:].strip(), maxsplit=1)[0]
             for token in head.split("/"):
@@ -143,7 +143,7 @@ def write_skeleton(root: Path, pid: str, description: str, category: str,
             "version: 0.1.0\nplatforms: [linux, macos, windows]\n---\n\n# %s skill\n\n"
             "## When to Use\n\n- Describe the trigger.\n\n## How to Apply\n\n1. Describe the step.\n\n"
             "## Verification\n\nState how to confirm the result.\n"
-            % (pid, json.dumps(skill_description), pid.capitalize())
+            % (json.dumps(pid), json.dumps(skill_description), pid.capitalize())
         ),
         base / "__init__.py": (
             '"""Auto-generated skeleton for %s."""\n\nfrom pathlib import Path\n\n\n'
