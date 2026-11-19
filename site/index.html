@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Abelion Hermes Plugins</title>
+  <meta name="description" content="Standalone plugins for Hermes Agent, with pinned-host verification and explicit security boundaries.">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0e14;
+      --panel: #121722;
+      --line: #263041;
+      --ink: #e7ecf3;
+      --muted: #9aa7b8;
+      --accent: #7dd3fc;
+      --accent-2: #a7f3d0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 600px at 15% -10%, #16324a 0%, var(--bg) 55%);
+      color: var(--ink);
+      font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    main { max-width: 980px; margin: 0 auto; padding: 64px 24px 48px; }
+    .eyebrow {
+      color: var(--accent-2); font-size: 12px; letter-spacing: .18em;
+      text-transform: uppercase; font-weight: 700;
+    }
+    h1 { font-size: clamp(34px, 6vw, 58px); line-height: 1.08; margin: 14px 0 18px; letter-spacing: -.03em; }
+    .lede { max-width: 62ch; color: var(--muted); font-size: 19px; margin: 0 0 36px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,.03), transparent), var(--panel);
+      border: 1px solid var(--line); border-radius: 14px; padding: 22px;
+    }
+    .card h2 { font-size: 17px; margin: 0 0 8px; }
+    .card p { color: var(--muted); margin: 0 0 14px; font-size: 14.5px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 34px; }
+    .button {
+      display: inline-block; border: 1px solid var(--line); border-radius: 10px;
+      padding: 10px 16px; color: var(--ink); background: rgba(255,255,255,.03);
+    }
+    .button.primary { border-color: transparent; background: var(--accent); color: #08121b; font-weight: 700; }
+    footer { border-top: 1px solid var(--line); margin-top: 48px; padding-top: 18px; color: var(--muted); font-size: 13px; }
+    code { background: rgba(255,255,255,.06); border-radius: 5px; padding: 1px 5px; font-size: .9em; }
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Abelion Hermes Plugins</p>
+  <h1>Plugins that make their security boundaries explicit.</h1>
+  <p class="lede">
+    Standalone plugins for Hermes Agent. Each plugin owns its implementation,
+    docs, tests and E2E suite. CI runs against a pinned Hermes core commit, never
+    against a floating host, and a green run is evidence only for the paths it
+    actually exercised.
+  </p>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Privacy Guard (<code>nebula</code>)</h2>
+      <p>
+        Session-local masking for PII, credentials and paths, held-output
+        redaction, and a fail-closed required mode for the pinned host. No
+        process-wide firewall claim.
+      </p>
+      <a href="https://github.com/Abelion512/AHP/tree/main/plugins/nebula">Plugin source and docs →</a>
+    </section>
+    <section class="card">
+      <h2>Verification, not badges</h2>
+      <p>
+        Unit tests, dependency-floor audits, a real-host E2E suite with a
+        synthetic loopback provider, gitleaks, CodeQL and dependency review.
+      </p>
+      <a href="https://github.com/Abelion512/AHP/blob/main/docs/CI.md">Read the CI audit →</a>
+    </section>
+    <section class="card">
+      <h2>Pinned host</h2>
+      <p>
+        Required Privacy Guard behavior depends on Hermes fork commit
+        <code>9a85916</code>. Stock Hermes plus this plugin is not equivalent
+        mandatory protection.
+      </p>
+      <a href="https://github.com/Abelion512/hermes-4gent">Hermes core fork →</a>
+    </section>
+  </div>
+
+  <div class="links">
+    <a class="button primary" href="https://github.com/Abelion512/AHP">Repository</a>
+    <a class="button" href="https://github.com/Abelion512/AHP/blob/main/README.md">README</a>
+    <a class="button" href="https://github.com/Abelion512/AHP/blob/main/docs/PLUGIN_PLATFORM.md">Plugin platform</a>
+    <a class="button" href="https://github.com/Abelion512/AHP/blob/main/docs/VERSIONING.md">Versioning and releases</a>
+  </div>
+
+  <footer>
+    Static documentation site. No telemetry, no external assets. Merging a pull
+    request is not a release and does not install a plugin; see the repository
+    for the supported installation and migration path.
+  </footer>
+</main>
+</body>
+</html>
