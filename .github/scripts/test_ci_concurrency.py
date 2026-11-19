@@ -10,6 +10,7 @@ CI = Path(os.environ.get("CI_WORKFLOW", ROOT / ".github/workflows/ci.yml"))
 TITLE = Path(os.environ.get("PR_TITLE_WORKFLOW", ROOT / ".github/workflows/pr-title.yml"))
 BODY = Path(os.environ.get("PR_BODY_WORKFLOW", ROOT / ".github/workflows/pr-body-check.yml"))
 LABELER = Path(os.environ.get("LABELER_WORKFLOW", ROOT / ".github/workflows/labeler.yml"))
+RELEASE = Path(os.environ.get("RELEASE_WORKFLOW", ROOT / ".github/workflows/release.yml"))
 
 
 def load(path):
@@ -48,10 +49,9 @@ class TriggerContractTest(unittest.TestCase):
     def test_rerun_attempt_cannot_cancel_the_current_head_run(self):
         # A rerun of an older pull_request run must land in a different group, or
         # it would cancel the run for the current head and leave its check missing.
-        group = load(CI)["concurrency"]["group"]
-        self.assertIn("github.run_attempt", group)
+        self.assertIn("github.run_attempt", load(CI)["concurrency"]["group"])
 
-    def test_ci_still_runs_on_pr_commits_and_not_on_title_edit(self):
+    def test_ci_runs_on_pr_commits_and_does_not_start_on_title_edit(self):
         on = triggers(load(CI))
         types = event_types(on, "pull_request")
         # Assert the trigger still fires for commits; an absent trigger used to
@@ -83,6 +83,13 @@ class TriggerContractTest(unittest.TestCase):
         types = event_types(on, "pull_request_target")
         self.assertTrue({"opened", "synchronize"}.issubset(set(types)))
         self.assertNotIn("edited", types)
+
+    def test_release_tag_sha_recheck_handles_lightweight_tags(self):
+        text = RELEASE.read_text(encoding="utf-8")
+        self.assertIn('refs/tags/$GITHUB_REF_NAME^{}', text)
+        self.assertIn('if [ -z "$remote_sha" ]', text)
+        # The release must be pinned to the checked commit, not the tag name.
+        self.assertIn('--target "$GITHUB_SHA"', text)
 
 
 if __name__ == "__main__":

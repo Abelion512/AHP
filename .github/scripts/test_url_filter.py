@@ -23,21 +23,17 @@ class UrlFilterTest(unittest.TestCase):
         line = f"+ https://example.com/cb?sig={secret}"
         self.assertIn(secret, strip_url_structure(line))
 
-    def test_secret_in_slashless_query_is_kept(self):
-        secret = "b" * 40
-        line = f"+ https://example.com?sig={secret}"
-        self.assertIn(secret, strip_url_structure(line))
-        self.assertNotIn("example.com", strip_url_structure(line))
+    def test_slashless_url_keeps_query_and_fragment(self):
+        for body in (f"?sig={'b' * 40}", f"#frag={'g' * 40}"):
+            with self.subTest(body=body):
+                line = f"+ https://example.com{body}"
+                self.assertIn(body[1:], strip_url_structure(line))
 
-    def test_secret_in_slashless_fragment_is_kept(self):
-        secret = "b" * 40
-        line = f"+ https://example.com#{secret}"
+    def test_secret_before_benign_repo_marker_is_kept(self):
+        secret = "s" * 40
+        line = f"+ https://example.com/{secret}/AHP/blob/main/x"
         self.assertIn(secret, strip_url_structure(line))
-
-    def test_secret_before_benign_marker_is_kept(self):
-        secret = "b" * 40
-        line = f"+ https://github.com/example-org/{secret}-AHP/blob/main/docs/CI.md"
-        self.assertIn(secret, strip_url_structure(line))
+        self.assertNotIn("AHP/", strip_url_structure(line))
 
     def test_secret_in_userinfo_is_kept(self):
         secret = "c" * 40

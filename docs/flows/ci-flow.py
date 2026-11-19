@@ -36,6 +36,7 @@ box(40, yb, 240, 100, "Edit title", ["On the PR page"], "#6ea8ff")
 box(360, yb, 420, 110, "PR title + body checks", ["Separate workflows; read title/body.", "ci and labeler do not start."], "#7ee0a1")
 line(280, yb + 50, 320, yb + 50); line(320, yb + 50, 360, yb + 50); head(360, yb + 50)
 
-box(850, 350, 610, 230, "Never cancelled", ["For ci: push to main, scheduled and manual", "runs each have their own run group.", "A ci pull_request run is cancelled only by a", "newer ci pull_request run of the same attempt.", "No merge, deploy or branch rule change."], "#c3a6ff")
+box(850, 350, 610, 230, "Never cancelled", ["For ci: push to main, scheduled and manual", "runs each have their own run group.",        "A ci pull_request run is cancelled only by a",
+        "newer ci pull_request run of the same attempt.", "No merge, deploy or branch rule change."], "#c3a6ff")
 d.text((40, 800), "The path labeler also runs on open/synchronize; it is not a CI gate.", font=s, fill="#e2e8f0")
 im.save(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "ci-flow.png")))

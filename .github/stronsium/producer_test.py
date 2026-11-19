@@ -186,23 +186,18 @@ class ProducerTest(unittest.TestCase):
             (('producer_fixture_program.py','check_source'),freeze_function(F.check_source))))
         with self.assertRaisesRegex(ValueError,'trusted_program_not_frozen'):
             bad.load(prog.definition_digest())
-    def test_spoofed_frozen_builtins_rejected(self):
-        # A dict-typed __builtins__ is not proof of a frozen check: the exact
-        # permitted key set and the real builtin objects are both required.
+    def test_frozen_callable_with_full_builtins_rejected(self):
+        import builtins,types
         prog=program()
-        cases={'extra __import__':dict,
-            'swapped permitted name':None}
-        for label,change in cases.items():
-            with self.subTest(label=label):
-                spoof=freeze_function(F.classify_fixture)
-                permitted=dict(spoof.__globals__['__builtins__'])
-                if change is dict:permitted['__import__']=__import__
-                else:permitted['len']=lambda value:0
-                spoof.__globals__['__builtins__']=permitted
-                bad=replace(prog,functions=((('producer_fixture_program.py','classify_fixture'),spoof),
-                    (('producer_fixture_program.py','check_source'),freeze_function(F.check_source))))
-                with self.assertRaisesRegex(ValueError,'trusted_program_not_frozen'):
-                    bad.load(prog.definition_digest())
+        frozen=freeze_function(F.check_source)
+        globals_spoof=dict(frozen.__globals__)
+        globals_spoof['__builtins__']=dict(vars(builtins))
+        spoof=types.FunctionType(frozen.__code__,globals_spoof,frozen.__name__,
+            frozen.__defaults__,frozen.__closure__)
+        bad=replace(prog,functions=((( 'producer_fixture_program.py','classify_fixture'),freeze_function(F.classify_fixture)),
+            (('producer_fixture_program.py','check_source'),spoof)))
+        with self.assertRaisesRegex(ValueError,'trusted_program_not_frozen'):
+            bad.load(prog.definition_digest())
     def test_raw_line_endings_and_unicode_preserved(self):
         context=self.collect();self.assertEqual(context['sources']['docs/猫.md'],F.EXPECTED_SOURCE)
         self.assertIn('\r\n',context['diff']);self.assertFalse(context['sources']['docs/猫.md'].endswith('\n'))

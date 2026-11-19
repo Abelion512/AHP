@@ -19,18 +19,6 @@ from proof_evidence import ProducerPolicy,ProofVerifier,REPO,MAX_BYTES,SHA,HASH
 
 _PERMITTED_BUILTINS=('len','str','ValueError','sorted','all','any','tuple','list','dict','set','range','enumerate','zip','int','bool','isinstance','Exception','min','max','sum')
 
-def _frozen_builtins(namespace):
-    """True only for the exact restricted builtins map freeze_function installs.
-
-    A dict-typed __builtins__ is not enough: a spoofed mapping could carry
-    arbitrary callables (__import__, exec) under the permitted names, or extra
-    names the approved definition never had. Require the exact key set and the
-    real builtin object for every key.
-    """
-    permitted=namespace.get('__builtins__') if type(namespace) is dict else None
-    return (type(permitted) is dict and set(permitted)==set(_PERMITTED_BUILTINS)
-        and all(permitted[key] is getattr(builtins,key) for key in _PERMITTED_BUILTINS))
-
 def _code_fingerprint(code):
     """Structural identity of a code object, ignoring file name and line numbers.
 
@@ -173,9 +161,12 @@ class FrozenProgram:
                 raise ValueError('trusted_program_missing')
             # Wiring must supply freeze_function output, not a raw module function
             # with unrestricted globals and builtins.
+            builtins_map=function.__globals__.get('__builtins__')
             if (getattr(function,'__module__',None)!='trusted_checks'
                     or function.__globals__.get('__name__')!='trusted_checks'
-                    or not _frozen_builtins(function.__globals__)):
+                    or not isinstance(builtins_map,dict)
+                    or set(builtins_map)!=set(_PERMITTED_BUILTINS)
+                    or any(builtins_map[key] is not getattr(builtins,key) for key in _PERMITTED_BUILTINS)):
                 raise ValueError('trusted_program_not_frozen')
             # Same name is not enough: the callable must be the exact code the
             # verified file defines, so miswired wiring cannot run an unrelated
