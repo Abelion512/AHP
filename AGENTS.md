@@ -21,7 +21,8 @@ Right now there is one active plugin, **Privacy Guard (nebula)**: session-local 
 - `docs/SESSION_HISTORY.md` — plugin session notes (mask/restore discussion, test status, open items).
 - `docs/title-reference.md` — internal naming tiers; cosmic/Latin names only, no external model labels.
 - `update-plugins.sh` — syncs every plugin listed in `hermes.json` into `~/.hermes/plugins/`. Does not migrate profiles.
-- `.github/workflows/ci.yml` — syntax, mandatory unit tests, dependency audit, per-plugin pinned-host E2E, gitleaks, and the shared plugin contract.
+- `.github/workflows/ci.yml` — syntax, mandatory unit tests, dependency audit, gitleaks, and the shared plugin contract.
+- `.github/workflows/e2e.yml` — per-plugin pinned-host E2E, grouped by `plugins/<id>/e2e/host.json`.
 - `.github/e2e_support/abelion_e2e_support/` — shared Hermes+E2E harness used by plugin E2E suites.
 - `.github/retired-source-recovery.md` — how to recover old Shield/tool-context/RSI source from a pinned commit.
 

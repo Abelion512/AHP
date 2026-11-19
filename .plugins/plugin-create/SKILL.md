@@ -56,8 +56,8 @@ Do not use for routine edits inside an existing plugin; use the plugin's own ski
    - If the plugin refuses legacy hosts, say so explicitly and do not silently degrade into a leaking mode.
 
 5. Wire the plugin into shared metadata in the same change:
-   - `hermes.json` → `plugins[]`
-   - `update-plugins.sh` → sync list
+   - `hermes.json` → `plugins[]` (the updater reads this list)
+   - `plugins/<id>/e2e/host.json` → pinned repository and full commit SHA when the plugin has E2E
    - Root `README.md` → active plugin table row
    - `.github/labeler.yml` → plugin label(s)
    - `.github/workflows/ci.yml` only if detection, labeler, or shared behavior changes

@@ -3,6 +3,7 @@
 A monorepo for standalone Hermes Agent plugins. Each plugin owns its implementation, documentation, unit tests, skills, and feature-specific end-to-end tests. Shared CI and the pinned-core E2E harness live under `.github/`.
 
 [![ci](https://github.com/Abelion512/AHP/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Abelion512/AHP/actions/workflows/ci.yml)
+[![e2e](https://github.com/Abelion512/AHP/actions/workflows/e2e.yml/badge.svg?branch=main)](https://github.com/Abelion512/AHP/actions/workflows/e2e.yml)
 [![CodeQL](https://github.com/Abelion512/AHP/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/Abelion512/AHP/actions/workflows/codeql.yml)
 [![Pylint](https://github.com/Abelion512/AHP/actions/workflows/pylint.yml/badge.svg?branch=main)](https://github.com/Abelion512/AHP/actions/workflows/pylint.yml)
 [![Pages](https://github.com/Abelion512/AHP/actions/workflows/pages.yml/badge.svg?branch=main)](https://github.com/Abelion512/AHP/actions/workflows/pages.yml)
@@ -36,7 +37,8 @@ Every workflow pins third-party actions to full commit SHAs and declares explici
 
 | Workflow | What it blocks |
 |---|---|
-| `ci.yml` | Plugin syntax and mandatory tests, dependency-floor audit, per-plugin pinned-host E2E, secret scan, and the shared plugin contract. |
+| `ci.yml` | Plugin syntax and mandatory tests, dependency-floor audit, secret scan, and the shared plugin contract. |
+| `e2e.yml` | Per-plugin real-host E2E against each plugin's pinned commit. |
 | `codeql.yml` | Semantic CodeQL analysis for Actions and Python on PRs, pushes and a weekly schedule. |
 | `dependency-review.yml` | A PR that introduces a dependency with a known vulnerability (moderate or higher). |
 | `pylint.yml` | Errors and warnings in Python files changed by the PR; legacy debt is not re-litigated. |
