@@ -31,7 +31,11 @@ For people who learn faster by seeing relationships, choose the representation
 from the question. Do not ask them to write a directive or name a component.
 
 - Interview or preference question: use `choice`, not an A/B/C wall of text.
-  One question at a time, optional note, explicit submit. Reuse answers already
+  One question at a time, optional note, explicit submit. When a question flow
+  is already running, including questions from an invoked interview skill,
+  render each question's selectable answers as a `choice` card; keep any
+  hypothesis, confidence or guesses as text around the card, one question per
+  card. Reuse answers already
   in the conversation instead of repeating the interview. Do not preselect the
   recommended answer or turn a selection into permission for an external action.
 - Explain a process or cause-and-effect chain: use `flow`. Put short stage names
