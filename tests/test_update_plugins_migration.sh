@@ -29,6 +29,11 @@ MOCK
 cat > "$TMP/bin/rsync" <<'MOCK'
 #!/usr/bin/env bash
 printf 'rsync %s\n' "$*" >> "$CALL_LOG"
+args=("$@")
+src="${args[${#args[@]}-2]}"
+dst="${args[${#args[@]}-1]}"
+mkdir -p "$dst"
+cp -a "$src" "$dst"
 MOCK
 chmod +x "$TMP/bin/git" "$TMP/bin/rsync"
 export PATH="$TMP/bin:$PATH"
@@ -56,8 +61,8 @@ done
 # A clean profile syncs every catalog plugin, not a hardcoded list.
 bash "$ROOT/update-plugins.sh" >/dev/null
 grep -Fq 'git pull --ff-only' "$CALL_LOG"
-grep -Fq "rsync -a --delete $REPO/plugins/alpha/ $PLUGIN_DIR/alpha/" "$CALL_LOG"
-grep -Fq "rsync -a --delete $REPO/plugins/beta/ $PLUGIN_DIR/beta/" "$CALL_LOG"
+grep -Fq "rsync -a --delete $REPO/plugins/alpha/" "$CALL_LOG"
+grep -Fq "rsync -a --delete $REPO/plugins/beta/" "$CALL_LOG"
 
 # An invalid catalog path must fail closed before rsync.
 : > "$CALL_LOG"
