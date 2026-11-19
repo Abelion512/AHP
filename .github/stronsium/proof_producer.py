@@ -161,9 +161,12 @@ class FrozenProgram:
                 raise ValueError('trusted_program_missing')
             # Wiring must supply freeze_function output, not a raw module function
             # with unrestricted globals and builtins.
+            builtins_map=function.__globals__.get('__builtins__')
             if (getattr(function,'__module__',None)!='trusted_checks'
                     or function.__globals__.get('__name__')!='trusted_checks'
-                    or not isinstance(function.__globals__.get('__builtins__'),dict)):
+                    or not isinstance(builtins_map,dict)
+                    or set(builtins_map)!=set(_PERMITTED_BUILTINS)
+                    or any(builtins_map[key] is not getattr(builtins,key) for key in _PERMITTED_BUILTINS)):
                 raise ValueError('trusted_program_not_frozen')
             # Same name is not enough: the callable must be the exact code the
             # verified file defines, so miswired wiring cannot run an unrelated
