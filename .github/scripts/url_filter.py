@@ -16,7 +16,12 @@ def strip_url_structure(text):
     """Remove scheme and host from URLs; keep userinfo, path, query and fragment."""
     def replace(match):
         rest = match.group(0).split("://", 1)[1]
-        authority, separator, tail = rest.partition("/")
+        # Split on the first path, query or fragment delimiter. A URL without a
+        # path still has a query/fragment that must stay in the scanned text.
+        parts = re.split(r"([/?#])", rest, maxsplit=1)
+        authority = parts[0]
+        separator = parts[1] if len(parts) > 1 else ""
+        tail = parts[2] if len(parts) > 2 else ""
         keep = ""
         if "@" in authority:
             # Keep everything before the final @; an earlier @ may be part of the secret.
@@ -25,9 +30,10 @@ def strip_url_structure(text):
             for marker in _BENIGN_PATH_MARKERS:
                 sentinel = marker + "/"
                 if sentinel in tail:
-                    tail = tail.split(sentinel, 1)[1]
+                    # Drop only the marker. Text before it may be a secret.
+                    tail = tail.replace(sentinel, "", 1)
                     break
-            keep += "/" + tail
+            keep += separator + tail
         return keep
 
     return _URL.sub(replace, text)
