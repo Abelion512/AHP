@@ -17,6 +17,7 @@
 import { jsx as renderJsx, jsxs as renderJsxs } from 'react/jsx-runtime'
 import { useEffect, useState, useId } from 'react'
 import { TRANSCRIPT_DIRECTIVE_AREA, host, haptic } from '@hermes/plugin-sdk'
+import { normalizeInterview, normalizeQuiz, InterviewView, QuizView } from './forms.mjs'
 
 // The SDK consumes plain JS, so pass keys separately just as compiled JSX does.
 function jsx(type, props, identity) {
@@ -39,6 +40,8 @@ export const catalog = Object.freeze({
   choice: { input: 'options', max: 6, min: 2, event: 'answer' },
   flow: { input: 'nodes', max: 6, min: 2, event: 'local' },
   chart: { input: 'labels', max: 6, min: 1, event: 'local' },
+  interview: { input: 'groups', max: 4, min: 1, event: 'answer' },
+  quiz: { input: 'questions', max: 5, min: 1, event: 'local' },
 })
 const KINDS = new Set(Object.keys(catalog))
 
@@ -46,7 +49,9 @@ const KINDS = new Set(Object.keys(catalog))
 // Legacy five-kind inputs retain their established caps and behavior.
 export function normalize(attrs) {
   const kind = text(attrs.kind, 20)
-  if (!['choice', 'flow', 'chart'].includes(kind)) return null
+  if (!['choice', 'flow', 'chart', 'interview', 'quiz'].includes(kind)) return null
+  if (kind === 'interview') return normalizeInterview(attrs)
+  if (kind === 'quiz') return normalizeQuiz(attrs)
   const spec = catalog[kind]
   const raw = attrs[spec.input]
   // Keep allocation bounded even if a future caller bypasses the host parser.
@@ -136,7 +141,7 @@ function renderChoice(p) {
   const { model, owner, title, button, line, muted, choiceName, selection, setSelection, note, setNote, setError } = p
   const children = []
     children.push(jsxs('fieldset', {
-      key: 'choices', style: { border: 0, margin: '10px 0', padding: 0, minWidth: 0 },
+      className: 'aero-choice', key: 'choices', style: { border: 0, margin: '10px 0', padding: 0, minWidth: 0 },
       children: [
         jsx('legend', { style: muted, children: model.multiple ? 'Pilih satu atau lebih' : 'Pilih satu' }),
         ...model.options.map((label, index) => jsxs('label', {
@@ -464,8 +469,10 @@ function Card({ attrs, streaming, sessionId, storage }) {
   if (kind === 'choice') children.push(...renderChoice(learningProps))
   else if (kind === 'flow') children.push(...renderFlow(learningProps))
   else if (kind === 'chart') children.push(...renderChart(learningProps))
+  else if (kind === 'interview') children.push(jsx(InterviewView, { key: 'interview', model, title, owner, send, setError }))
+  else if (kind === 'quiz') children.push(jsx(QuizView, { key: 'quiz', model, title }))
 
-  if (!owner && (kind === 'wizard' || kind === 'form' || kind === 'choice')) children.push(jsx('div', { key: 'owner', role: 'status', children: 'Chat pemilik kartu tidak tersedia. Pengiriman dinonaktifkan.' }))
+  if (!owner && (kind === 'wizard' || kind === 'form' || kind === 'choice' || kind === 'interview')) children.push(jsx('div', { key: 'owner', role: 'status', children: 'Chat pemilik kartu tidak tersedia. Pengiriman dinonaktifkan.' }))
   if (error) children.push(jsx('div', { key: 'err', role: 'alert', style: { ...muted, marginTop: 8 }, children: error }))
 
   return jsx('div', { style: shell, children })
