@@ -23,6 +23,18 @@ class UrlFilterTest(unittest.TestCase):
         line = f"+ https://example.com/cb?sig={secret}"
         self.assertIn(secret, strip_url_structure(line))
 
+    def test_slashless_url_keeps_query_and_fragment(self):
+        for body in (f"?sig={'b' * 40}", f"#frag={'g' * 40}"):
+            with self.subTest(body=body):
+                line = f"+ https://example.com{body}"
+                self.assertIn(body[1:], strip_url_structure(line))
+
+    def test_secret_before_benign_repo_marker_is_kept(self):
+        secret = "s" * 40
+        line = f"+ https://example.com/{secret}/AHP/blob/main/x"
+        self.assertIn(secret, strip_url_structure(line))
+        self.assertNotIn("AHP/", strip_url_structure(line))
+
     def test_secret_in_userinfo_is_kept(self):
         secret = "c" * 40
         line = f"+ https://user@user:{secret}@example.com/x"
