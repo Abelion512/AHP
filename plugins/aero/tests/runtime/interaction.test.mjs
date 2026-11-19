@@ -189,7 +189,7 @@ test('published catalog, contract and model examples agree', () => {
   assert.deepEqual(Object.keys(catalog).sort(), Object.keys(contract.kinds).sort())
   for (const kind of Object.keys(catalog)) assert.ok(skill.includes('| ' + kind + ' |'))
   assert.equal(Object.isFrozen(catalog), true)
-  for (const kind of ['choice', 'flow', 'chart']) {
+  for (const kind of ['choice', 'flow', 'chart', 'interview', 'quiz']) {
     const line = skill.split('\n').find(s => s.startsWith('::ui{') && s.includes('kind="' + kind + '"'))
     assert.ok(line, kind)
     const attrs = Object.fromEntries([...line.matchAll(/(\w+)="([^"]*)"/g)].map(m => [m[1], m[2]]))
@@ -212,4 +212,61 @@ test('fractional and zero charts have truthful bar scales and local state resets
   await flow.update({ attrs: { version: '1', id: 'other', kind: 'flow', nodes: 'C|D', details: 'Third|Fourth' } })
   assert.equal(flow.node.querySelector('[aria-pressed=true]').textContent, '1. C')
   await flow.close()
+})
+
+const interviewAttrs = { kind: 'interview', title: 'Review', groups: 'Scope|Trigger', g1_options: 'Verify::Status only|Merge::After approval', g2_options: 'Webhook::On change|Manual', submit: 'Save decision' }
+async function pickRadio(node, group, index) {
+  const input = node.querySelectorAll(`input[name$="-${group}"]`)[index]
+  assert.ok(input, `missing radio ${group}/${index}`)
+  await act(async () => input.dispatchEvent(new window.MouseEvent('click', { bubbles: true })))
+}
+test('interview needs every group, then sends one owner-routed answer', async () => {
+  sdk.calls.length = 0
+  const card = await mounted(interviewAttrs)
+  const save = () => [...card.node.querySelectorAll('button')].find(b => b.textContent === 'Save decision')
+  assert.equal(save().disabled, true)
+  await pickRadio(card.node, 0, 1)
+  assert.equal(save().disabled, true)
+  await pickRadio(card.node, 1, 0)
+  assert.equal(save().disabled, false)
+  await click(card.node, 'Save decision')
+  assert.deepEqual(sdk.calls, [['owner-chat', 'Jawaban: Review - Scope: Merge; Trigger: Webhook']])
+  await card.close()
+  const orphan = await mounted(interviewAttrs, { props: { sessionId: '' } })
+  assert.equal([...orphan.node.querySelectorAll('button')].find(b => b.textContent === 'Save decision').disabled, true)
+  await orphan.close()
+})
+test('interview and quiz reject malformed or oversized data without rendering it', async () => {
+  for (const attrs of [
+    { ...interviewAttrs, groups: 'A|B|C|D|E' },
+    { ...interviewAttrs, g1_options: 'Only one' },
+    { ...interviewAttrs, g2_options: 'Same|Same' },
+    { ...interviewAttrs, g1_options: 'X::' + 'y'.repeat(181) + '|Other' },
+    { kind: 'quiz', questions: 'Q', q1_options: 'A|B', q1_answer: 'C' },
+    { kind: 'quiz', questions: 'Q', q1_options: 'A|B' },
+    { kind: 'quiz', questions: 'Q', q1_options: 'A|A', q1_answer: 'A' },
+    { kind: 'quiz', questions: 'Q1|Q2|Q3|Q4|Q5|Q6', q1_options: 'A|B', q1_answer: 'A' },
+  ]) assert.ok(normalize(attrs).error, JSON.stringify(attrs).slice(0, 60))
+  const card = await mounted({ ...interviewAttrs, g1_options: '<img src=x onerror=alert(1)>::<b>x</b>|Other' })
+  assert.equal(card.node.querySelector('img,b'), null)
+  assert.ok(card.node.textContent.includes('<img src=x'))
+  await card.close()
+})
+test('quiz marks correct and wrong, gates Next, scores locally and never messages the chat', async () => {
+  sdk.calls.length = 0
+  const card = await mounted({ kind: 'quiz', title: 'Quiz', questions: 'First?|Second?', q1_options: 'A1|B1|C1', q1_answer: 'B', q1_explain: 'Because B.', q2_options: 'A2|B2', q2_answer: 'A' })
+  const next = () => [...card.node.querySelectorAll('.aero-quiz-next')][0]
+  assert.equal(next().disabled, true)
+  assert.ok(card.node.textContent.includes('Soal 1 dari 2'))
+  await click(card.node, 'AA1')
+  const states = [...card.node.querySelectorAll('.aero-quiz-opt')].map(b => b.dataset.state)
+  assert.deepEqual(states, ['wrong', 'correct', 'idle'])
+  assert.ok(card.node.textContent.includes('Because B.'))
+  assert.equal(next().disabled, false)
+  await act(async () => next().dispatchEvent(new window.MouseEvent('click', { bubbles: true })))
+  await click(card.node, 'AA2')
+  await act(async () => next().dispatchEvent(new window.MouseEvent('click', { bubbles: true })))
+  assert.ok(card.node.textContent.includes('Skor 1 dari 2'))
+  assert.deepEqual(sdk.calls, [])
+  await card.close()
 })
