@@ -23,12 +23,14 @@ async function mounted(attrs, options = {}) {
   const stored = options.stored || new Map()
   let render
   const storage = { get: key => stored.get(key), set: (key,value) => stored.set(key,value) }
-  plugin.register({ storage, register: c => { assert.equal(c.area, sdk.TRANSCRIPT_DIRECTIVE_AREA); if(c.data.name==='ui') render = c.data.render } })
+  const renders = {}
+  plugin.register({ storage, register: c => { assert.equal(c.area, sdk.TRANSCRIPT_DIRECTIVE_AREA); renders[c.data.name] = c.data.render } })
+  render = renders[options.directive || 'ui']
   const node = document.createElement('div'); document.body.append(node)
   const root = createRoot(node)
-  const props = { attrs: { version: '1', id: 'card', ...attrs }, streaming: false, sessionId: 'owner-chat', ...options.props }
+  const props = { attrs: options.directive ? attrs : { version: '1', id: 'card', ...attrs }, streaming: false, sessionId: 'owner-chat', ...options.props }
   await act(async () => root.render(render(props)))
-  return { node, stored, async update(next) { Object.assign(props,next); await act(async () => root.render(render(props))) }, async close() { await act(async () => root.unmount()); node.remove() } }
+  return { node, stored, renders, async update(next) { Object.assign(props,next); await act(async () => root.render(render(props))) }, async close() { await act(async () => root.unmount()); node.remove() } }
 }
 async function click(node, label) {
   const button = [...node.querySelectorAll('button')].find(b => b.textContent === label)
@@ -269,4 +271,39 @@ test('quiz marks correct and wrong, gates Next, scores locally and never message
   assert.ok(card.node.textContent.includes('Skor 1 dari 2'))
   assert.deepEqual(sdk.calls, [])
   await card.close()
+})
+
+test('visual card separates image viewer, product detail and labeled source button', async () => {
+  const { product, attrsOf } = await import('./photo-fixtures.mjs')
+  if (!window.HTMLDialogElement.prototype.showModal) {
+    window.HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', '') }
+    window.HTMLDialogElement.prototype.close = function () { this.removeAttribute('open') }
+  }
+  const card = await mounted(attrsOf(product), { directive: 'visualcard' })
+  const img = card.node.querySelector('button.vc-image')
+  const title = card.node.querySelector('button.vc-title')
+  assert.equal(img.getAttribute('aria-label'), 'Perbesar gambar ' + product.title)
+  assert.equal(title.getAttribute('aria-label'), 'Detail ' + product.title)
+  const link = card.node.querySelector('a.vc-source.vc-button')
+  assert.equal(link.textContent, 'Lihat produk')
+  assert.equal(link.getAttribute('href'), product.source)
+  assert.equal(link.getAttribute('rel'), 'noopener noreferrer')
+  assert.equal(link.getAttribute('target'), '_blank')
+  const viewer = card.node.querySelector('dialog.vc-viewer')
+  const detail = card.node.querySelector('dialog.vc-detail')
+  assert.ok(viewer && detail)
+  // Image click opens only the viewer; title click opens only the detail; body text click opens detail.
+  await act(async () => img.dispatchEvent(new window.MouseEvent('click', { bubbles: true })))
+  assert.ok(viewer.hasAttribute('open')); assert.ok(!detail.hasAttribute('open'))
+  await act(async () => viewer.close())
+  await act(async () => title.dispatchEvent(new window.MouseEvent('click', { bubbles: true })))
+  assert.ok(detail.hasAttribute('open')); assert.ok(!viewer.hasAttribute('open'))
+  await act(async () => detail.close())
+  await act(async () => card.node.querySelector('.vc-summary').dispatchEvent(new window.MouseEvent('click', { bubbles: true })))
+  assert.ok(detail.hasAttribute('open')); assert.ok(!viewer.hasAttribute('open'))
+  await act(async () => detail.close())
+  await card.close()
+  const place = await mounted(attrsOf({ ...product, kind: 'place' }), { directive: 'visualcard' })
+  assert.equal(place.node.querySelector('a.vc-source.vc-button').textContent, 'Buka sumber')
+  await place.close()
 })

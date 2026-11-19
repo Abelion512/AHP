@@ -1,5 +1,5 @@
 export const referenceCss = `
-.hermes-visual-grid{display:flex;gap:8px;max-width:100%;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;align-items:flex-start;margin:16px 0;padding-bottom:8px;scrollbar-width:thin}
+.hermes-visual-grid{display:flex;gap:8px;max-width:100%;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;align-items:flex-start;margin:16px 18px 16px 0;padding-bottom:8px;scrollbar-width:thin}
 .hermes-visual-card{font:inherit;color:inherit;min-width:0;width:100%;max-width:480px;background:transparent}
 .hermes-visual-grid .hermes-visual-card{flex:0 0 min(300px,78%);scroll-snap-align:start}
 .hermes-visual-card *{box-sizing:border-box}
@@ -10,7 +10,12 @@ export const referenceCss = `
 .hermes-visual-card .vc-facts{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:13px;line-height:1.5}
 .hermes-visual-card .vc-summary,.hermes-visual-card .vc-caveat{font-size:12px;line-height:1.5;overflow-wrap:anywhere;margin:8px 0}
 .hermes-visual-card .vc-caveat{opacity:.7}
-.hermes-visual-card .vc-source{font-size:12px;color:inherit;text-decoration:underline;overflow-wrap:anywhere}
+.hermes-visual-card .vc-source{font-size:13px;color:inherit;overflow-wrap:anywhere}
+.hermes-visual-card .vc-button{display:inline-flex;align-items:center;min-height:40px;padding:8px 16px;border:1px solid color-mix(in srgb,currentColor 25%,transparent);border-radius:9999px;text-decoration:none;font-weight:500;cursor:pointer;margin:4px 0}
+.hermes-visual-card .vc-title{all:unset;display:inline;cursor:pointer;overflow-wrap:anywhere}
+.hermes-visual-card dialog.vc-detail{position:fixed;inset:0;box-sizing:border-box;margin:auto;border:1px solid color-mix(in srgb,currentColor 12%,transparent);border-radius:20px;padding:0;width:min(420px,92vw);max-height:80dvh;color:CanvasText;background:Canvas;overflow:hidden}
+.hermes-visual-card .vc-detail-body{padding:52px 20px 20px;overflow:auto;max-height:80dvh}
+.hermes-visual-card .vc-detail-body h3{font-size:18px;line-height:1.4;font-weight:600;margin:0 0 8px}
 .hermes-visual-card .vc-failed{font-size:12px;line-height:1.5;padding:12px;text-align:center}
 .hermes-visual-card button:focus-visible,.hermes-visual-card a:focus-visible,.hermes-visual-card select:focus-visible{outline:3px solid #087bff;outline-offset:3px}
 .hermes-visual-card dialog.vc-viewer{position:fixed;inset:0;box-sizing:border-box;margin:auto;border:0;border-radius:0;padding:0;width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;color:CanvasText;background:color-mix(in srgb,Canvas 90%,transparent);overflow:hidden}

@@ -61,7 +61,7 @@ export function normalizeQuiz(attrs) {
 }
 
 export const formsCss = `
-.aero-int{border:1px solid color-mix(in srgb,currentColor 12%,transparent);border-radius:12px;padding:12px;margin:10px 0}
+.aero-int{border:1px solid color-mix(in srgb,currentColor 12%,transparent);border-radius:12px;padding:12px;margin:10px 18px 10px 0}
 .aero-int fieldset{border:0;margin:0;padding:0;min-width:0}
 .aero-int fieldset+fieldset{border-top:1px solid color-mix(in srgb,currentColor 12%,transparent);margin-top:12px;padding-top:12px}
 .aero-int legend{font-size:15px;font-weight:600;padding:0;margin:0 0 6px}
@@ -72,8 +72,10 @@ export const formsCss = `
 .aero-int button{width:100%;min-height:44px;border:0;border-radius:9999px;background:#111;color:#fff;font:inherit;font-size:14px;font-weight:500;cursor:pointer;margin-top:12px}
 .aero-int button:disabled{opacity:.4;cursor:default}
 @container (max-width:520px){.aero-int label{grid-template-columns:20px minmax(0,1fr)}.aero-int label>span+span{grid-column:2}}
-.aero-quiz{border:1px solid color-mix(in srgb,currentColor 12%,transparent);border-radius:14px;padding:12px;margin:10px 0}
+.aero-quiz{border:1px solid color-mix(in srgb,currentColor 12%,transparent);border-radius:14px;padding:12px;margin:10px 18px 10px 0}
 .aero-quiz-head{display:flex;justify-content:space-between;gap:8px;font-size:12px;opacity:.75;margin-bottom:6px}
+.aero-quiz-track{height:3px;border-radius:99px;background:color-mix(in srgb,currentColor 12%,transparent);margin:2px 0 8px;overflow:hidden}
+.aero-quiz-fill{display:block;height:100%;border-radius:99px;background:currentColor;transition:width .25s}
 .aero-quiz-q{font-size:15px;font-weight:600;margin:4px 0 10px}
 .aero-quiz-opt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font:inherit;color:inherit;background:transparent;border:1px solid transparent;border-radius:12px;padding:8px;min-height:44px;cursor:pointer}
 .aero-quiz-opt:hover:not(:disabled){background:color-mix(in srgb,currentColor 6%,transparent)}
@@ -85,7 +87,7 @@ export const formsCss = `
 .aero-quiz-opt[data-state=wrong] .aero-quiz-badge{background:#dc2626;color:#fff;border-color:#dc2626}
 .aero-quiz-tag{margin-left:auto;font-size:12px;font-weight:600}
 .aero-quiz-note{margin:10px 0 0;padding:10px;border-radius:10px;background:color-mix(in srgb,currentColor 6%,transparent);font-size:13px;line-height:1.5}
-.aero-quiz-next{margin-top:12px;min-height:40px;padding:8px 16px;border-radius:9999px;border:1px solid color-mix(in srgb,currentColor 25%,transparent);background:transparent;color:inherit;font:inherit;font-size:13px;cursor:pointer}
+.aero-quiz-next{display:block;margin:12px 0 0 auto;min-height:40px;padding:8px 16px;border-radius:9999px;border:1px solid color-mix(in srgb,currentColor 25%,transparent);background:transparent;color:inherit;font:inherit;font-size:13px;cursor:pointer}
 .aero-quiz-next:disabled{opacity:.4;cursor:default}
 `
 
@@ -102,7 +104,7 @@ export function InterviewView({ model, title, owner, send, setError }) {
       h('legend', null, g.label),
       ...g.options.map((o, oi) => h('label', { key: oi },
         h('input', { type: 'radio', name: `aero-int-${gi}`, checked: picked[gi] === oi, onChange: () => setPicked(p => ({ ...p, [gi]: oi })) }),
-        h('span', null, o.title),
+        h('span', null, (/^[A-Z][.)]/.test(o.title) ? '' : `${'ABCDEF'[oi]}. `) + o.title),
         o.desc ? h('span', null, o.desc) : null)))),
     h('button', { type: 'button', disabled: !owner || !ready, onClick: submit }, model.submit))
 }
@@ -124,8 +126,11 @@ export function QuizView({ model, title }) {
   const q = model.questions[index]
   const chosen = picks[index]
   const answered = Number.isInteger(chosen)
+  const score = picks.reduce((n, p, i) => n + (p === model.questions[i].answer ? 1 : 0), 0)
+  const progress = Math.round(((index + (answered ? 1 : 0)) / total) * 100)
   return h('div', { className: 'aero-quiz', role: 'group', 'aria-label': title }, style,
-    h('div', { className: 'aero-quiz-head' }, h('span', null, `Soal ${index + 1} dari ${total}`), h('span', null, title)),
+    h('div', { className: 'aero-quiz-head' }, h('span', null, `Soal ${index + 1} dari ${total} · Skor: ${score}`), h('span', null, title)),
+    h('div', { className: 'aero-quiz-track', 'aria-hidden': 'true' }, h('span', { className: 'aero-quiz-fill', style: { width: `${progress}%` } })),
     h('div', { className: 'aero-quiz-q' }, q.q),
     ...q.options.map((o, oi) => {
       const state = !answered ? 'idle' : oi === q.answer ? 'correct' : oi === chosen ? 'wrong' : 'idle'
