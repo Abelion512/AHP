@@ -245,10 +245,10 @@ function renderChart(p) {
 
 function renderTable(p) {
   const { model, line } = p
-  const head = { padding: '9px 8px 9px 0', borderBottom: '1px solid var(--ui-stroke-secondary, var(--border))', textAlign: 'left', fontWeight: 600 }
-  return [jsx('div', { key: 'table-wrap', style: { overflowX: 'auto', marginTop: 8 }, children: jsxs('table', { style: { width: '100%', borderCollapse: 'collapse' }, children: [
+  const head = { padding: '9px 8px 9px 0', borderBottom: '1px solid var(--ui-stroke-secondary, var(--border))', textAlign: 'left', fontWeight: 600, whiteSpace: 'nowrap' }
+  return [jsx('div', { key: 'table-wrap', style: { overflowX: 'auto', marginTop: 8 }, children: jsxs('table', { style: { minWidth: '100%', borderCollapse: 'collapse' }, children: [
     jsx('thead', { children: jsxs('tr', { children: model.columns.map((col, i) => jsx('th', { key: i, scope: 'col', style: head, children: col })) }) }),
-    jsx('tbody', { children: model.rows.map((row, ri) => jsxs('tr', { key: ri, children: row.map((cell, ci) => jsx('td', { key: ci, style: { ...line, textAlign: 'left', paddingRight: 8 }, children: cell })) })) }),
+    jsx('tbody', { children: model.rows.map((row, ri) => jsxs('tr', { key: ri, children: row.map((cell, ci) => jsx('td', { key: ci, style: { ...line, textAlign: 'left', paddingRight: 8, whiteSpace: 'nowrap' }, children: cell })) })) }),
   ] }) })]
 }
 
