@@ -8,7 +8,7 @@ Keep this list aligned with `hermes.json`. Each row states the stable id, the so
 
 | Plugin name | Id | Source | Responsibility |
 |---|---|---|---|
-| Nebula | `nebula` | `plugins/nebula/` | Privacy Guard; session-local PII/credential masking |
+| Nebula | `nebula` | `plugins/nebula/` | Privacy Guard: session-bound request/tool masking and held output redaction |
 
 ## Stellarium — full celestial reference
 
@@ -30,15 +30,16 @@ Stellarium is a **naming pool**, not a plugin and not limited to the Milky Way. 
 - **Vega** — reference point/calibration; baselines and measurement
 - **Polaris** — fixed direction; routing, navigation, stable anchors
 - **Nova** — sudden burst; short-lived triggers, acceleration
+- **Stella** — star (Latin); small collector, microservice
 
 ### Constellations — groups and structure
 - **Orion** — recognizable group, multi-part toolset
 - **Lyra** — compact, geometric, encoding-like work
 - **Cygnus** — crossing paths, bridging, transport
-- **Andromeda** — large neighbouring structure; expansion or federation
+- **Andromeda** — large neighboring structure; expansion or federation
 
 ### Deep sky — diffuse, large, slow
-- **Nebula** — cloud of material; collectors, masking, transformation
+- **Nebula** — cloud of material; collectors, masking, transformation (already registered — see Registered plugins)
 - **Galaxy** — large organized system; orchestration
 - **Cosmos** — the whole scope; top-level core
 
@@ -63,12 +64,14 @@ Match name to characteristic (speed, function, capacity, memory, scope). Adapt t
 
 Before opening the PR, confirm:
 
-- [ ] Name is one core word from Stellarium, Elements, or Light & Time. No `-abelion`, no tier suffix, no external model name.
+- [ ] Name is one core word from Stellarium, Elements, or Light & Time. No `-abelion`, no external model-tier suffix, no external model name.
 - [ ] The family is named in "What changed" of the PR body.
 - [ ] The id equals the folder name and `plugin.yaml` `name`, and matches the `hermes.json` entry.
 - [ ] `docs/title-reference.md` registered-plugins table has a new row.
 - [ ] The PR body uses `.github/PULL_REQUEST_TEMPLATE.md` unchanged, with all eight sections filled; "How it works" has one real image and "Verification" has command + result labels.
 - [ ] The PR title is Conventional Commits, same form as the main commit.
+
+The `pr-body-check` gate only checks that the eight sections have substantive text. The image in "How it works" and command + result labels in "Verification" are authoring requirements a reviewer checks, not CI-enforced checks.
 
 ## Visible name vs id
 

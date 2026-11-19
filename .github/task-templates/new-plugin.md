@@ -7,7 +7,7 @@ Use this when adding a plugin folder that will live under `plugins/<id>/` and be
 Pick the plugin name from `docs/title-reference.md` (Stellarium is the full celestial pool, not only the Milky Way; Elements and Light & Time remain valid). Name the chosen family in the PR body. Do not invent a name outside those families.
 
 - Folder: `plugins/<stable-id>/`
-- Hermes plugin `name` in `plugin.yaml`: the installed plugin name
+- Hermes plugin `name` in `plugin.yaml`: exactly the lowercase stable id, identical to the folder name (`_check_manifest` rejects a mismatch). The title-cased reference word is the visible name, not this `name`.
 - Monorepo public ID used by `hermes.json`, `update-plugins.sh`, README, labeler: pick one stable token and reuse it everywhere
 
 Do not rename a plugin's public identity later just because the internal folder layout changed.
@@ -42,7 +42,7 @@ A plugin folder without the doc trio plus at least one test layer is incomplete,
 Keep it honest and minimal. If the plugin has no Python deps, do not add an empty deps list just to look complete.
 
 ```yaml
-name: <installed plugin name>
+name: <stable-id>
 description: "<one line.>"
 version: <sem-like release label>
 author: Abelion
@@ -111,7 +111,7 @@ Do not claim an E2E proves something it only skips.
 
 ## 9. PR body follows the repository template
 
-Open the PR with `.github/PULL_REQUEST_TEMPLATE.md` unchanged: all eight sections, one real image in "How it works", and command + result labels in "Verification". The `pr-body-check` workflow rejects a body that leaves required sections blank. Fill the checklist; do not delete sections.
+Open the PR with `.github/PULL_REQUEST_TEMPLATE.md` unchanged: all eight sections, one real image in "How it works", and command + result labels in "Verification". The `pr-body-check` workflow only rejects a body whose required sections are blank; the image and command + result labels are authoring requirements a reviewer checks, not CI-enforced gates. Fill the checklist; do not delete required sections (only `Before / after` may be removed when nothing observable changed).
 
 ## 10. Default limits to state early
 
