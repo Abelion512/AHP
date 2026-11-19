@@ -14,19 +14,25 @@ permissions:
   contents: read
 
 # Cancel a superseded pull_request run when a new commit is pushed to the same PR.
+# The run attempt is part of the group so a rerun of an older run cannot cancel
+# the current-head run: new pushes share attempt 1 and still supersede each other,
+# while a rerun lands in its own group.
 # Push, schedule and manual runs get a unique group and are never cancelled.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}-${{ github.run_attempt }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # Finds every plugin folder (any dir with a plugin.yaml). Runs only the plugins
   # touched by the change. A change outside any plugin folder (shared files such as
   # workflows, hermes.json, root tests), a schedule or a manual run checks all of them.
+  # `relevant` is 0 only for a docs/Markdown/image-only change, so the credential
+  # guard and secret scan still run on those PRs while the heavy jobs skip.
   detect:
     runs-on: ubuntu-latest
     outputs:
       plugins: ${{ steps.find.outputs.plugins }}
+      relevant: ${{ steps.find.outputs.relevant }}
     steps:
       # actions/checkout v7.0.1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -48,13 +54,23 @@ jobs:
           else
             base=""
           fi
+          # A docs, Markdown or image change cannot alter plugin behaviour, so it
+          # is excluded from selection instead of being treated as a shared change
+          # that selects every plugin. Nothing to diff (schedule, manual, unknown
+          # base) stays relevant so those runs keep doing their full job.
+          relevant=1
           if [ -z "$base" ]; then
             sel="$all"
           else
             sel=""
             shared=0
+            relevant=0
             while IFS= read -r f; do
               [ -z "$f" ] && continue
+              case "$f" in
+                *.md|*.mdx|docs/*|*.png|*.jpg|*.jpeg|*.gif|*.svg|*.webp) continue;;
+              esac
+              relevant=1
               hit=""
               for d in $all; do
                 case "$f" in "$d"/*) hit="$d"; break;; esac
@@ -64,7 +80,10 @@ jobs:
             [ "$shared" = 1 ] && sel="$all"
           fi
           json=$(printf '%s\n' "$sel" | sed '/^$/d' | sort -u | jq -R . | jq -sc .)
-          echo "plugins=$json" | tee -a "$GITHUB_OUTPUT"
+          {
+            echo "plugins=$json"
+            echo "relevant=$relevant"
+          } | tee -a "$GITHUB_OUTPUT"
 
   # Protect existing Hermes profiles from stale plugin copies after a source rename.
   plugin-migration-guard:
@@ -177,7 +196,7 @@ jobs:
 
   plugin:
     needs: detect
-    if: needs.detect.outputs.plugins != '[]'
+    if: needs.detect.outputs.relevant == '1' && needs.detect.outputs.plugins != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
