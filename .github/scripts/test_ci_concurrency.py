@@ -93,9 +93,9 @@ class TriggerContractTest(unittest.TestCase):
         self.assertIn('--target "$GITHUB_SHA"', text)
 
     def test_pages_concurrency_expression_is_valid(self):
-        text = PAGES.read_text(encoding="utf-8")
-        self.assertNotIn(" ? ", text)
-        self.assertIn("&& 'main' || github.run_id", text)
+        group = load(PAGES)["concurrency"]["group"]
+        self.assertNotIn(" ? ", group)
+        self.assertIn("&& 'main' || github.run_id", group)
 
 
 if __name__ == "__main__":
