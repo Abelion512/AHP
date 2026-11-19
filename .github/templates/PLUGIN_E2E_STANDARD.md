@@ -31,6 +31,21 @@ A plugin that is purely local and does not depend on host dispatch behavior may
 have a lighter E2E story. If there is no host-dependent surface, say so plainly
 and keep the claim limited.
 
+## Pinned host
+
+Every `e2e/` directory declares its host in `host.json`:
+
+```json
+{
+  "repository": "owner/hermes",
+  "ref": "full-40-character-commit-sha"
+}
+```
+
+CI groups suites by this file, checks out that exact repository and commit, and
+fails if the file is missing or malformed. A plugin does not edit the workflow
+to change hosts.
+
 ## Repo expectation
 
 If a plugin has host-dependent behavior, the repo should be able to run its E2E

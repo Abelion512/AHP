@@ -26,7 +26,7 @@ box(40, 160, 240, 100, "Push to PR", ["New commit on", "the PR branch"], "#6ea8f
 # Both checks start on synchronize. The ci push workflow is main-only.
 line(280, 210, 320, 210); line(320, 210, 360, 210); head(360, 210)
 line(320, 210, 320, 355); line(320, 355, 360, 355); head(360, 355)
-box(360, 160, 420, 100, "ci (pull_request run)", ["Plugin matrix, e2e, secret scan.", "E2E deps cached; docs skip."], "#7ee0a1")
+box(360, 160, 420, 100, "ci + e2e (PR runs)", ["Plugin matrix, e2e, secret scan.", "E2E deps cached; docs skip."], "#7ee0a1")
 box(360, 300, 420, 110, "PR title + body checks", ["Separate workflows; read title/body.", "Both run on a new commit."], "#7ee0a1")
 box(850, 160, 610, 150, "Older ci run cancelled", ["Per PR, pull_request runs only. A rerun of an", "older run gets its own group, so it cannot", "cancel the run for the current head commit."], "#ff8a8a")
 

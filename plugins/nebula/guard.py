@@ -4,6 +4,8 @@ Native prefix rules are consumed from Hermes at runtime (MIT). Field-name detect
 builds on this plugin's existing rules. A match is a risk signal, not format validation.
 """
 from __future__ import annotations
+# Shared credential helpers are internal to this plugin, not a public API.
+# pylint: disable=protected-access
 import json
 import math
 import re
@@ -22,7 +24,6 @@ PATH = re.compile(r'(?<![\w:/])(?:/(?!/)[A-Za-z0-9_.-]+/|~/|[A-Za-z]:\\)[^\s"\'<
 URL = re.compile(r'\b[a-z][a-z0-9+.-]{0,31}://[^\s<>"\']+',re.I)
 PEM = re.compile(r'-----BEGIN [A-Z0-9 ]*PRIVATE KEY(?: BLOCK)?-----[\s\S]*?(?:-----END [A-Z0-9 ]*PRIVATE KEY(?: BLOCK)?-----|\Z)')
 LABEL = re.compile(r'(?i)\b(?:username|user_name|email|phone|address|alamat|nik|ktp|npwp)\b')
-ASSIGN = re.compile(r'(?P<name>[A-Za-z][A-Za-z0-9_.%\-]{1,100})(?P<sep>["\']?\??[ \t]*(?:[:=]|%3[DdAa]|\t)[ \t]*)(?P<value>"(?:\\.|[^"\n])*"|\'(?:\\.|[^\'\n])*\'|[^\s"\',;&{}\[\]()]+)')
 STRUCTURE = frozenset({'role','type','id','name','model','tool_call_id','call_id','mime_type','media_type','tool_choice','finish_reason','continuationToken'})
 VALUE_KEYS = {'default','example','examples','const','value'}
 AUTH_KEYS = frozenset({'authorization', 'proxy-authorization'})
@@ -82,6 +83,8 @@ class Guard:
         self.sessions = {}
         self.lock = threading.RLock()
         self.limits = max_sessions,max_entries,max_bytes,ttl
+        # Set by request()/required_policy() before walk(); a safe zero until then.
+        self.remaining = 0
 
     def session(self, sid):
         if not isinstance(sid,str) or not sid:
