@@ -55,8 +55,8 @@ def add_catalog_entry(root: Path, pid: str, description: str) -> None:
             if isinstance(item, dict):
                 entries.append({key: item[key] for key in ("id", "path", "description") if key in item})
     entries.append({"id": pid, "path": "plugins/" + pid, "description": description})
-    trusted_file(root, "hermes.json").write_text(
-        json.dumps({"plugins": entries}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    with trusted_file(root, "hermes.json").open("w", encoding="utf-8") as handle:
+        handle.write(json.dumps({"plugins": entries}, indent=2, ensure_ascii=False) + "\n")
 
 
 def add_readme_row(root: Path, pid: str, description: str) -> None:
@@ -70,7 +70,8 @@ def add_readme_row(root: Path, pid: str, description: str) -> None:
             break
     else:
         raise ValueError("README.md has no active plugins table row")
-    trusted_file(root, "README.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    with trusted_file(root, "README.md").open("w", encoding="utf-8") as handle:
+        handle.write("\n".join(lines) + "\n")
 
 
 def write_skeleton(root: Path, pid: str, description: str, category: str) -> list[str]:
@@ -141,10 +142,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("name", help="one core word from docs/title-reference.md")
     parser.add_argument("--description", required=True, help="one-line responsibility sentence")
     parser.add_argument("--category", default="utility", help="plugin category")
-    parser.add_argument("--root", default=".", help="repository root")
     args = parser.parse_args(argv)
     try:
-        created = scaffold(Path(args.root), args.name, args.description, args.category)
+        created = scaffold(Path.cwd(), args.name, args.description, args.category)
     except (ValueError, OSError, json.JSONDecodeError) as exc:
         print("::error::" + str(exc))
         return 1
