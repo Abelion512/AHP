@@ -16,10 +16,14 @@ disable =
     broad-exception-caught
 
 [TYPECHECK]
-# The plugin imports the Hermes host (`agent.*`) and the tests import
-# `hermes_cli`; neither is installed in this job. Exempting only those modules
-# keeps import-error enabled, so typos in standard-library or first-party
-# imports are still caught.
+# The plugin imports the Hermes host (`agent.*`), tests import `hermes_cli`,
+# the diagram generators import Pillow plus their sibling `_font` helper, and
+# script tests import PyYAML; none is installed in this job. Exempting only
+# those modules keeps import-error enabled, so typos in standard-library or
+# first-party imports are still caught.
 ignored-modules =
     agent,
-    hermes_cli
+    hermes_cli,
+    PIL,
+    yaml,
+    _font
