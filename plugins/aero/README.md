@@ -1,6 +1,6 @@
 # Aero
 
-Eight native visual and interactive `ui` kinds plus bounded product/place photo cards in the Hermes Desktop/WebApp transcript. The
+Ten native visual and interactive `ui` kinds plus bounded product/place photo cards in the Hermes Desktop/WebApp transcript. The
 bundled Aero skill teaches the assistant to choose a card from ordinary requests;
 the user does not need to type directive syntax. No iframe. The original `ui` path needs no core patch; the photo verification harness used a separate focus-retry core delta, so unpatched-host focus compatibility is not claimed.
 
@@ -78,7 +78,7 @@ npm run test:browser
 
 The locked React suite covers state, negative controls and exact action payloads.
 The Chromium smoke uses the unmodified pinned host parser, real React DOM and
-Aero, with a fake SDK bridge. It exercises all eight kinds, form edits, owner
+Aero, with a fake SDK bridge. It exercises all ten kinds, form edits, owner
 routing, refusal, reload persistence, owner isolation, trace expansion and 390px
 overflow, and emits screenshots/report. See `docs/VERIFICATION.md` for scope and
 `e2e/README.md` for the optional live-host smoke, which creates a real session.
