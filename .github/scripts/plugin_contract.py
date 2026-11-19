@@ -57,7 +57,11 @@ def _check_docs(plugin_dir: Path, errors: list[str]) -> None:
     if not skills:
         errors.append(f"{plugin_dir / 'skills'}: at least one skills/*/SKILL.md is required")
     for path in skills:
-        raw = path.read_text(encoding="utf-8")
+        try:
+            raw = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            errors.append(f"{path}: unreadable skill file: {exc}")
+            continue
         match = SKILL_FRONTMATTER_RE.match(raw)
         if not match:
             errors.append(f"{path}: missing YAML frontmatter")

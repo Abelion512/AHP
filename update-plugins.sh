@@ -4,6 +4,18 @@ set -euo pipefail
 
 REPO="$HOME/.hermes/abelion-hermes-plugins"
 PLUGIN_DIR="$HOME/.hermes/plugins"
+LOCK_DIR="$HOME/.hermes/.update-plugins.lock.d"
+STAGE=""
+
+if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+  echo "Another update-plugins run is active; aborting." >&2
+  exit 1
+fi
+cleanup() {
+  if [ -n "$STAGE" ] && [ -d "$STAGE" ]; then rm -r -- "$STAGE"; fi
+  rmdir "$LOCK_DIR" 2>/dev/null || true
+}
+trap cleanup EXIT
 
 if [ ! -d "$REPO/.git" ]; then
   echo "Repo not found at $REPO" >&2
@@ -88,6 +100,8 @@ for entry in plugins:
         raise SystemExit(f"Invalid plugin path in {catalog_path}: {rel!r}")
     if parts[1] in seen:
         raise SystemExit(f"Duplicate plugin path in {catalog_path}: {rel!r}")
+    if entry.get("id") != parts[1]:
+        raise SystemExit(f"Catalog id {entry.get('id')!r} does not match plugin folder {parts[1]!r}")
     if not (catalog_path.parent / rel / "plugin.yaml").is_file():
         raise SystemExit(f"Catalog plugin has no plugin.yaml: {rel}")
     seen.add(parts[1])
@@ -103,12 +117,45 @@ if [ -z "$plugin_paths" ]; then
   exit 3
 fi
 
+rels=()
+ids=()
 while IFS= read -r rel; do
   [ -n "$rel" ] || continue
-  id="${rel##*/}"
-  rsync -a --delete "$REPO/$rel/" "$PLUGIN_DIR/$id/"
-  echo "  synced $id"
+  rels+=("$rel")
+  ids+=("${rel##*/}")
 done <<< "$plugin_paths"
+
+# rsync --delete through a symlinked destination removes files in the symlink
+# target that do not exist in the source. Refuse instead of touching them.
+if [ -L "$PLUGIN_DIR" ]; then
+  echo "Refusing to sync through symlinked plugin directory: $PLUGIN_DIR" >&2
+  exit 4
+fi
+for id in "${ids[@]}"; do
+  if [ -L "$PLUGIN_DIR/$id" ]; then
+    echo "Refusing to sync through symlinked plugin destination: $PLUGIN_DIR/$id" >&2
+    exit 4
+  fi
+done
+
+# Sync every plugin into staging first. A failed sync touches no installed
+# plugin, so the installed set cannot end up at mixed revisions.
+STAGE="$(mktemp -d "$PLUGIN_DIR/.sync.XXXXXX")"
+mkdir -p "$STAGE/backup"
+
+for rel in "${rels[@]}"; do
+  rsync -a --delete "$REPO/$rel/" "$STAGE/${rel##*/}/"
+done
+
+for id in "${ids[@]}"; do
+  if [ -e "$PLUGIN_DIR/$id" ]; then
+    mv "$PLUGIN_DIR/$id" "$STAGE/backup/$id"
+  fi
+done
+for id in "${ids[@]}"; do
+  mv "$STAGE/$id" "$PLUGIN_DIR/$id"
+  echo "  synced $id"
+done
 
 echo
 echo "Plugins updated. Restart the gateway and start a new session:"
