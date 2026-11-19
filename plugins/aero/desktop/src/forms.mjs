@@ -129,7 +129,7 @@ export function QuizView({ model, title }) {
   const score = picks.reduce((n, p, i) => n + (p === model.questions[i].answer ? 1 : 0), 0)
   const progress = Math.round(((index + (answered ? 1 : 0)) / total) * 100)
   return h('div', { className: 'aero-quiz', role: 'group', 'aria-label': title }, style,
-    h('div', { className: 'aero-quiz-head' }, h('span', null, `Soal ${index + 1} dari ${total} · Skor: ${score}`), h('span', null, title)),
+    h('div', { className: 'aero-quiz-head' }, h('span', null, `Soal ${index + 1} dari ${total} · Skor: ${score}`)),
     h('div', { className: 'aero-quiz-track', 'aria-hidden': 'true' }, h('span', { className: 'aero-quiz-fill', style: { width: `${progress}%` } })),
     h('div', { className: 'aero-quiz-q' }, q.q),
     ...q.options.map((o, oi) => {

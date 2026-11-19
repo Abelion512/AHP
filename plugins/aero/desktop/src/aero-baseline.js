@@ -43,6 +43,7 @@ export const catalog = Object.freeze({
   interview: { input: 'groups', max: 4, min: 1, event: 'answer' },
   quiz: { input: 'questions', max: 5, min: 1, event: 'local' },
   table: { input: 'columns', max: 5, min: 1, event: 'local' },
+  map: { input: 'places', max: 5, min: 1, event: 'local' },
 })
 const KINDS = new Set(Object.keys(catalog))
 
@@ -50,9 +51,10 @@ const KINDS = new Set(Object.keys(catalog))
 // Legacy five-kind inputs retain their established caps and behavior.
 export function normalize(attrs) {
   const kind = text(attrs.kind, 20)
-  if (!['choice', 'flow', 'chart', 'interview', 'quiz', 'table'].includes(kind)) return null
+  if (!['choice', 'flow', 'chart', 'interview', 'quiz', 'table', 'map'].includes(kind)) return null
   if (kind === 'interview') return normalizeInterview(attrs)
   if (kind === 'quiz') return normalizeQuiz(attrs)
+  if (kind === 'map') return normalizeMap(attrs)
   const spec = catalog[kind]
   const raw = attrs[spec.input]
   // Keep allocation bounded even if a future caller bypasses the host parser.
@@ -95,6 +97,20 @@ function normalizeTable(attrs, values) {
   const cells = rows.map(row => row.split(';').map(c => c.trim()))
   if (cells.some(r => r.length !== values.length || r.some(c => !c || c.length > 60))) return { error: 'Setiap baris tabel harus berpasangan dengan kolom.' }
   return { kind: 'table', columns: values, rows: cells }
+}
+
+function normalizeMap(attrs) {
+  if (typeof attrs.places !== 'string' || attrs.places.length > 2048) return { error: 'Data peta belum lengkap. Gunakan jawaban teks.' }
+  const parts = attrs.places.split('|').map(v => v.trim()).filter(v => v !== '')
+  if (!parts.length || parts.length > 5) return { error: 'Data peta tidak valid. Gunakan jawaban teks.' }
+  const places = parts.map(part => {
+    const f = part.split(';').map(x => x.trim())
+    return { name: f[0] || '', lat: Number(f[1]), lon: Number(f[2]), note: f[3] || '' }
+  })
+  const bad = places.some(pl => !pl.name || pl.name.length > 40 || pl.note.length > 60 ||
+    !Number.isFinite(pl.lat) || !Number.isFinite(pl.lon) || Math.abs(pl.lat) > 85 || Math.abs(pl.lon) > 180)
+  if (bad) return { error: 'Setiap tempat perlu nama;lintang;bujur yang valid.' }
+  return { kind: 'map', places }
 }
 
 function text(value, max) {
@@ -234,6 +250,43 @@ function renderTable(p) {
     jsx('thead', { children: jsxs('tr', { children: model.columns.map((col, i) => jsx('th', { key: i, scope: 'col', style: head, children: col })) }) }),
     jsx('tbody', { children: model.rows.map((row, ri) => jsxs('tr', { key: ri, children: row.map((cell, ci) => jsx('td', { key: ci, style: { ...line, textAlign: 'left', paddingRight: 8 }, children: cell })) })) }),
   ] }) })]
+}
+
+function renderMap(p) {
+  const { model, muted } = p
+  const n = model.places.length
+  const latC = model.places.reduce((sum, x) => sum + x.lat, 0) / n
+  const lonC = model.places.reduce((sum, x) => sum + x.lon, 0) / n
+  const latSpan = Math.max(...model.places.map(x => x.lat)) - Math.min(...model.places.map(x => x.lat))
+  const lonSpan = Math.max(...model.places.map(x => x.lon)) - Math.min(...model.places.map(x => x.lon))
+  const span = Math.max(latSpan, lonSpan)
+  const zoom = span > 5 ? 9 : span > 2 ? 10 : span > 1 ? 11 : span > 0.4 ? 12 : span > 0.15 ? 13 : 14
+  const scale = 2 ** zoom
+  const toX = lon => (lon + 180) / 360 * scale
+  const toY = lat => { const r = lat * Math.PI / 180; return (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * scale }
+  const cx = Math.floor(toX(lonC))
+  const cy = Math.floor(toY(latC))
+  const tiles = []
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    const tx = ((cx + dx) % scale + scale) % scale
+    const ty = Math.min(Math.max(cy + dy, 0), scale - 1)
+    tiles.push({ key: `${zoom}/${tx}/${ty}`, src: `https://tile.openstreetmap.org/${zoom}/${tx}/${ty}.png` })
+  }
+  const pins = model.places.map((pl, i) => ({
+    ...pl, i,
+    left: Math.min(Math.max((toX(pl.lon) - (cx - 1)) / 3 * 100, 2), 98),
+    top: Math.min(Math.max((toY(pl.lat) - (cy - 1)) / 3 * 100, 6), 94),
+  }))
+  return [jsxs('div', { key: 'map', style: { marginTop: 8 }, children: [
+    jsxs('div', { key: 'grid', style: { position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', overflow: 'hidden', borderRadius: 8, border: '1px solid var(--ui-stroke-secondary, var(--border))' }, children: [
+      ...tiles.map(t => jsx('img', { key: t.key, src: t.src, alt: '', loading: 'lazy', draggable: false, style: { width: '100%', display: 'block', userSelect: 'none' } })),
+      ...pins.map(pl => jsxs('div', { key: 'pin' + pl.i, style: { position: 'absolute', left: pl.left + '%', top: pl.top + '%', transform: 'translate(-50%, -100%)', textAlign: 'center', pointerEvents: 'none' }, children: [
+        jsx('div', { key: 'dot', style: { width: 10, height: 10, margin: '0 auto', borderRadius: '50%', background: '#000', border: '2px solid #fff' } }),
+        jsxs('div', { key: 'lbl', style: { ...muted, marginTop: 2, padding: '1px 4px', background: 'rgba(255,255,255,0.85)', borderRadius: 4, display: 'inline-block', color: '#000' }, children: pl.name }),
+      ] })),
+    ] }),
+    jsxs('div', { key: 'attr', style: { ...muted, marginTop: 4 }, children: ['Peta statis - bukan peta interaktif. © ', jsx('a', { key: 'osm', href: 'https://www.openstreetmap.org/copyright', target: '_blank', rel: 'noreferrer', children: 'OpenStreetMap contributors' })] }),
+  ] })]
 }
 
 function Card({ attrs, streaming, sessionId, storage }) {
@@ -490,6 +543,7 @@ function Card({ attrs, streaming, sessionId, storage }) {
   else if (kind === 'flow') children.push(...renderFlow(learningProps))
   else if (kind === 'chart') children.push(...renderChart(learningProps))
   else if (kind === 'table') children.push(...renderTable(learningProps))
+  else if (kind === 'map') children.push(...renderMap(learningProps))
   else if (kind === 'interview') children.push(jsx(InterviewView, { key: 'interview', model, title, owner, send, setError }))
   else if (kind === 'quiz') children.push(jsx(QuizView, { key: 'quiz', model, title }))
 

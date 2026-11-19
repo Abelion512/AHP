@@ -129,11 +129,19 @@ requested for this plugin. References were re-checked against live sessions on
 ### Support status per kind
 
 Supported `ui` kinds: wizard, status, compare, form, trace, choice, flow,
-chart, interview, quiz, table, plus the `visualcards` media directive. `table`
-renders a bounded headered data table (max 5 columns x 8 rows); `chart` still
-offers its own table alternative. There is no map, calendar, or
-generic-widget kind. Unsupported or malformed directives fall back to visible
-text, never to a broken frame.
+chart, interview, quiz, table, map, plus the `visualcards` media directive.
+`table` renders a bounded headered data table (max 5 columns x 8 rows);
+`chart` still offers its own table alternative. `map` takes 1-5 places as
+name;latitude;longitude with an optional note and renders a STATIC 3x3
+OpenStreetMap tile grid with labeled pins - the renderer builds the tile URLs
+itself (the model never supplies URLs), shows a visible
+"© OpenStreetMap contributors" attribution, and is labeled "Peta statis". It
+is not interactive-map parity with the GPT/Gemini references (no pan/zoom,
+no place side panel with photos, hours or Directions/Website/Call actions).
+There is no video-embed kind either: the GPT reference embeds a playable
+YouTube iframe, and this plugin does not embed third-party players. There is
+no calendar or generic-widget kind. Unsupported or malformed directives fall
+back to visible text, never to a broken frame.
 
 Fixture-rendered kinds are verified with the deterministic harness and host
 screenshots. Live-model generation of directives is tracked separately; the

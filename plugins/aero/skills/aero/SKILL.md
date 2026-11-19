@@ -51,6 +51,7 @@ from the question. Do not ask them to write a directive or name a component.
 | Practice questions with feedback | quiz | questions="Q1" q1_options="A\|B\|C" q1_answer="B" q1_explain="Why B" |
 | Numeric comparison | chart | labels="A\|B\|C" values="12\|8\|20" unit="units" source="Illustrative example" |
 | Tabular data | table | columns="Name\|Price\|Source" rows="Item A;10;shop-a.example\|Item B;20;shop-b.example" |
+| Places on a map | map | places="Monas;-6.1754;106.8272;Landmark\|Kota Tua;-6.1352;106.8133;Old town" (name;lat;lon;note, static OSM tiles)
 
 Examples, one per ordinary request:
 
@@ -64,13 +65,17 @@ Examples, one per ordinary request:
 
 ::ui{version="1" id="learn-chart-01" kind="chart" title="Illustrative quantities" labels="A|B|C" values="12|8|20" unit="units" source="Fictional teaching data"}
 ::ui{version="1" id="learn-table-01" kind="table" title="Illustrative items" columns="Name|Price|Source" rows="Item A;10;shop-a.example|Item B;20;shop-b.example"}
+::ui{version="1" id="learn-map-01" kind="map" title="Illustrative places" places="Monas;-6.1754;106.8272;National monument|Kota Tua;-6.1352;106.8133;Historic district"}
 
 New kinds use 1-6 rows (choice/flow require at least 2). Labels are 1-60
 characters. Flow requires exactly one 1-180 character detail per node. Chart
 requires exactly one nonnegative decimal per label, at most 9 integer and 4
 fraction digits. No exponents, percentages in values, expressions or formulas.
 Use unit for the unit. Choice multiple is exactly true or false; duplicate
-options are invalid. Notes stay local until submit and are not persisted.
+options are invalid. Map takes 1-5 places, each name;latitude;longitude with
+an optional short note; the renderer builds the OpenStreetMap tile URLs, so
+never put URLs in places. The map is a static tile image with labeled pins,
+not an interactive map - say so when that distinction matters. Notes stay local until submit and are not persisted.
 
 Use one dominant visual plus one short takeaway, not every kind at once. If a
 visual cannot express the answer honestly, use concise text instead. Local

@@ -188,6 +188,32 @@ test('table kind renders a headered data table locally with bounded data', async
   }
 })
 
+test('map kind renders renderer-built static OSM tiles with labeled pins', async () => {
+  sdk.calls.length = 0
+  const card = await mounted({ kind: 'map', title: 'Tempat', places: 'Monas;-6.1754;106.8272;Ikon|Kota Tua;-6.1352;106.8133' })
+  const imgs = [...card.node.querySelectorAll('img')]
+  assert.equal(imgs.length, 9)
+  assert.ok(imgs.every(i => i.src.startsWith('https://tile.openstreetmap.org/')), imgs.map(i => i.src).join(','))
+  assert.ok(card.node.textContent.includes('Monas'))
+  assert.ok(card.node.textContent.includes('Kota Tua'))
+  assert.ok(card.node.textContent.includes('OpenStreetMap contributors'))
+  assert.ok(card.node.textContent.includes('Peta statis'))
+  assert.equal(sdk.calls.length, 0)
+  await card.close()
+  for (const attrs of [
+    { kind: 'map', places: 'Monas;-6.17' },
+    { kind: 'map', places: 'Monas;999;106.82' },
+    { kind: 'map', places: 'Monas;abc;106.82' },
+    { kind: 'map', places: Array(6).fill('X;-6.1;106.8').join('|') },
+    { kind: 'map', places: '' },
+  ]) {
+    const bad = await mounted(attrs)
+    assert.ok(bad.node.querySelector('[role=status]'), JSON.stringify(attrs))
+    assert.equal(bad.node.querySelector('img'), null)
+    await bad.close()
+  }
+})
+
 test('data-rich cards reject malformed types, pairings and nonfinite/negative numbers', async () => {
   for (const attrs of [
     { kind: 'choice', options: 'Only' }, { kind: 'choice', options: 'Same|Same' },
@@ -211,7 +237,7 @@ test('published catalog, contract and model examples agree', () => {
   assert.deepEqual(Object.keys(catalog).sort(), Object.keys(contract.kinds).sort())
   for (const kind of Object.keys(catalog)) assert.ok(skill.includes('| ' + kind + ' |'))
   assert.equal(Object.isFrozen(catalog), true)
-  for (const kind of ['choice', 'flow', 'chart', 'interview', 'quiz', 'table']) {
+  for (const kind of ['choice', 'flow', 'chart', 'interview', 'quiz', 'table', 'map']) {
     const line = skill.split('\n').find(s => s.startsWith('::ui{') && s.includes('kind="' + kind + '"'))
     assert.ok(line, kind)
     const attrs = Object.fromEntries([...line.matchAll(/(\w+)="([^"]*)"/g)].map(m => [m[1], m[2]]))

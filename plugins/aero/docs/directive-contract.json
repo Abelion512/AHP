@@ -128,6 +128,13 @@
         "rows"
       ],
       "description": "Headered data table; columns pipe-separated, rows pipe-separated with cells semicolon-separated."
+    },
+    "map": {
+      "attrs": [
+        "title",
+        "places"
+      ],
+      "description": "Static OpenStreetMap tile grid (renderer-built 3x3 tiles) with labeled pins; places are name;lat;lon;note rows. Static only, never claims interactive-map parity."
     }
   },
   "limits": {
@@ -152,7 +159,10 @@
     "quiz_explain_chars": 180,
     "table_columns": 5,
     "table_rows": 8,
-    "table_cell_chars": 60
+    "table_cell_chars": 60,
+    "map_places": 5,
+    "map_place_name_chars": 40,
+    "map_note_chars": 60
   },
   "values_are_untrusted": true,
   "secrets_allowed": false,
