@@ -129,10 +129,11 @@ requested for this plugin. References were re-checked against live sessions on
 ### Support status per kind
 
 Supported `ui` kinds: wizard, status, compare, form, trace, choice, flow,
-chart, interview, quiz, plus the `visualcards` media directive. There is no
-map, table, calendar, or generic-widget kind; `chart` offers a table
-alternative. Unsupported or malformed directives fall back to visible text,
-never to a broken frame.
+chart, interview, quiz, table, plus the `visualcards` media directive. `table`
+renders a bounded headered data table (max 5 columns x 8 rows); `chart` still
+offers its own table alternative. There is no map, calendar, or
+generic-widget kind. Unsupported or malformed directives fall back to visible
+text, never to a broken frame.
 
 Fixture-rendered kinds are verified with the deterministic harness and host
 screenshots. Live-model generation of directives is tracked separately; the
