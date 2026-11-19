@@ -31,6 +31,8 @@ try{
   await trigger.click();await page.evaluate(()=>window.photoSwitch());await modal.waitFor({state:'hidden'})
   assert.equal(await page.locator('dialog[open]').count(),0)
   await page.getByRole('region').click({position:{x:2,y:2}})
+  // Card body clicks open the detail dialog now; close it before reusing the image opener.
+  if(await page.locator('dialog.vc-detail[open]').count()) await page.keyboard.press('Escape')
   await trigger.click();await page.evaluate(raw=>window.photoRender(raw,'owner-B'),raw);await page.waitForFunction(()=>!document.querySelector('dialog[open]'))
  }
  await page.evaluate(raw=>window.photoRender(raw,'owner-A',true),raw);await page.getByRole('status').first().waitFor();assert.equal(await page.getByRole('article').count(),0)
