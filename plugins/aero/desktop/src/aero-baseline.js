@@ -279,7 +279,7 @@ function renderMap(p) {
   }))
   return [jsxs('div', { key: 'map', style: { marginTop: 8 }, children: [
     jsxs('div', { key: 'grid', style: { position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', overflow: 'hidden', borderRadius: 8, border: '1px solid var(--ui-stroke-secondary, var(--border))' }, children: [
-      ...tiles.map(t => jsx('img', { key: t.key, src: t.src, alt: '', loading: 'lazy', draggable: false, style: { width: '100%', display: 'block', userSelect: 'none' } })),
+      ...tiles.map(t => jsx('img', { key: t.key, src: t.src, alt: '', loading: 'lazy', draggable: false, style: { width: '100%', height: 'auto', aspectRatio: '1 / 1', margin: 0, display: 'block', userSelect: 'none' } })),
       ...pins.map(pl => jsxs('div', { key: 'pin' + pl.i, style: { position: 'absolute', left: pl.left + '%', top: pl.top + '%', transform: 'translate(-50%, -100%)', textAlign: 'center', pointerEvents: 'none' }, children: [
         jsx('div', { key: 'dot', style: { width: 10, height: 10, margin: '0 auto', borderRadius: '50%', background: '#000', border: '2px solid #fff' } }),
         jsxs('div', { key: 'lbl', style: { ...muted, marginTop: 2, padding: '1px 4px', background: 'rgba(255,255,255,0.85)', borderRadius: 4, display: 'inline-block', color: '#000' }, children: pl.name }),
