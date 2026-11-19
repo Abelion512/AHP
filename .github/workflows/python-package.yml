@@ -1,0 +1,49 @@
+# Python syntax/lint gate plus the repository script test suite.
+# See https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: Python package
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.14"]
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        # packaging and PyYAML are imported by the .github/scripts tests; pin
+        # them explicitly instead of relying on pytest's transitive packaging.
+        python -m pip install --only-binary ':all:' flake8==7.3.0 pytest==9.1.1 pyyaml==6.0.3 packaging==26.3
+    - name: Lint with flake8
+      run: |
+        # Scope to repo source; .github/stronsium holds fixture files with
+        # intentionally odd code that is covered by its own test workflow.
+        # Stop the build on syntax errors or undefined names.
+        flake8 plugins .github/scripts --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 plugins .github/scripts --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Test with pytest
+      env:
+        PYTHONPATH: ${{ github.workspace }}/.github/scripts
+      run: |
+        pytest .github/scripts

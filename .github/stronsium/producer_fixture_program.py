@@ -25,3 +25,6 @@ def check_fails(context,assertions):
 
 def check_no_assertions(context,assertions):
     return True
+
+def check_large(context,assertions):
+    for i in range(1100):assertions.require(True,'x'*1000)

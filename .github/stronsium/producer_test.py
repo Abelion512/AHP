@@ -4,7 +4,7 @@ from dataclasses import replace
 from unittest import mock
 from proof_context import normalize_context,canonical_bytes,context_digest
 from proof_evidence import ProducerPolicy,ProofVerifier,receipt_matches,REPO
-from proof_producer import FrozenProgram,ProofProducer,collect_and_produce,Assertions
+from proof_producer import FrozenProgram,ProofProducer,collect_and_produce,Assertions,freeze_function
 from proof_test import CLOSURE,serve
 from producer_context import collect_context
 import producer_fixture_program as F
@@ -17,7 +17,8 @@ BINARY_SOURCE=b'\x89PNG\r\n\x1a\n\xff\xfe'
 def program(fn=F.check_source):
     name='producer_fixture_program.py'
     digest=hashlib.sha256((ROOT/name).read_bytes()).hexdigest()
-    return FrozenProgram(ROOT,((name,digest),),(name,'classify_fixture'),(('synthetic-source',name,fn.__name__),))
+    return FrozenProgram(ROOT,((name,digest),),(name,'classify_fixture'),(('synthetic-source',name,fn.__name__),),
+        (((name,'classify_fixture'),freeze_function(F.classify_fixture)),((name,fn.__name__),freeze_function(fn))))
 
 def policy(p):
     return ProducerPolicy(7,'.github/workflows/proof.yml',CLOSURE,p.definition_digest(),('synthetic-source',),(777,),'proof-fixed')
@@ -118,14 +119,9 @@ class ProducerTest(unittest.TestCase):
         # A context over MAX_CONTEXT is out of bounds too: no proof, not a failure.
         with self.assertRaisesRegex(S.ScopeNotApplicable,'p4_sem_context_out_of_bounds'):self.collect(gh)
     def test_proof_log_limit_no_archive(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            file=pathlib.Path(tmp)/'producer_fixture_program.py'
-            extra='\ndef large_check(context,assertions):\n for i in range(1100):assertions.require(True,"x"*1000)\n'
-            file.write_bytes((ROOT/file.name).read_bytes()+extra.encode())
-            digest=hashlib.sha256(file.read_bytes()).hexdigest()
-            prog=FrozenProgram(pathlib.Path(tmp),((file.name,digest),),(file.name,'classify_fixture'),(('synthetic-source',file.name,'large_check'),))
-            with self.assertRaisesRegex(ValueError,'produced_proof_limit'):
-                ProofProducer(policy(prog),prog).produce(self.collect(),run_id=10,attempt=1,head_sha=WORKFLOW,closure_sha256=CLOSURE)
+        prog=program(F.check_large)
+        with self.assertRaisesRegex(ValueError,'produced_proof_limit'):
+            ProofProducer(policy(prog),prog).produce(self.collect(),run_id=10,attempt=1,head_sha=WORKFLOW,closure_sha256=CLOSURE)
     def test_loaded_globals_spoof_has_no_effect(self):
         prog=program();p=policy(prog);ctx=self.collect()
         original=F.EXPECTED_SOURCE
@@ -147,24 +143,49 @@ class ProducerTest(unittest.TestCase):
             with self.subTest(extra=extra),tempfile.TemporaryDirectory() as tmp:
                 file=pathlib.Path(tmp)/'producer_fixture_program.py';file.write_bytes((ROOT/file.name).read_bytes()+extra.encode())
                 prog=replace(program(),root=pathlib.Path(tmp),files=((file.name,hashlib.sha256(file.read_bytes()).hexdigest()),))
-                with self.assertRaisesRegex(ValueError,reason):prog.load()
-        for name,extra in [('missing',''),('check_source','\ndef check_source(c,a):pass\n')]:
+                with self.assertRaisesRegex(ValueError,reason):prog.load('0'*64)
+        # Split by failure path: a missing definition and a duplicate of the
+        # fixture's existing `check_source` both fail source selection; a new
+        # uniquely named definition passes selection but changes the digest.
+        cases=[('missing','','selected_check_missing'),
+            ('check_source','\ndef check_source(c,a):pass\n','selected_check_missing'),
+            ('added_check','\ndef added_check(c,a):pass\n','test_definition_changed')]
+        for name,extra,reason in cases:
             with self.subTest(name=name),tempfile.TemporaryDirectory() as tmp:
                 file=pathlib.Path(tmp)/'producer_fixture_program.py';file.write_bytes((ROOT/file.name).read_bytes()+extra.encode())
                 prog=replace(program(),root=pathlib.Path(tmp),files=((file.name,hashlib.sha256(file.read_bytes()).hexdigest()),),checks=(('synthetic-source',file.name,name),))
-                with self.assertRaisesRegex(ValueError,'selected_check_missing'):prog.load()
+                with self.assertRaisesRegex(ValueError,reason):prog.load('0'*64)
     def test_exact_definition_symlink_guard(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=pathlib.Path(tmp);(root/'real').mkdir();(root/'alias').symlink_to(root/'real',target_is_directory=True)
             file=root/'real/program.py';file.write_bytes((ROOT/'producer_fixture_program.py').read_bytes())
             name='alias/program.py';prog=FrozenProgram(root,((name,hashlib.sha256(file.read_bytes()).hexdigest()),),(name,'classify_fixture'),(('synthetic-source',name,'check_source'),))
-            with self.assertRaisesRegex(ValueError,'definition_symlink'):prog.load()
+            with self.assertRaisesRegex(ValueError,'definition_symlink'):prog.load('0'*64)
     def test_import_or_eager_module_code_rejected(self):
-        for extra in ('import os\n','SIDE_EFFECT = len("x")\n','@decorator\ndef altered(c,a):pass\n'):
+        # Each case must fail at source validation, before the digest check, so
+        # assert the specific reason instead of any ValueError.
+        cases=(('import os\n','definition_imports_not_supported'),
+            ('SIDE_EFFECT = len("x")\n','definition_top_level_code'),
+            ('@decorator\ndef altered(c,a):pass\n','definition_function_format'))
+        for extra,reason in cases:
             with self.subTest(extra=extra),tempfile.TemporaryDirectory() as tmp:
                 file=pathlib.Path(tmp)/'producer_fixture_program.py';file.write_bytes((ROOT/file.name).read_bytes()+extra.encode())
                 prog=replace(program(),root=pathlib.Path(tmp),files=((file.name,hashlib.sha256(file.read_bytes()).hexdigest()),))
-                with self.assertRaises(ValueError):prog.load()
+                with self.assertRaisesRegex(ValueError,reason):prog.load('0'*64)
+    def test_callable_with_matching_name_but_other_code_rejected(self):
+        def check_source(context,assertions):
+            return True
+        prog=program()
+        bad=replace(prog,functions=((( 'producer_fixture_program.py','classify_fixture'),freeze_function(F.classify_fixture)),
+            (('producer_fixture_program.py','check_source'),freeze_function(check_source))))
+        with self.assertRaisesRegex(ValueError,'trusted_program_mismatch'):
+            bad.load(prog.definition_digest())
+    def test_unfrozen_callable_rejected(self):
+        prog=program()
+        bad=replace(prog,functions=((( 'producer_fixture_program.py','classify_fixture'),F.classify_fixture),
+            (('producer_fixture_program.py','check_source'),freeze_function(F.check_source))))
+        with self.assertRaisesRegex(ValueError,'trusted_program_not_frozen'):
+            bad.load(prog.definition_digest())
     def test_raw_line_endings_and_unicode_preserved(self):
         context=self.collect();self.assertEqual(context['sources']['docs/猫.md'],F.EXPECTED_SOURCE)
         self.assertIn('\r\n',context['diff']);self.assertFalse(context['sources']['docs/猫.md'].endswith('\n'))
