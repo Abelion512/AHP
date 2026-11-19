@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "directive": "ui",
+  "placement": "alone-on-its-own-line",
+  "plugin_id": "aero",
+  "common_attrs": [
+    "version",
+    "id"
+  ],
+  "validation": {
+    "version": "1",
+    "allowlist": true,
+    "reject_unknown_kind": true,
+    "caps": "title 80, rows 8, prompt 240",
+    "unknown_attrs": "ignored, never executed"
+  },
+  "state": {
+    "owner": "plugin",
+    "key": "JSON.stringify([aero, version, owning sessionId, explicit card id])",
+    "persisted": [
+      "wizard.done"
+    ],
+    "not_persisted": [
+      "form.values",
+      "choice.selection",
+      "choice.note",
+      "flow.stage",
+      "chart.focus",
+      "chart.table",
+      "interview.picked",
+      "quiz.picks",
+      "quiz.index"
+    ]
+  },
+  "events": {
+    "bridge": "host.composer.submit(owning sessionId, text)",
+    "fail_closed": true,
+    "missing_owner": "refuse send, never fall back to focused chat"
+  },
+  "kinds": {
+    "wizard": {
+      "attrs": [
+        "title",
+        "steps"
+      ],
+      "description": "Numbered steps with progress and Bantu/Sudah controls."
+    },
+    "status": {
+      "attrs": [
+        "title",
+        "items"
+      ],
+      "description": "One row per label:state pair, dot coloured by state."
+    },
+    "trace": {
+      "attrs": [
+        "title",
+        "steps"
+      ],
+      "description": "Collapsible observed-work/evidence summary, never private reasoning."
+    },
+    "compare": {
+      "attrs": [
+        "title",
+        "left",
+        "right",
+        "pick"
+      ],
+      "description": "Two aligned columns; pick highlights left or right."
+    },
+    "form": {
+      "attrs": [
+        "title",
+        "fields",
+        "submit"
+      ],
+      "description": "Labelled text inputs; submit sends values through the composer."
+    },
+    "choice": {
+      "attrs": [
+        "title",
+        "options",
+        "multiple"
+      ],
+      "description": "Single or multiple choice interview; optional note, explicit owning-chat submit."
+    },
+    "flow": {
+      "attrs": [
+        "title",
+        "nodes",
+        "details"
+      ],
+      "description": "Ordered visual process; click a stage to reveal its explanation locally."
+    },
+    "chart": {
+      "attrs": [
+        "title",
+        "labels",
+        "values",
+        "unit",
+        "source"
+      ],
+      "description": "Nonnegative numeric bars, visible values, focus and equivalent data table."
+    },
+    "interview": {
+      "attrs": [
+        "title",
+        "groups",
+        "g1_options..g4_options",
+        "submit"
+      ],
+      "description": "One bordered card with 1-4 radio groups; option 'title::explanation'; submit sends one owning-chat answer after every group is answered."
+    },
+    "quiz": {
+      "attrs": [
+        "title",
+        "questions",
+        "q1_options..q5_options",
+        "q1_answer..q5_answer",
+        "q1_explain..q5_explain"
+      ],
+      "description": "1-5 single-answer questions; local state only: letter options, correct/incorrect after pick, optional explanation, Next, final score. Answer key is model-supplied teaching data, not a secret."
+    },
+    "table": {
+      "attrs": [
+        "title",
+        "columns",
+        "rows"
+      ],
+      "description": "Headered data table; columns pipe-separated, rows pipe-separated with cells semicolon-separated."
+    },
+    "map": {
+      "attrs": [
+        "title",
+        "places"
+      ],
+      "description": "Static OpenStreetMap tile grid (renderer-built 3x3 tiles) with labeled pins; places are name;lat;lon;note rows. Static only, never claims interactive-map parity."
+    }
+  },
+  "limits": {
+    "title_chars": 80,
+    "row_chars": 60,
+    "rows": 8,
+    "prompt_chars": 240,
+    "field_value_chars": 160,
+    "prompt_overflow": "refuse with visible error, never truncate",
+    "learning_rows": 6,
+    "flow_detail_chars": 180,
+    "choice_note_chars": 80,
+    "numeric_max": 999999999.9999,
+    "interview_groups": 4,
+    "interview_options": 6,
+    "interview_option_title_chars": 60,
+    "interview_option_desc_chars": 180,
+    "quiz_questions": 5,
+    "quiz_options": 4,
+    "quiz_question_chars": 160,
+    "quiz_option_chars": 80,
+    "quiz_explain_chars": 180,
+    "table_columns": 5,
+    "table_rows": 8,
+    "table_cell_chars": 60,
+    "map_places": 5,
+    "map_place_name_chars": 40,
+    "map_note_chars": 60
+  },
+  "values_are_untrusted": true,
+  "secrets_allowed": false,
+  "network_allowed": false,
+  "fallback": "Concise text; preview only when a separate verified HTML artifact is needed."
+}

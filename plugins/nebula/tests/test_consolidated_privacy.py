@@ -11,12 +11,13 @@ REPO_ROOT=Path(__file__).resolve().parents[3]
 PLUGINS_ROOT=REPO_ROOT/'plugins'
 
 
-def test_exactly_one_active_plugin_manifest_and_catalog_entry():
+def test_one_privacy_owner_with_aero_as_separate_ui_plugin():
     manifests=list(PLUGINS_ROOT.rglob('plugin.yaml'))
-    assert len(manifests)==1
+    assert {p.parent.name for p in manifests}=={'nebula','aero'}
     catalog=json.loads((REPO_ROOT/'hermes.json').read_text())['plugins']
-    assert len(catalog)==1
-    assert {p['id'] for p in catalog}=={'nebula'}
+    assert len(catalog)==2
+    assert {p['id'] for p in catalog}=={'nebula','aero'}
+    assert len([p for p in catalog if p['id']=='nebula'])==1
     assert 'output-redact-abelion' not in {p['id'] for p in catalog}
     assert 'nebula' in {p['id'] for p in catalog}
     assert not (PLUGINS_ROOT/'output_redact_abelion').exists()

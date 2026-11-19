@@ -120,6 +120,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
+      - name: credential scanner regressions
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+        run: python -m unittest discover -s .github/tests -p test_credential_public_values.py -v
       - name: fail on obvious credential shapes in PR diff
         env:
           PR_BASE: ${{ github.event.pull_request.base.sha }}
@@ -139,10 +143,40 @@ jobs:
           # Guard scans its own PR diff; constants are split so these lines never self-match.
           pin = "9a85916c" + "87d56c2ca00b02" + "fad8918f93ef1816e9"
           canary = "ghp" + "_Ab1Cd2Ef3Gh4Ij5Kl6Mn7Op8Qr9St0Uv1Wx2"
+          # Reviewed public media/provenance values only. Do not skip the line:
+          # scan every remaining byte so an appended secret is still rejected.
+          public_values = {
+              "plugins/aero/docs/PHOTO-VERIFICATION.md": (
+                  "b63d27fd97b883c8acd35fc44acb1c27d57300c9297a127efbd55e88753aba0f",
+                  "55c243b9d9e7d4ec7557a2754952ebe6f3c55be3526b94c1bf9ef72680cc1f9b",
+                  "0cfd12ee5425c82030dfb72abbcbb715251b0e25005fae622ba0388606cfb108",
+              ),
+              "plugins/aero/tests/runtime/photo-fixtures.mjs": (
+                  "https://assets.raspberrypi.com/static/c671804c05a51efc4e3c2a1bdcbafbcf/e58b5/raspberry-pi-5.png",
+              ),
+              "plugins/aero/tests/runtime/evidence/photo-response.md": (
+                  "https://assets.raspberrypi.com/static/c671804c05a51efc4e3c2a1bdcbafbcf/e58b5/raspberry-pi-5.png",
+              ),
+          }
+          # The scanner owns these exact declarations too; they are not an
+          # arbitrary allowlist file that a PR can populate without review.
+          public_values[".github/workflows/ci.yml"] = tuple({v for values in public_values.values() for v in values})
+          current_path = None
+          header_allowed = False
           suspicious = []
           for line in diff.splitlines():
+              if line.startswith("diff --git "):
+                  current_path = None
+                  header_allowed = True
+                  continue
+              if header_allowed and line.startswith("+++ "):
+                  current_path = line[len("+++ b/"):] if line.startswith("+++ b/") else None
+                  header_allowed = False
+                  continue
+              if line.startswith("@@"):
+                  header_allowed = False
               # Only added lines are leak candidates; removals and diff headers false-positive.
-              if not line.startswith("+") or line.startswith("+++"): continue
+              if not line.startswith("+"): continue
               if pin in line or canary in line: continue
               if re.match(r"^\+[0-9a-f]{40}:", line): continue
               if "uses:" in line and re.search(r"@[0-9a-f]{40}", line): continue
@@ -150,6 +184,9 @@ jobs:
               # line is exactly echo "<64-hex>  <file>" | sha256sum -c (a secret appended
               # anywhere breaks the fullmatch and is still caught below).
               if re.fullmatch(r"\+\s*echo\s+\"[0-9a-f]{64}  [^\"\s]+\"\s*\|\s*sha256sum\s+-c\s*-?\s*", line): continue
+              for value in public_values.get(current_path, ()):
+                  # Exact token, not a prefix inside a larger credential/URL.
+                  line = re.sub(r"(?<![^\s\"'`])" + re.escape(value) + r"(?![^\s\"'`])", "PUBLIC_VALUE", line)
               low = line.lower()
               # A URL's scheme and host hold long benign runs. Keep path, query,
               # fragment and userinfo in `scanned`, so a secret there is still
@@ -169,7 +206,7 @@ jobs:
                   suspicious.append(("slack_token_shape", line[:120]))
               if re.search(r'hf_[A-Za-z0-9_\-]{20,}', low):
                   suspicious.append(("huggingface_token_shape", line[:120]))
-              if re.search(r'akia[0-9A-Z]{16}', low):
+              if re.search(r'akia[0-9a-z]{16}', low):
                   suspicious.append(("aws_key_shape", line[:120]))
           if suspicious:
               print("::error::possible credential leak in PR diff")

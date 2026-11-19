@@ -15,6 +15,7 @@ Documentation site: <https://abelion512.github.io/AHP/>
 | Plugin | Runtime ID | Source | Responsibility |
 |---|---|---|---|
 | Privacy Guard | `nebula` | [`plugins/nebula/`](plugins/nebula/) | Session-local PII/credential masking, permitted placeholder restoration, and held output redaction. |
+| Aero | `aero` | [`plugins/aero/`](plugins/aero/) | Native interactive transcript cards. |
 
 Each plugin folder contains its own `README.md`, `docs/`, `tests/`, `e2e/`, and `skills/` as applicable. The repository root retains only shared metadata and entry points such as `hermes.json`, `update-plugins.sh`, this README, and GitHub configuration.
 
