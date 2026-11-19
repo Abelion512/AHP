@@ -2,6 +2,8 @@
 
 Use this when adding a plugin folder that will live under `plugins/<id>/` and be shipped by this monorepo. Adapt the names; do not leave obvious placeholders like `<plugin>` in the final commit.
 
+Start with `python .github/scripts/scaffold_plugin.py <Name> --description "..."` from the repo root. It creates the folder skeleton, adds the `hermes.json` entry and the README row, and refuses names not listed in `docs/title-reference.md`. Fill every generated placeholder before opening the PR; the script does not make a plugin complete.
+
 ## 1. Decide the stable identifier first
 
 - Folder: `plugins/<stable-id>/`
