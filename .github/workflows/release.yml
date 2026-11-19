@@ -73,8 +73,11 @@ jobs:
             echo "release $GITHUB_REF_NAME already exists; nothing to do"
             exit 0
           fi
+          # Pin the release to the commit that passed the checks above. Resolving the
+          # tag name again would let a concurrent tag move publish an unverified commit.
           if ! gh release create "$GITHUB_REF_NAME" \
             --verify-tag \
+            --target "$GITHUB_SHA" \
             --generate-notes \
             --title "Abelion Hermes Plugins $GITHUB_REF_NAME"; then
             # A concurrent run may have created it between the view and create.
