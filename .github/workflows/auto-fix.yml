@@ -37,7 +37,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
-          python-version: "3.14"
+          python-version: "3.11"
       - name: Validate PR and freeze its head
         env:
           GH_TOKEN: ${{ github.token }}
@@ -107,6 +107,10 @@ jobs:
           push() { git -c core.hooksPath=/dev/null push -q "$remote" "HEAD:$HEAD_REF"; }
           # Agent output may have installed hooks. Never run them with a token.
           if [[ "$(git rev-parse HEAD)" != "$HEAD_SHA" ]]; then
+            git -c core.hooksPath=/dev/null add -A
+            if ! git -c core.hooksPath=/dev/null diff --cached --quiet; then
+              git -c core.hooksPath=/dev/null commit -q -m 'fix(auto): apply remaining review findings'
+            fi
             push; exit 0
           fi
           git -c core.hooksPath=/dev/null add -A
