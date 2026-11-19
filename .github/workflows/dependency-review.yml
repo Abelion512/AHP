@@ -1,0 +1,40 @@
+# Dependency Review Action
+#
+# Scans dependency manifests changed by a pull request and fails the check when
+# the PR introduces a dependency with a known vulnerability.
+#
+# Source repository: https://github.com/actions/dependency-review-action
+# Public documentation: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-dependency-review#dependency-review-enforcement
+name: 'Dependency review'
+on:
+  pull_request:
+    branches: [ "main" ]
+
+# Read-only token. `pull-requests: read` is required to list the pull request's
+# changed files; no PR comment is posted, so this also works for fork PRs, where
+# GitHub downgrades the token to read-only regardless of this block.
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout repository'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: 'Dependency Review'
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
+        with:
+          # Explicit policy instead of relying on the action default.
+          fail-on-severity: moderate
+          # The default is to post a PR summary comment, which needs
+          # `pull-requests: write` and breaks fork PRs. Keep this check
+          # comment-free; the job result is the report.
+          comment-summary-in-pr: never
+          # No license policy is configured on purpose: plugin dependencies are
+          # not license-audited by this repository.
+          # deny-licenses: GPL-1.0-or-later, LGPL-2.0-or-later
+          # retry-on-snapshot-warnings: true
