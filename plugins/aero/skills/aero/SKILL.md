@@ -111,6 +111,10 @@ The same Aero renderer additionally claims `visualcard` and `visualcards`. These
 
 A `visualcard` requires `kind` (`product` or `place`), title (90chars), summary (180), fact1 (100), caveat (180), source/image HTTPS URLs (600each), and alt (120). Optional fact2-fact4 have the same100char limit. Optional price (80) and pricenote (120) must appear together. State uncertainty in the card, not only nearby prose. Label family illustrations and reused photos; neither proves a particular variant. External image requests occur when the card renders; do not use private, credentialed or tracking-bearing URLs. HTTPS validation is not a claim that every remote source is trustworthy.
 
+One `visualcard` on its own line, note the directive name is `visualcard` itself (not a `ui` kind) and it takes no `version` or `id`:
+
+::visualcard{kind="product" title="Example Trail Backpack" summary="Fictional daypack for teaching the card format." fact1="22L, 900g (fictional)" caveat="Teaching example, not a real product." source="https://example.com/trail-backpack" image="https://example.com/trail-backpack.png" alt="Illustration of a fictional backpack" price="$0" pricenote="Fictional price for teaching"}
+
 Use `visualcards` for1-5peer cards by prefixing every attribute a_, b_, c_, d_, e_. Total directive attributes must remain within2000characters. Values are plain text, never code. Keep each directive on its own line, without braces/newlines inside values. Photo click opens only the image/source viewer; titles remain text. The row scrolls horizontally on small screens. No purchase, reservation, map API, video generation, download or arbitrary HTML is supplied by these directives.
 
 The photo path has manual-fixture tests, not fresh live-model selection proof. It does not authorize a model/provider switch or paid call. Native maps remain blocked until net-zero billing with no PAYG is proven and approved. Never substitute another map provider silently.
