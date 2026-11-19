@@ -144,7 +144,7 @@ def _check_catalog(root: Path, plugin_ids: set[str], errors: list[str]) -> None:
         if pid not in plugin_ids:
             errors.append(f"{path}: catalog path has no plugin folder: {rel!r}")
         catalog_id = entry.get("id")
-        if catalog_id is not None and catalog_id != pid:
+        if catalog_id != pid:
             errors.append(f"{path}: catalog id {catalog_id!r} does not match path {rel!r}")
     for pid in sorted(plugin_ids - seen):
         errors.append(f"{path}: plugin {pid!r} has no catalog entry")

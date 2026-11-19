@@ -141,7 +141,8 @@ done
 # Sync every plugin into staging first. A failed sync touches no installed
 # plugin, so the installed set cannot end up at mixed revisions.
 STAGE="$(mktemp -d "$PLUGIN_DIR/.sync.XXXXXX")"
-mkdir -p "$STAGE/backup"
+BACKUP_DIR="$HOME/.hermes/plugin-backups/$(date -u +%Y%m%dT%H%M%SZ)"
+backups_made=0
 
 for rel in "${rels[@]}"; do
   rsync -a --delete "$REPO/$rel/" "$STAGE/${rel##*/}/"
@@ -149,13 +150,21 @@ done
 
 for id in "${ids[@]}"; do
   if [ -e "$PLUGIN_DIR/$id" ]; then
-    mv "$PLUGIN_DIR/$id" "$STAGE/backup/$id"
+    # Keep the previous install outside the disposable staging dir so a failed
+    # swap can still be rolled back and the user has a rollback point.
+    mkdir -p "$BACKUP_DIR"
+    mv "$PLUGIN_DIR/$id" "$BACKUP_DIR/$id"
+    backups_made=1
   fi
 done
 for id in "${ids[@]}"; do
   mv "$STAGE/$id" "$PLUGIN_DIR/$id"
   echo "  synced $id"
 done
+
+if [ "$backups_made" -eq 1 ]; then
+  echo "Previous plugins saved to $BACKUP_DIR"
+fi
 
 echo
 echo "Plugins updated. Restart the gateway and start a new session:"

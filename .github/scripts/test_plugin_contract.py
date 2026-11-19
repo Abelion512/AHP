@@ -112,6 +112,14 @@ class PluginContractTests(unittest.TestCase):
             errors = validate(root)
             self.assertTrue(any("duplicate plugin path" in error for error in errors), errors)
 
+    def test_catalog_id_must_match_folder(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_plugin(root)
+            write_catalog(root, [{"path": "plugins/alpha"}])
+            errors = validate(root)
+            self.assertTrue(any("catalog id" in error for error in errors), errors)
+
     def test_manifest_name_must_match_folder(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
