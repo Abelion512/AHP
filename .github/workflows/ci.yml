@@ -4,6 +4,13 @@ on:
   push:
     branches: [main]
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '**/*.png'
+      - '**/*.jpg'
+      - '**/*.jpeg'
+      - '**/*.svg'
   workflow_dispatch:
   schedule:
     # Weekly (Mon 02:00 UTC): a new CVE in an unchanged dependency is still caught.
@@ -180,7 +187,7 @@ jobs:
     if: needs.detect.outputs.plugins != '[]'
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         plugin: ${{ fromJson(needs.detect.outputs.plugins) }}
     steps:
@@ -301,6 +308,8 @@ jobs:
   # use only a synthetic loopback provider plus disposable profiles.
   e2e:
     name: Real Hermes E2E (pinned core, Privacy Guard)
+    needs: detect
+    if: github.event_name != 'pull_request' || needs.detect.outputs.plugins != '[]'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
@@ -340,6 +349,25 @@ jobs:
           # hermes-core is checked out two steps earlier at a pinned ref; lockfile must exist there.
           # Later puppeteer-core install (npm install --prefix "$E2E_NODE") is not covered by this cache.
           cache-dependency-path: hermes-core/package-lock.json
+      - name: Prepare apt cache directory
+        run: sudo mkdir -p /var/cache/apt/archives && sudo chown -R "$USER:$USER" /var/cache/apt/archives
+      - name: Cache apt packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-e2e-${{ hashFiles('.github/workflows/ci.yml') }}
+      - name: Cache Chrome for Testing
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ${{ runner.temp }}/chrome-for-testing-142.0.7444.175.zip
+            ${{ runner.temp }}/chrome-for-testing-142.0.7444.175
+          key: chrome-for-testing-142.0.7444.175-${{ runner.os }}
+      - name: Cache Puppeteer core dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ runner.temp }}/e2e-node
+          key: puppeteer-core-24.31.0-node26-${{ runner.os }}
       - name: Install host dependencies for E2E
         run: |
           sudo apt-get update
@@ -358,6 +386,9 @@ jobs:
           command -v xfsettingsd
           command -v xdpyinfo
           command -v xprop
+      - name: Fix apt cache ownership
+        if: always()
+        run: sudo chown -R "$USER:$USER" /var/cache/apt/archives
       - name: Install pinned Hermes source and E2E dependencies
         run: |
           python -m pip install --upgrade pip
@@ -398,16 +429,22 @@ jobs:
           # Install puppeteer-core only; browser download/install scripts are not needed.
           E2E_NODE="$RUNNER_TEMP/e2e-node"
           mkdir -p "$E2E_NODE"
-          printf '%s' '{"private":true,"name":"hermes-plugin-e2e-tools"}' > "$E2E_NODE/package.json"
-          npm install --prefix "$E2E_NODE" --no-audit --no-fund puppeteer-core@24.31.0
+          if [ ! -d "$E2E_NODE/node_modules/puppeteer-core" ]; then
+            printf '%s' '{"private":true,"name":"hermes-plugin-e2e-tools"}' > "$E2E_NODE/package.json"
+            npm install --prefix "$E2E_NODE" --no-audit --no-fund puppeteer-core@24.31.0
+          fi
           CHROME_FOR_TESTING_VERSION="142.0.7444.175"
           CHROME_ZIP="$RUNNER_TEMP/chrome-for-testing-${CHROME_FOR_TESTING_VERSION}.zip"
           CHROME_ROOT="$RUNNER_TEMP/chrome-for-testing-${CHROME_FOR_TESTING_VERSION}"
-          curl -fsSL "https://storage.googleapis.com/chrome-for-testing-public/${CHROME_FOR_TESTING_VERSION}/linux64/chrome-linux64.zip" -o "$CHROME_ZIP"
-          echo "855d228f4918b9e21b059a3ab6785a2217489dc570d220d73c4fa667c83b4582  $CHROME_ZIP" | sha256sum -c -
-          rm -rf "$CHROME_ROOT"
-          mkdir -p "$CHROME_ROOT"
-          unzip -q "$CHROME_ZIP" -d "$CHROME_ROOT"
+          if [ ! -f "$CHROME_ZIP" ]; then
+            curl -fsSL "https://storage.googleapis.com/chrome-for-testing-public/${CHROME_FOR_TESTING_VERSION}/linux64/chrome-linux64.zip" -o "$CHROME_ZIP"
+            echo "855d228f4918b9e21b059a3ab6785a2217489dc570d220d73c4fa667c83b4582  $CHROME_ZIP" | sha256sum -c -
+          fi
+          if [ ! -x "$CHROME_ROOT/chrome-linux64/chrome" ]; then
+            rm -rf "$CHROME_ROOT"
+            mkdir -p "$CHROME_ROOT"
+            unzip -q "$CHROME_ZIP" -d "$CHROME_ROOT"
+          fi
           chrome="$CHROME_ROOT/chrome-linux64/chrome"
           test -x "$chrome"
           export NODE_PATH="$E2E_NODE/node_modules"

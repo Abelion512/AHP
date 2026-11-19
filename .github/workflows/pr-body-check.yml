@@ -3,6 +3,13 @@ name: pr-body-check
 on:
   pull_request:
     types: [opened, edited, reopened, synchronize, ready_for_review]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '**/*.png'
+      - '**/*.jpg'
+      - '**/*.jpeg'
+      - '**/*.svg'
 
 permissions:
   contents: read
