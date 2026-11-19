@@ -6,13 +6,13 @@ set -euo pipefail
 
 task_file="$1"
 
-if [ -z "${AUTOFIX_API_KEY:-}" ]; then
+if [[ -z "${AUTOFIX_API_KEY:-}" ]]; then
   echo 'Auto-fix skipped: AUTOFIX_API_KEY is not set.'
   exit 0
 fi
 
 runtime="$GITHUB_WORKSPACE/hermes-core/.venv/bin/hermes"
-if [ ! -x "$runtime" ]; then
+if [[ ! -x "$runtime" ]]; then
   echo 'Pinned Hermes runtime is missing; refusing to run an unpinned agent.' >&2
   exit 1
 fi

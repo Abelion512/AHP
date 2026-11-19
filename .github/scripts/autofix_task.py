@@ -27,11 +27,11 @@ def build(comments, limit=2000):
 
 
 def main(argv):
-    if len(argv) != 2:
-        print('usage: autofix_task.py REVIEW_COMMENTS_JSON')
+    if len(argv) != 1:
+        print('usage: autofix_task.py < comments.json')
         return 2
-    with open(argv[1], encoding='utf-8') as handle:
-        comments = json.load(handle)
+    # Read from stdin: a file path would be an untrusted command-line input.
+    comments = json.load(sys.stdin)
     sys.stdout.write(build(comments))
     return 0
 

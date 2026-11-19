@@ -4,7 +4,6 @@ An empty PR cannot produce a stronsium proof: the producer's eligibility check
 rejects changed_files == 0 as malformed. Such a PR only creates review noise.
 """
 import os
-import sys
 
 
 def main():

@@ -35,12 +35,12 @@ def eligible(pr, repo_id):
 
 
 def main(argv):
-    if len(argv) != 3 or not argv[2].isdigit():
-        print('usage: autofix_eligibility.py PR_JSON REPO_ID')
+    if len(argv) != 2 or not argv[1].isdigit():
+        print('usage: autofix_eligibility.py REPO_ID < pr.json')
         return 2
-    with open(argv[1], encoding='utf-8') as handle:
-        pr = json.load(handle)
-    reason = eligible(pr, int(argv[2]))
+    # Read from stdin: a file path would be an untrusted command-line input.
+    pr = json.load(sys.stdin)
+    reason = eligible(pr, int(argv[1]))
     if reason:
         print('autofix_not_eligible: ' + reason)
         return 1

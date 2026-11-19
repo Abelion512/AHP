@@ -2,7 +2,6 @@ import importlib.util
 import json
 import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -62,13 +61,16 @@ class TaskTest(unittest.TestCase):
         self.assertLessEqual(len(out.split('b.py:? - ')[1]), 101)
 
     def test_cli_is_shell_safe(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / 'comments.json'
-            path.write_text(json.dumps([{'path': 'a.py', 'body': '$(exit 9)'}]))
-            result = subprocess.run([sys.executable, str(ROOT / '.github/scripts/autofix_task.py'), str(path)],
-                                    capture_output=True, text=True)
+        payload = json.dumps([{'path': 'a.py', 'body': '$(exit 9)'}])
+        result = subprocess.run([sys.executable, str(ROOT / '.github/scripts/autofix_task.py')],
+                                input=payload, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0)
         self.assertIn('$(exit 9)', result.stdout)
+
+    def test_cli_rejects_path_argument(self):
+        result = subprocess.run([sys.executable, str(ROOT / '.github/scripts/autofix_eligibility.py'), '42', 'pr.json'],
+                                input='{}', capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2)
 
     def test_workflow_is_disabled_by_default(self):
         workflow = (ROOT / '.github/workflows/auto-fix.yml').read_text()
