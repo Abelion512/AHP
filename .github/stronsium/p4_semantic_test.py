@@ -54,7 +54,7 @@ class T(unittest.TestCase):
   with self.assertRaisesRegex(S.ScopeNotApplicable,'p4_sem_structural_change'):
    S.classify_semantic(ctx('a.py',"#b\n",diff))
  def test_unparseable_rejected(self):
-  with self.assertRaisesRegex(ValueError,'p4_sem_unparseable'):S.classify_semantic(ctx('a.py',"def (:\n",d('a.py',"@@ -1 +1 @@\n-#a\n+def (:\n")))
+  with self.assertRaisesRegex(S.ScopeNotApplicable,'p4_sem_unparseable'):S.classify_semantic(ctx('a.py',"def (:\n",d('a.py',"@@ -1 +1 @@\n-#a\n+def (:\n")))
  def test_multi_hunk_and_crlf(self):
   head="a = 1\n# c1\nb = 2\nc = 3\n# c2\n"
   diff=d('a.py',"@@ -1,2 +1,3 @@\n a = 1\n+# c1\n b = 2\n@@ -3,1 +4,2 @@\n c = 3\n+# c2\n")
