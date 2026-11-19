@@ -1,7 +1,7 @@
 export const referenceCss = `
 .hermes-visual-grid{display:flex;gap:8px;max-width:100%;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;align-items:flex-start;margin:16px 0;padding-bottom:8px;scrollbar-width:thin}
 .hermes-visual-card{font:inherit;color:inherit;min-width:0;width:100%;max-width:480px;background:transparent}
-.hermes-visual-grid .hermes-visual-card{flex:0 0 calc(50% - 4px);scroll-snap-align:start}
+.hermes-visual-grid .hermes-visual-card{flex:0 0 min(300px,78%);scroll-snap-align:start}
 .hermes-visual-card *{box-sizing:border-box}
 .hermes-visual-card .vc-image{all:unset;box-sizing:border-box;display:grid;place-items:center;cursor:zoom-in;width:100%;aspect-ratio:1.25;overflow:hidden;border:1px solid color-mix(in srgb,currentColor 12%,transparent);border-radius:16px;background:color-mix(in srgb,currentColor 4%,transparent)}
 .hermes-visual-card .vc-image img{display:block;object-fit:contain;width:100%;height:100%;min-height:0}
@@ -26,5 +26,7 @@ export const referenceCss = `
 .hermes-visual-card .vc-stage[data-zoom=true] .vc-large{display:inline-block;max-width:none;max-height:none;cursor:zoom-out}
 .hermes-visual-card .vc-attribution{position:absolute;bottom:12px;left:16px;right:16px;text-align:center;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
 .hermes-visual-card .vc-attribution a{color:CanvasText}
-@media(max-width:600px){.hermes-visual-grid .hermes-visual-card{flex-basis:84%}.hermes-visual-card .vc-stage{inset:58px 8px 78px}.hermes-visual-card .vc-attribution{font-size:12px}.hermes-visual-card .vc-summary,.hermes-visual-card .vc-caveat{font-size:12px}}
+@media(max-width:600px){.hermes-visual-card .vc-stage{inset:58px 8px 78px}.hermes-visual-card .vc-attribution{font-size:12px}.hermes-visual-card .vc-summary,.hermes-visual-card .vc-caveat{font-size:12px}}
+.hermes-visual-card .vc-image{border-radius:18px}
+.aero-choice label{border:1px solid color-mix(in srgb,currentColor 10%,transparent)!important;border-radius:14px;padding:12px 14px!important;margin:8px 0;background:color-mix(in srgb,currentColor 5%,transparent)}.aero-choice label:has(input:checked){border-color:currentColor!important;background:color-mix(in srgb,currentColor 9%,transparent)}.aero-choice label:has(input:checked)::after{content:"\\2713";margin-left:auto}
 `;
