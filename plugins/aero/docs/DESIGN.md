@@ -131,14 +131,27 @@ requested for this plugin. References were re-checked against live sessions on
 Supported `ui` kinds: wizard, status, compare, form, trace, choice, flow,
 chart, interview, quiz, table, map, plus the `visualcards` media directive.
 `table` renders a bounded headered data table (max 5 columns x 8 rows);
-`chart` still offers its own table alternative. `map` takes 1-5 places as
+`chart` still offers its own table alternative. Table cells never wrap
+(bounded by the 60-character cell contract): a table that fits the pane
+renders full-width with no scrolling, and a table wider than the pane
+scrolls horizontally inside the card instead of compressing. `map` takes 1-5 places as
 name;latitude;longitude with an optional note and renders a STATIC 3x3
 OpenStreetMap tile grid with labeled pins - the renderer builds the tile URLs
 itself (the model never supplies URLs), shows a visible
 "© OpenStreetMap contributors" attribution, and is labeled "Peta statis". It
 is not interactive-map parity with the GPT/Gemini references (no pan/zoom,
 no place side panel with photos, hours or Directions/Website/Call actions).
-There is no video-embed kind either: the GPT reference embeds a playable
+Checked against the live OSM Tile Usage Policy
+(operations.osmfoundation.org/policies/tiles/): within this bounded
+demonstration (9 tiles per map, no bulk download or prefetch) the static
+map follows every MUST - correct HTTPS tile URL template, visible
+attribution with the copyright link, browser-default User-Agent and
+Referer (tile images carry no referrerPolicy, unlike card images), and
+browser-default caching. Two should-level gaps remain: the tile URL is
+hardcoded rather than configurable, and there is no fixthemap link. The
+OSM tile service is volunteer-run and best-effort with no SLA and its own
+usage limits, so this is a scoped compliance note for the plugin's bounded
+use, not a production-scale availability guarantee. There is no video-embed kind either: the GPT reference embeds a playable
 YouTube iframe, and this plugin does not embed third-party players. There is
 no calendar or generic-widget kind. Unsupported or malformed directives fall
 back to visible text, never to a broken frame.
