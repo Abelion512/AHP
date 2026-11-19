@@ -3,7 +3,7 @@
 
 Usage:
   python .github/scripts/scaffold_plugin.py <name> --description "..." \
-      [--category utility] [--root .]
+      [--category utility]   # run from the repository root
 
 The name must be one core word listed under a tier heading (or Our Plugin) in
 docs/title-reference.md. The script refuses to overwrite an existing plugin or
@@ -80,12 +80,10 @@ def _atomic_write(path: Path, text: str) -> None:
 
 def add_catalog_entry(root: Path, pid: str, description: str) -> None:
     path, catalog, entries = _load_catalog(root)
-    cleaned = [
-        {key: item[key] for key in ("id", "path", "description") if key in item}
-        for item in entries if isinstance(item, dict)
-    ]
-    cleaned.append({"id": pid, "path": "plugins/" + pid, "description": description})
-    catalog["plugins"] = cleaned
+    # Preserve existing entries verbatim, including any extra per-plugin fields.
+    updated = [item for item in entries if isinstance(item, dict)]
+    updated.append({"id": pid, "path": "plugins/" + pid, "description": description})
+    catalog["plugins"] = updated
     _atomic_write(path, json.dumps(catalog, indent=2, ensure_ascii=False) + "\n")
 
 
