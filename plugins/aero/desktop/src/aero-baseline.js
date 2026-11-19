@@ -56,13 +56,14 @@ export function normalize(attrs) {
   if (kind === 'quiz') return normalizeQuiz(attrs)
   if (kind === 'map') return normalizeMap(attrs)
   const spec = catalog[kind]
+  const label = kind === 'table' ? 'tabel' : 'kartu'
   const raw = attrs[spec.input]
   // Keep allocation bounded even if a future caller bypasses the host parser.
-  if ((attrs.details?.length || 0) > 2048 || (attrs.values?.length || 0) > 256) return { error: 'Data kartu terlalu panjang.' }
-  if (typeof raw !== 'string' || raw.length > 2048) return { error: 'Data kartu belum lengkap. Gunakan jawaban teks.' }
+  if ((attrs.details?.length || 0) > 2048 || (attrs.values?.length || 0) > 256) return { error: `Data ${label} terlalu panjang.` }
+  if (typeof raw !== 'string' || raw.length > 2048) return { error: `Data ${label} belum lengkap. Gunakan jawaban teks.` }
   const values = raw.split('|').map(v => v.trim())
   if (values.length < spec.min || values.length > spec.max || values.some(v => !v || v.length > 60)) {
-    return { error: 'Data kartu tidak valid. Gunakan jawaban teks.' }
+    return { error: `Data ${label} tidak valid. Gunakan jawaban teks.` }
   }
   if (kind === 'choice') return normalizeChoice(attrs, values)
   if (kind === 'flow') return normalizeFlow(attrs, values)

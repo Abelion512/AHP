@@ -166,7 +166,10 @@ paragraph is text-only, and its soft-break preprocessing turns a single
 newline into a break node. Two directives one newline apart - or a directive
 with prose on the next line - therefore share a paragraph and none of them
 render; they remain raw text. Directives must be blank-line separated (the
-SKILL.md authoring rule). A paragraph over 4800 characters is not segmented
+SKILL.md authoring rule). A directive missing its closing brace is never
+claimed: it stays raw text by design, and it does not stop other directives
+in the same message from rendering (harness-verified). A paragraph over
+4800 characters is not segmented
 at all, one brace body is capped at 2048 characters, and attribute values
 cannot contain braces. Unsupported or unregistered directive names stay
 visible raw text by host design.
