@@ -48,10 +48,15 @@ def trusted_file(root: Path, filename: str) -> Path:
 def add_catalog_entry(root: Path, pid: str, description: str) -> None:
     path = trusted_file(root, "hermes.json")
     catalog = json.loads(path.read_text(encoding="utf-8"))
-    plugins = catalog.setdefault("plugins", [])
-    plugins.append({"id": pid, "path": "plugins/" + pid, "description": description})
+    existing = catalog.get("plugins")
+    entries = []
+    if isinstance(existing, list):
+        for item in existing:
+            if isinstance(item, dict):
+                entries.append({key: item[key] for key in ("id", "path", "description") if key in item})
+    entries.append({"id": pid, "path": "plugins/" + pid, "description": description})
     trusted_file(root, "hermes.json").write_text(
-        json.dumps(catalog, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        json.dumps({"plugins": entries}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def add_readme_row(root: Path, pid: str, description: str) -> None:
