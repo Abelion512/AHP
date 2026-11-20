@@ -13,13 +13,14 @@ def script():
     raise AssertionError("merge step not found")
 
 class MergeStep(unittest.TestCase):
-    def run_step(self, with_output=True):
+    def run_step(self, with_output=True, with_plugin_labels=True):
         with tempfile.TemporaryDirectory() as d:
             (pathlib.Path(d) / ".github").mkdir()
             (pathlib.Path(d) / ".github" / "labeler.yml").write_text("repo-label:\n- changed-files:\n  - any-glob-to-any-file: ['docs/**']\n")
             plug = pathlib.Path(d) / "plugins" / "p" / ".github"
             plug.mkdir(parents=True)
-            (plug / "labels.yml").write_text("p-label:\n- changed-files:\n  - any-glob-to-any-file: ['src/**']\n")
+            if with_plugin_labels:
+                (plug / "labels.yml").write_text("p-label:\n- changed-files:\n  - any-glob-to-any-file: ['src/**']\n")
             env = {k: v for k, v in os.environ.items() if k != "GITHUB_OUTPUT"}
             out = pathlib.Path(d) / "gh_output"
             if with_output:
@@ -39,6 +40,13 @@ class MergeStep(unittest.TestCase):
         r, out, merged = self.run_step(False)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("labels_count=2", r.stdout)
+
+    def test_without_plugin_local_labels_keeps_repository_labels(self):
+        r, out, merged = self.run_step(True, with_plugin_labels=False)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("labels_count=1", out)
+        self.assertIn("repo-label", merged)
+        self.assertNotIn("p-label", merged)
 
 if __name__ == "__main__":
     unittest.main()
