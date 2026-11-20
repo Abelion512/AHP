@@ -191,7 +191,7 @@ class ScopeReporting(unittest.TestCase):
 
     def test_canonical_identity_and_old_name_refused(self):
         from producer_context import REPO as collector_repo
-        self.assertEqual(REPO, 'Abelion512/AHP')
+        self.assertEqual(REPO, 'Abelion512/Stellarium')
         self.assertEqual(collector_repo, REPO)
         I.load(self.env)
         with self.assertRaises(ValueError):

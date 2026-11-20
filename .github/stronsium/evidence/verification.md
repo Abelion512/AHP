@@ -2,7 +2,7 @@
 
 ## What this branch changes
 
-The proof producer, context collector and verifier library use `Abelion512/AHP` while retaining the same immutable repository/owner/bot ids. The producer reports a fixed `not_applicable` result for known scope exclusions and emits no positive proof artifact. A completed job is not a positive proof.
+The proof producer, context collector and verifier library use `Abelion512/Stellarium` while retaining the same immutable repository/owner/bot ids. The producer reports a fixed `not_applicable` result for known scope exclusions and emits no positive proof artifact. A completed job is not a positive proof.
 
 The same-repository-head, draft exclusion and 30-file limit already existed in `producer_context.py`. This repair does not newly exclude drafts or increase the limit. Preflight imports the collector's `MAX_PROOF_FILES`; a regression checks the existing draft refusal. Preflight may read an earlier PR snapshot, but `run()` independently re-collects the context and rejects changed head/base/reviews before and after proof production. A stale preflight can refuse unnecessarily or fail later, never prove a newer snapshot.
 

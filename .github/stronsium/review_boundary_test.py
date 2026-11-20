@@ -41,8 +41,12 @@ class ReviewBoundaries(unittest.TestCase):
 
     def test_transport_rejects_empty_segments(self):
         gh=GitHubProofTransport(lambda:'test-placeholder')
+        # A valid Stellarium path must pass the root check, so the refusal below
+        # proves the empty-segment guard rather than a wrong-root rejection.
+        valid='/repos/Abelion512/Stellarium/contents/'+'a/b.py'
+        self.assertEqual(gh._api(valid).get_method(),'GET')
         with self.assertRaisesRegex(ValueError,'api_path_outside_repository'):
-            gh._api('/repos/Abelion512/AHP/contents/a//b.py')
+            gh._api('/repos/Abelion512/Stellarium/contents/a//b.py')
 
     def test_zero_count_add_delete_and_unicode_line_separator(self):
         self.assertEqual(reverse_apply('x=1\n','@@ -0,0 +1,1 @@\n+x=1\n'),'')
