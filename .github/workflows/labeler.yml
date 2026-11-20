@@ -119,3 +119,23 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           configuration-path: merged_labeler.yml
           sync-labels: true
+      - name: Label PR by change size
+        uses: pascalgn/size-label-action@56b489b027932ec0cf60438a1a5f1a19c8fc71ff
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IGNORED: |
+            **/*.png
+            **/*.dot
+            **/*.lock
+            **/browser-report.json
+        with:
+          sizes: >
+            {
+              "0": "xs",
+              "10": "s",
+              "100": "m",
+              "500": "l",
+              "1000": "xl",
+              "3000": "xxl",
+              "10000": "xxxl"
+            }
