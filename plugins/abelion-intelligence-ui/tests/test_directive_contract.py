@@ -53,6 +53,39 @@ class DirectiveContractTests(unittest.TestCase):
         self.assertLessEqual(limits["rows"], 12)
         self.assertLessEqual(limits["prompt_chars"], 500)
 
+    def test_wizard_progress_persists_across_remount(self):
+        # Storage must be wizard-scoped, session-scoped, and persisted on toggle
+        # as stable row indices so duplicate labels survive a reload.
+        for needle in (
+            "const persistable = kind === 'wizard' && !invalid && !streaming",
+            "uiStorage.set(storageKey, next)",
+            "const storageKey = `${ID}:${version}:${kind}:${sessionId || 'global'}:${cardId}`",
+            "if (persistable) persist(done)",
+        ):
+            self.assertIn(needle, self.source)
+        self.assertNotIn("done.map((i) => rows[i])", self.source)
+
+    def test_runtime_caps_match_contract(self):
+        limits = self.contract["limits"]
+        self.assertIn(f"const MAX_ROW = {limits['row_chars']}", self.source)
+        self.assertIn(f"const MAX_PROMPT = {limits['prompt_chars']}", self.source)
+        self.assertIn(f"text(attrs.title, {limits['title_chars']})", self.source)
+        self.assertIn(f"maxLength: {limits['field_value_chars']}", self.source)
+        self.assertIn("if (full.length > MAX_PROMPT)", self.source)
+
+    def test_each_kind_renders_content(self):
+        markers = {
+            "wizard": "'✓' : String(index + 1)",
+            "status": "dot",
+            "compare": "ci === 0 ? 'A' : 'B'",
+            "form": "type: sensitive ? 'password' : 'text'",
+            "trace": "jsx('details'",
+        }
+        for kind, marker in markers.items():
+            with self.subTest(kind=kind):
+                self.assertIn(marker, self.source)
+        self.assertIn("'data-ui-directive': kind", self.source)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -29,8 +29,8 @@ patch core.
 
 ## Prerequisites
 
-- Desktop app or WebApp with the transcript preview directive enabled (core
-  default). CLI and text-only clients show the standard preview card instead.
+- Desktop app or WebApp with the transcript directive enabled (core default).
+  CLI and text-only clients fall back to prose; no card is rendered there.
 - A writable workspace path for the single HTML file.
 - No extra dependency, credential, or MCP server.
 
@@ -59,7 +59,19 @@ patch core.
 | Numbers | Inline SVG, redrawn on `resize` |
 | Status | One row per item, dot plus short label |
 
-## Procedure
+## Native procedure (preferred when the plugin is served)
+
+1. Pick one dominant shape from the Quick Reference. Do not combine all of them.
+2. Emit exactly one `::ui{...}` directive alone on its own line with the chosen
+   `kind`, a stable `id`, and short capped attributes. Do not write HTML and do
+   not use preview-only `data-hermes-send` attributes for the native path.
+3. Keep surrounding prose to one to three short lines, then verify the live DOM
+   shows a card rather than raw directive syntax.
+4. Never put a secret in a directive form field. Forms forward entered values
+   through `host.composer.submit`; the plugin flags credential-like labels and
+   requires explicit user confirmation before submitting them.
+
+## Fallback procedure (only when the native plugin is absent)
 
 1. Pick one dominant shape from the Quick Reference. Do not combine all of them.
 2. Write the HTML with `write_file`: inline CSS and JS, no sibling assets.

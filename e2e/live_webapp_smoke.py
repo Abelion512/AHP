@@ -15,8 +15,6 @@ import asyncio
 import json
 import urllib.request
 
-import websockets
-
 WEBAPP = "http://127.0.0.1:9120/"
 VERSION_URL = "http://127.0.0.1:9222/json/version"
 
@@ -48,7 +46,22 @@ class Cdp:
         return result.get("result", {}).get("result", {}).get("value")
 
 
+async def wait_until(page: "Cdp", expression: str, deadline: float, label: str) -> bool:
+    """Poll a readiness expression until the shared deadline instead of using fixed sleeps."""
+    while asyncio.get_event_loop().time() < deadline:
+        if await page.eval(expression):
+            return True
+        await asyncio.sleep(0.5)
+    return False
+
+
 async def smoke(title: str, timeout: float) -> dict:
+    try:
+        import websockets
+    except ModuleNotFoundError as exc:
+        return {"ok": False, "reason": "missing dependency: pip install websockets", "error": str(exc)}
+    if '"' in title or "\n" in title or "\r" in title:
+        return {"ok": False, "reason": "title must not contain quotes or newlines"}
     with urllib.request.urlopen(VERSION_URL, timeout=5) as response:
         endpoint = json.load(response)["webSocketDebuggerUrl"]
 
@@ -68,47 +81,42 @@ async def smoke(title: str, timeout: float) -> dict:
             await page.send("Page.enable")
             await page.send("Runtime.enable")
             await page.send("Page.reload", {"ignoreCache": True})
-            await asyncio.sleep(4)
+            deadline = asyncio.get_event_loop().time() + timeout
+            if not await wait_until(page, "Boolean(document.querySelector('[role=textbox]'))", deadline, "composer"):
+                return {"ok": False, "reason": "composer not found within deadline"}
             await page.eval(
                 "(()=>{const b=[...document.querySelectorAll('button,[role=button]')]"
                 ".find(x=>(x.innerText||'').trim().startsWith('New session'));"
                 "if(b)b.click();return true})()"
             )
-            await asyncio.sleep(2)
-            ready = await page.eval(
-                "(()=>{const e=document.querySelector('[role=textbox]');"
-                "if(!e)return false;e.focus();document.execCommand('selectAll',false,null);"
-                "document.execCommand('delete',false,null);return true})()"
-            )
-            if not ready:
-                return {"ok": False, "reason": "composer not found"}
+            if not await wait_until(page, "Boolean(document.querySelector('[role=textbox]'))", deadline, "fresh session"):
+                return {"ok": False, "reason": "fresh session composer not ready"}
 
             directive = (
                 '::ui{version="1" id="e2e-live" kind="status" '
-                f'title="{title}" items="Load:ok|Register:ok"}'
+                f'title="{title}" items="Load:ok|Register:ok"' + "}"
             )
-            await page.send("Input.insertText", {"text": "Balas persis satu baris: " + directive})
+            # The directive must stand alone on its own line to be claimed by the renderer.
+            await page.send("Input.insertText", {"text": directive})
             await page.send(
                 "Input.dispatchKeyEvent",
                 {"code": "Enter", "key": "Enter", "type": "keyDown", "windowsVirtualKeyCode": 13},
             )
 
-            deadline = asyncio.get_event_loop().time() + timeout
             while asyncio.get_event_loop().time() < deadline:
-                await asyncio.sleep(3)
+                await asyncio.sleep(1)
                 observed = await page.eval(
-                    "(()=>{const t=document.body.innerText||'';"
-                    f"const needle={json.dumps(title)};"
-                    "const hits=[...t.matchAll(new RegExp(needle.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&'),'g'))].map(m=>m.index);"
-                    "if(hits.length<2)return JSON.stringify({hits:hits.length});"
-                    "const seg=t.slice(hits[1]);"
-                    "return JSON.stringify({hits:hits.length,load:seg.includes('Load'),"
-                    "register:seg.includes('Register'),raw:seg.includes('::ui{')})})()"
+                    "(()=>{const card=document.querySelector('[data-ui-directive=\"status\"]');"
+                    "if(!card)return JSON.stringify({card:false});"
+                    "const t=card.innerText||'';"
+                    "return JSON.stringify({card:true,title:t.includes("
+                    + json.dumps(title)
+                    + "),load:t.includes('Load'),register:t.includes('Register'),"
+                    "raw:(document.body.innerText||'').includes('::ui{')})})()"
                 )
                 state = json.loads(observed)
-                if state.get("hits", 0) >= 2:
-                    if state.get("load") and state.get("register") and not state.get("raw"):
-                        return {"ok": True, "title": title, "observed": state}
+                if state.get("card") and state.get("title") and state.get("load") and state.get("register") and not state.get("raw"):
+                    return {"ok": True, "title": title, "observed": state}
             tail = await page.eval("(()=>(document.body.innerText||'').slice(-800))()")
             return {"ok": False, "reason": "timeout", "title": title, "tail": tail}
         finally:

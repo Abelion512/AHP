@@ -20,6 +20,8 @@ import { TRANSCRIPT_DIRECTIVE_AREA, host, haptic } from '@hermes/plugin-sdk'
 
 const ID = 'abelion-intelligence-ui'
 const VERSION = '1'
+const MAX_PROMPT = 240
+const MAX_ROW = 60
 let uiStorage = null
 const KINDS = new Set(['wizard', 'status', 'trace', 'compare', 'form'])
 
@@ -31,40 +33,60 @@ function items(value, max) {
   if (typeof value !== 'string') return []
   return value
     .split('|')
-    .map((part) => part.trim())
+    .map((part) => text(part, MAX_ROW))
     .filter(Boolean)
     .slice(0, max)
 }
 
-function send(prompt, setError) {
+function send(prompt, setError, owner) {
+  const full = String(prompt)
+  if (!full.trim()) return false
+  if (full.length > MAX_PROMPT) {
+    setError('Permintaan terlalu panjang. Ringkas pilihan Anda lalu coba lagi.')
+    return false
+  }
   try {
-    const address = host?.state?.focusedSessionId?.get?.() || null
+    const focused = host?.state?.focusedSessionId?.get?.() || null
+    if (owner && focused && focused !== owner) {
+      setError('Kartu ini milik percakapan lain.')
+      return false
+    }
     const composer = host?.composer
     if (!composer || typeof composer.submit !== 'function') {
       setError('Composer tidak menerima permintaan ini.')
-      return
+      return false
     }
-    const accepted = composer.submit(address, prompt.slice(0, 240))
+    const accepted = composer.submit(owner || focused, full)
     setError(accepted ? '' : 'Composer tidak menerima permintaan ini.')
     if (accepted) haptic('tap')
+    return Boolean(accepted)
   } catch {
     setError('Composer tidak menerima permintaan ini.')
+    return false
   }
 }
 
-function Card({ attrs, streaming }) {
+function Card({ attrs, streaming, sessionId }) {
   const rawKind = text(attrs.kind, 20)
   const version = text(attrs.version, 4) || VERSION
-  const cardId = text(attrs.id, 60) || `${version}-${rawKind || 'wizard'}-${text(attrs.title, 20)}`
-  const storageKey = `${ID}:${version}:${cardId}`
+  const kind = rawKind || 'wizard'
+  const invalid =
+    Boolean(attrs.version && version !== VERSION) ||
+    Boolean(rawKind && !KINDS.has(rawKind))
+  const cardId = text(attrs.id, 60) || `${version}-${kind}-${text(attrs.title, 20)}`
+  const storageKey = `${ID}:${version}:${kind}:${sessionId || 'global'}:${cardId}`
   const rows = items(attrs.steps || attrs.items, 8)
-  const [done, setDone] = useState(() => {
+  const persistable = kind === 'wizard' && !invalid && !streaming
+
+  const loadDone = () => {
+    if (streaming || invalid || kind !== 'wizard') return []
     try {
       const saved = uiStorage ? uiStorage.get(storageKey) : null
       if (!Array.isArray(saved)) return []
       if (saved.every((x) => typeof x === 'number')) {
         return saved.filter((n) => Number.isInteger(n) && n >= 0 && n < rows.length)
       }
+      // Legacy string labels: map to the first unused matching row.
       if (saved.every((x) => typeof x === 'string')) {
         const used = new Set()
         const result = []
@@ -81,36 +103,49 @@ function Card({ attrs, streaming }) {
     } catch {
       return []
     }
-  })
-  const [error, setError] = useState('')
-  const [values, setValues] = useState({})
-
-  useEffect(() => {
+  }
+  const persist = (next) => {
     try {
-      if (uiStorage) uiStorage.set(storageKey, done.map((i) => rows[i]).filter((x) => typeof x === 'string'))
+      if (uiStorage) uiStorage.set(storageKey, next)
     } catch {
       // Persistence is best-effort; local state still works for this mount.
     }
-  }, [storageKey, done, rows])
-
-  const invalid =
-    Boolean(attrs.version && version !== VERSION) ||
-    Boolean(rawKind && !KINDS.has(rawKind))
-  if (invalid) {
-    return jsx('div', {
-      style: { fontSize: 12, color: 'var(--ui-text-secondary, var(--muted-foreground))' },
-      children: 'Kartu UI tidak didukung; menampilkan teks biasa.',
-    })
   }
-  if (streaming) {
-    return jsx('div', {
-      style: { fontSize: 12, color: 'var(--ui-text-secondary, var(--muted-foreground))' },
-      children: 'Menyiapkan kartu…',
-    })
-  }
+  const [done, setDone] = useState(loadDone)
+  const [error, setError] = useState('')
+  const [values, setValues] = useState({})
+  const [busy, setBusy] = useState(false)
+  const [confirmed, setConfirmed] = useState(false)
 
-  const kind = rawKind || 'wizard'
-  const title = text(attrs.title, 80) || 'Intelligence UI'
+  // Persist stable row indices, not labels, and only for valid final wizard cards.
+  useEffect(() => {
+    if (persistable) persist(done)
+  }, [storageKey, persistable, done])
+
+  const submit = (prompt) => {
+    if (busy) return
+    setBusy(true)
+    try {
+      send(prompt, setError, sessionId || null)
+    } finally {
+      setBusy(false)
+    }
+  }
+  const toggle = (index) =>
+    setDone((prev) => {
+      const next = prev.includes(index) ? prev.filter((n) => n !== index) : [...prev, index]
+      persist(next) // survive an immediate reload before the effect runs
+      return next
+    })
+
+  const invalidNode = jsx('div', {
+    style: { fontSize: 12, color: 'var(--ui-text-secondary, var(--muted-foreground))' },
+    children: 'Kartu UI tidak didukung; menampilkan teks biasa.',
+  })
+  const streamingNode = jsx('div', {
+    style: { fontSize: 12, color: 'var(--ui-text-secondary, var(--muted-foreground))' },
+    children: 'Menyiapkan kartu…',
+  })
 
   const shell = {
     maxWidth: 760,
@@ -133,6 +168,10 @@ function Card({ attrs, streaming }) {
     cursor: 'pointer',
   }
 
+  if (invalid) return invalidNode
+  if (streaming) return streamingNode
+
+  const title = text(attrs.title, 80) || 'Intelligence UI'
   const children = []
 
   children.push(
@@ -191,15 +230,15 @@ function Card({ attrs, streaming }) {
                 jsxs('div', { style: { display: 'flex', gap: 6, marginTop: 7 }, children: [
                   jsx('button', {
                     type: 'button',
-                    style: button,
-                    onClick: () => send(`Bantu: ${title} — ${row}`, setError),
+                    style: { ...button, opacity: busy ? 0.6 : 1 },
+                    disabled: busy,
+                    onClick: () => submit(`Bantu: ${title} — ${row}`),
                     children: 'Bantu',
                   }),
                   jsx('button', {
                     type: 'button',
                     style: { ...button, color: 'var(--ui-text-secondary, var(--muted-foreground))' },
-                    onClick: () =>
-                      setDone((prev) => (prev.includes(index) ? prev.filter((n) => n !== index) : [...prev, index])),
+                    onClick: () => toggle(index),
                     children: isDone ? 'Batal' : 'Sudah',
                   }),
                 ] }),
@@ -262,47 +301,61 @@ function Card({ attrs, streaming }) {
     )
   } else if (kind === 'form') {
     const fields = items(attrs.fields, 6)
-    const submit = text(attrs.submit, 40) || 'Kirim'
+    const submitLabel = text(attrs.submit, 40) || 'Kirim'
+    const sensitive = fields.some((field) => /password|token|secret|api.?key|credential|authorization/i.test(field))
     fields.forEach((field, index) =>
       children.push(
         jsxs('label', {
-        key: `f${index}`,
-        style: { display: 'block', marginTop: 9, ...muted },
-        children: [
-          jsx('div', { children: field }),
-          jsx('input', {
-            type: 'text',
-            value: values[field] || '',
-            onChange: (event) =>
-              setValues((prev) => ({ ...prev, [field]: event.target.value.slice(0, 160) })),
-            style: {
-              width: '100%',
-              marginTop: 4,
-              padding: '8px 10px',
-              borderRadius: 6,
-              border: '1px solid var(--ui-stroke-secondary, var(--border))',
-              background: 'transparent',
-              color: 'var(--foreground)',
-              font: 'inherit',
-              minHeight: 40,
-              boxSizing: 'border-box',
-            },
-          }),
-        ],
-      })
-      )
+          key: `f${index}`,
+          style: { display: 'block', marginTop: 9, ...muted },
+          children: [
+            jsx('div', { children: field }),
+            jsx('input', {
+              type: sensitive ? 'password' : 'text',
+              value: values[index] || '',
+              maxLength: 160,
+              onChange: (event) =>
+                setValues((prev) => ({ ...prev, [index]: event.target.value.slice(0, 160) })),
+              style: {
+                width: '100%',
+                marginTop: 4,
+                padding: '8px 10px',
+                borderRadius: 6,
+                border: '1px solid var(--ui-stroke-secondary, var(--border))',
+                background: 'transparent',
+                color: 'var(--foreground)',
+                font: 'inherit',
+                minHeight: 40,
+                boxSizing: 'border-box',
+              },
+            }),
+          ],
+        })
+        )
     )
+    if (sensitive) {
+      children.push(
+        jsx('div', { key: 'warn', style: { ...muted, marginTop: 8 }, children:
+          'Kartu ini meminta data sensitif. Kirim hanya jika Anda ingin nilai tersebut masuk ke percakapan dan penyedia model.' })
+      )
+      children.push(
+        jsxs('label', { key: 'confirm', style: { ...muted, marginTop: 6, display: 'flex', gap: 6 }, children: [
+          jsx('input', { type: 'checkbox', checked: confirmed, onChange: (e) => setConfirmed(e.target.checked) }),
+          'Saya mengerti dan ingin mengirim nilai ini.',
+        ] })
+      )
+    }
     children.push(
       jsx('button', {
         key: 'submit',
         type: 'button',
-        style: { ...button, marginTop: 10 },
+        style: { ...button, marginTop: 10, opacity: busy || (sensitive && !confirmed) ? 0.6 : 1 },
+        disabled: busy || (sensitive && !confirmed),
         onClick: () =>
-          send(
-            `${title}: ${fields.map((field) => `${field}=${values[field] || ''}`).join('; ')}`,
-            setError
+          submit(
+            `${title}: ${fields.map((field, index) => `${field}=${values[index] || ''}`).join('; ')}`
           ),
-        children: submit,
+        children: submitLabel,
       })
     )
   } else if (kind === 'trace') {
@@ -323,7 +376,7 @@ function Card({ attrs, streaming }) {
 
   if (error) children.push(jsx('div', { key: 'err', style: { ...muted, marginTop: 8 }, children: error }))
 
-  return jsx('div', { style: shell, children })
+  return jsx('div', { 'data-ui-directive': kind, style: shell, children })
 }
 
 export default {
@@ -336,7 +389,7 @@ export default {
       area: TRANSCRIPT_DIRECTIVE_AREA,
       data: {
         name: 'ui',
-        render: ({ attrs, streaming }) => jsx(Card, { attrs: attrs || {}, streaming }),
+        render: ({ attrs, streaming, sessionId }) => jsx(Card, { attrs: attrs || {}, streaming, sessionId }),
       },
     })
   },

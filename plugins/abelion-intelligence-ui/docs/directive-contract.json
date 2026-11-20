@@ -8,7 +8,7 @@
     "version": "1",
     "allowlist": true,
     "reject_unknown_kind": true,
-    "caps": "title 80, rows 8, prompt 240"
+    "caps": "title 80, rows 8, row_chars 60, field_value_chars 160, prompt 240"
   },
   "state": {
     "owner": "plugin",

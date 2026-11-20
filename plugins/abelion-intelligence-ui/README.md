@@ -50,7 +50,10 @@ to a plain "unsupported" line instead of a broken card. While a turn is still
 streaming the card shows a short placeholder.
 
 All attributes are untrusted strings: capped, split on `|`, and rendered as
-React text children. The card never fetches, never touches credentials, and
+React text children. The card never fetches. The `form` kind forwards entered
+values through `host.composer.submit` into the chat/model flow; fields whose
+labels look credential-like use password inputs and require explicit user
+confirmation before submit. Do not use the form kind to collect secrets.
 `host.composer.submit` fails closed when no composer owns the focused session.
 
 Fallback when the plugin is absent: `::preview{file="..."}` (sandboxed HTML
