@@ -23,6 +23,8 @@ CHECK_NAME = "merge-gate"
 # not pass. Kept strict so a failed reevaluation cannot leave a stale green.
 # External review apps may skip when they find no findings.
 ALLOWED_CONCLUSIONS = frozenset({"success"})
+# Backwards-compatible aliases for earlier review/test naming.
+SUCCESS_CONCLUSIONS = ALLOWED_CONCLUSIONS
 REVIEW_APP_CHECKS = frozenset({
     "Sourcery review", "Kilo Code Review", "SonarCloud Code Analysis", "Socket",
 })
@@ -53,6 +55,8 @@ EXPECTED_SOURCES = {
     "Kilo Code Review": ("app", "kilo-code-bot"),
     "Sourcery review": ("app", "sourcery-ai"),
 }
+# Backwards-compatible alias for earlier review/test naming.
+EXPECTED_CHECKS = tuple(EXPECTED_SOURCES.keys())
 THREADS_QUERY = """
 query($owner:String!,$name:String!,$number:Int!,$after:String){
   repository(owner:$owner,name:$name){pullRequest(number:$number){
@@ -180,7 +184,9 @@ def load_threads(number: int) -> list[dict]:
     nodes: list[dict] = []
     after = None
     while True:
-        variables = {"owner": owner, "name": name, "number": number, "after": after}
+        variables: dict[str, object] = {"owner": owner, "name": name, "number": number}
+        if after is not None:
+            variables["after"] = after
         response = api_request("POST", "/graphql", {"query": THREADS_QUERY, "variables": variables})
         if not isinstance(response, dict):
             raise GateError("unexpected GraphQL response")
@@ -249,7 +255,9 @@ def latest_review_states(reviews: list[dict]) -> dict[str, tuple[str, str]]:
     return states
 
 
-def is_bot(user: dict) -> bool:
+def is_bot(user: object) -> bool:
+    if not isinstance(user, dict):
+        return False
     return user.get("type") == "Bot" or str(user.get("login") or "").endswith("[bot]")
 
 
@@ -308,8 +316,10 @@ def evaluate(pr: dict, checks: list[dict], threads: list[dict], reviews: list[di
     for login, (state, commit) in states.items():
         if state != "APPROVED" or commit != head_sha or login == author:
             continue
-        user = next((item.get("user") or {} for item in reviews
-                     if (item.get("user") or {}).get("login") == login), {})
+        matching = [item for item in reviews
+                    if (item.get("user") or {}).get("login") == login]
+        user = (sorted(matching, key=lambda item: item.get("submitted_at") or "")[-1].get("user")
+                if matching else {}) or {}
         if not is_bot(user):
             approvals += 1
     if approvals == 0:
