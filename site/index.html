@@ -3,171 +3,261 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Nebula — Privacy Guard for Hermes Agent</title>
-  <meta name="description" content="Session-local privacy masking for Hermes Agent, with a pinned host and published verification evidence.">
+  <title>Abelion Hermes Plugins</title>
+  <meta name="description" content="Standalone Hermes Agent plugins with pinned-host verification and explicit boundaries.">
   <style>
+    @font-face {
+      font-family: "Vesper Libre";
+      src: url("fonts/vesper-libre-latin.woff2") format("woff2");
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+    }
+
     :root {
       color-scheme: light;
-      --paper: #e3e8e4;
-      --sheet: #eef1ec;
-      --ink: #16211d;
-      --muted: #53605a;
-      --line: #bfc6bd;
-      --verdigris: #1f5d4d;
-      --oxide: #8a3b2e;
+      --paper: #e7eae5;
+      --sheet: #f4f5f0;
+      --ink: #16201c;
+      --muted: #4b5a53;
+      --line: #b9c3ba;
+      --verdigris: #1d5a49;
+      --oxide: #8c3a2c;
       --mono: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace;
       --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-      --step: 0.25rem;
+      --display: "Vesper Libre", Georgia, serif;
+      --ease: cubic-bezier(.16, 1, .3, 1);
     }
+
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body {
       margin: 0;
       background: var(--paper);
       color: var(--ink);
-      font: 1rem/1.65 var(--sans);
+      font: 1rem/1.6 var(--sans);
       -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
     }
-    a { color: var(--verdigris); text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
+    ::selection { background: var(--verdigris); color: var(--sheet); }
+    a { color: var(--verdigris); text-decoration-thickness: 1px; text-underline-offset: 0.22em; }
     a:hover { color: var(--oxide); }
     :focus-visible { outline: 3px solid var(--oxide); outline-offset: 3px; }
-    .wrap { max-width: 1100px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 3rem); }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: var(--paper); }
+    ::-webkit-scrollbar-thumb { background: var(--line); border: 3px solid var(--paper); border-radius: 10px; }
+
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 clamp(1.1rem, 5vw, 3rem); }
 
     .masthead {
-      display: flex; flex-wrap: wrap; gap: 0.5rem 2rem;
+      display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem;
       align-items: baseline; justify-content: space-between;
-      padding-block: 1.5rem; border-bottom: 1px solid var(--ink);
+      padding-block: 1.35rem; border-bottom: 1px solid var(--ink);
     }
-    .masthead .name { font-weight: 700; letter-spacing: -0.02em; }
-    .masthead nav ul { display: flex; flex-wrap: wrap; gap: 1.25rem; list-style: none; margin: 0; padding: 0; }
-    .masthead nav a { color: var(--ink); font-size: 0.9rem; }
+    .masthead .name { font-weight: 650; letter-spacing: -0.01em; }
+    .masthead .loc { font: 0.82rem/1.4 var(--mono); color: var(--muted); }
 
-    .hero { padding-block: clamp(3rem, 8vw, 6rem) clamp(2rem, 5vw, 4rem); }
+    .hero { padding-block: clamp(2.8rem, 7vw, 5.5rem) clamp(2rem, 4vw, 3rem); }
     .hero h1 {
-      font-size: clamp(2.4rem, 6vw, 4.4rem); line-height: 1.05;
-      letter-spacing: -0.035em; margin: 0 0 1.25rem; max-width: 22ch;
+      font-family: var(--display); font-size: clamp(3rem, 8vw, 6rem); font-weight: 400; line-height: 0.98;
+      letter-spacing: -0.025em;
+      margin: 0 0 1.4rem;
+      max-width: 20ch;
+      text-wrap: balance;
     }
-    .hero p { max-width: 62ch; font-size: 1.15rem; color: var(--muted); margin: 0 0 2.5rem; }
-    .token {
-      display: block; overflow-x: auto; white-space: nowrap;
-      font: clamp(1.1rem, 3.6vw, 2.6rem)/1.2 var(--mono);
-      letter-spacing: -0.02em; color: var(--verdigris);
-      border-left: 4px solid var(--oxide); padding: 0.4rem 0 0.4rem 1rem;
-    }
-    .token small { display: block; font: 0.8rem/1.5 var(--sans); color: var(--muted); letter-spacing: 0; }
+    .hero .lede { max-width: 62ch; font-size: 1.12rem; color: var(--muted); margin: 0 0 2.6rem; }
 
-    .layout { display: grid; grid-template-columns: 14rem minmax(0, 1fr); gap: clamp(2rem, 6vw, 5rem); }
+    .specimen {
+      border: 1px solid var(--line);
+      background: var(--sheet);
+      padding: 1.25rem 1.4rem 1.1rem;
+    }
+    .specimen .label {
+      font: 0.74rem/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase;
+      color: var(--oxide); margin: 0 0 0.7rem;
+    }
+    .manifest { margin: 0; font: 0.92rem/1.7 var(--mono); color: var(--verdigris); overflow-wrap: anywhere; }
+    .specimen .caption { margin: 0.85rem 0 0; font-size: 0.9rem; color: var(--muted); }
+
+    .flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; margin-top: 1.25rem; }
+    .flow .step { border-top: 2px solid var(--ink); padding-top: 0.6rem; }
+    .flow .step .step-title { margin: 0.2rem 0 0.35rem; font-size: 1rem; font-weight: 650; }
+    .flow .step p { margin: 0; font-size: 0.86rem; color: var(--muted); }
+
+    .layout { display: grid; grid-template-columns: 13rem minmax(0, 1fr); gap: clamp(2rem, 5vw, 4.5rem); margin-top: 1rem; }
     .index { align-self: start; position: sticky; top: 2rem; }
-    .index h2 { font-size: 0.95rem; color: var(--muted); margin: 0 0 0.75rem; }
-    .index ol { list-style: none; margin: 0; padding: 0; }
-    .index li { margin-bottom: 0.4rem; }
-    .index a { color: var(--ink); text-decoration: none; }
-    .index a:hover { text-decoration: underline; }
+    .index-title { font-family: var(--sans); font-size: 0.86rem; font-weight: 650; line-height: 1.2; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.8rem; }
+    .index ol { list-style: none; margin: 0; padding: 0.3rem 0 0; border-top: 1px solid var(--line); }
+    .index li { border-bottom: 1px solid var(--line); }
+    .index a { display: block; padding: 0.55rem 0; color: var(--ink); text-decoration: none; font-size: 0.9rem; }
+    .index a:hover { color: var(--verdigris); }
 
-    section.panel { padding-block: 1rem 3.5rem; scroll-margin-top: 2rem; }
-    section.panel > h2 { font-size: 1.6rem; letter-spacing: -0.02em; margin: 0 0 0.75rem; }
-    section.panel > p { max-width: 68ch; color: var(--muted); }
-    .sheet { background: var(--sheet); border: 1px solid var(--line); padding: 1.25rem 1.5rem; }
-    .sheet table { width: 100%; border-collapse: collapse; }
-    .sheet th, .sheet td { text-align: left; vertical-align: top; padding: 0.7rem 0.5rem; border-bottom: 1px solid var(--line); }
-    .sheet tr:last-child th, .sheet tr:last-child td { border-bottom: 0; }
-    .sheet th { width: 8.5rem; font-size: 0.85rem; color: var(--muted); font-weight: 600; }
-    .yes { color: var(--verdigris); }
-    .no { color: var(--oxide); }
+    section.panel { padding-block: 0.8rem 3.2rem; scroll-margin-top: 2rem; }
+    section.panel > h2 {
+      font-family: var(--display); font-size: clamp(1.8rem, 3.5vw, 2.5rem); font-weight: 400; line-height: 1.1;
+      letter-spacing: -0.015em;
+      margin: 0 0 0.7rem;
+    }
+    section.panel > p { max-width: 68ch; color: var(--muted); margin: 0 0 1.4rem; }
 
-    ul.plain { list-style: none; padding: 0; margin: 0; }
-    ul.plain li { padding: 0.8rem 0; border-bottom: 1px solid var(--line); }
-    ul.plain li:last-child { border-bottom: 0; }
-    ul.plain code { font-family: var(--mono); font-size: 0.9em; }
-    .meta { color: var(--muted); font-size: 0.9rem; }
+    .roster { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--ink); }
+    .roster li { display: grid; grid-template-columns: 3rem minmax(0, 11rem) minmax(0, 1fr) 7rem; gap: 1rem; align-items: baseline; padding: 1.05rem 0; border-bottom: 1px solid var(--line); }
+    .roster .seq { font: 0.78rem/1.4 var(--mono); color: var(--oxide); }
+    .roster .pid { font: 0.98rem/1.4 var(--mono); overflow-wrap: anywhere; }
+    .roster .desc { color: var(--muted); font-size: 0.94rem; }
+    .roster .status { font: 0.72rem/1.4 var(--mono); letter-spacing: .06em; text-transform: uppercase; text-align: right; }
+    .roster .status.active { color: var(--verdigris); }
+    .roster .status.pending { color: var(--oxide); }
+
+    .boundary { border-top: 1px solid var(--ink); }
+    .boundary .row { display: grid; grid-template-columns: 8rem minmax(0, 1fr); gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--line); }
+    .boundary .row h3 { margin: 0; font: 0.84rem/1.4 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+    .boundary .row p { margin: 0; }
+    .boundary .yes h3 { color: var(--verdigris); }
+    .boundary .no h3 { color: var(--oxide); }
+
+    .defs { list-style: none; margin: 0; padding: 0; }
+    .defs li { display: grid; grid-template-columns: minmax(0, 16rem) minmax(0, 1fr); gap: 1.2rem; padding: 0.95rem 0; border-top: 1px solid var(--line); }
+    .defs li:last-child { border-bottom: 1px solid var(--line); }
+    .defs .term { font-family: var(--mono); font-size: 0.9rem; overflow-wrap: anywhere; }
+    .defs .desc { color: var(--muted); font-size: 0.94rem; }
 
     pre {
       background: var(--sheet); border: 1px solid var(--line);
-      padding: 1rem; overflow-x: auto; font: 0.9rem/1.6 var(--mono); margin: 0;
+      padding: 1.1rem 1.2rem; overflow-x: auto;
+      font: 0.88rem/1.7 var(--mono); margin: 0;
     }
-    footer { border-top: 1px solid var(--ink); margin-top: 2rem; padding-block: 1.5rem 3rem; color: var(--muted); font-size: 0.9rem; }
+    footer { border-top: 1px solid var(--ink); margin-top: 1.5rem; padding-block: 1.4rem 3rem; color: var(--muted); font-size: 0.9rem; }
+
+    @keyframes arrive {
+      from { opacity: 0; transform: translateY(10px); filter: blur(4px); }
+      to { opacity: 1; transform: none; filter: none; }
+    }
+    .hero h1, .specimen { animation: arrive 700ms var(--ease) both; }
+    .specimen { animation-delay: 120ms; }
+
     @media (max-width: 760px) {
-      .layout { grid-template-columns: 1fr; }
+      .layout { grid-template-columns: 1fr; gap: 0.5rem; }
       .index { position: static; }
-      .sheet th { width: auto; display: block; padding-bottom: 0.1rem; }
-      .sheet td { display: block; padding-top: 0.1rem; }
+      .index ol { display: flex; gap: 1rem; overflow-x: auto; }
+      .index li { border-bottom: 0; }
+      .index a { padding: 0.45rem 0; white-space: nowrap; border-bottom: 1px solid var(--line); }
+      .flow { grid-template-columns: 1fr; }
+      .roster li { grid-template-columns: 2.2rem minmax(0, 1fr); gap: 0.4rem 0.8rem; }
+      .roster .desc, .roster .status { grid-column: 2; text-align: left; }
+      .boundary .row, .defs li { grid-template-columns: 1fr; gap: 0.35rem; }
     }
-    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .hero h1, .specimen { animation: none; }
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <header class="masthead">
-      <span class="name">Nebula / Privacy Guard</span>
-      <nav aria-label="Sections">
-        <ul>
-          <li><a href="#boundary">Boundary</a></li>
-          <li><a href="#evidence">Evidence</a></li>
-          <li><a href="#skills">Skills</a></li>
-          <li><a href="#install">Install</a></li>
-        </ul>
-      </nav>
+      <span class="name">Abelion Hermes Plugins</span>
+      <span class="loc">STELLARIUM / PLATFORM</span>
     </header>
 
     <main>
       <div class="hero">
-        <h1>One privacy boundary, verified.</h1>
-        <p>
-          Nebula masks credentials, personal data and local paths inside a Hermes
-          session, then restores only the tokens that have a documented local use.
-          It is evidence for one pinned host commit and the paths tested there,
-          not a claim about every laptop or provider.
+        <h1>Plugins with explicit boundaries.</h1>
+        <p class="lede">
+          A monorepo for standalone Hermes Agent plugins. Each plugin owns its
+          behavior, docs, skills and tests. CI runs against a pinned core commit
+          and publishes evidence for the paths it exercised, not a claim about
+          every host or provider.
         </p>
-        <div class="token" role="img" aria-label="Example masked token with a 24 digit session nonce and a 24 digit random value">
-          &lt;HG:7f3a1c9d2e8b4a6f0d5713c8:9c1d4e8b2a6f073c5d9e1a4b&gt;
-          <small>A value in process memory. The original never returns from the model side.</small>
+        <div class="specimen">
+          <p class="label">Plugin manifest</p>
+          <pre class="manifest">hermes.json  ->  plugins/&lt;id&gt;/plugin.yaml
+             ->  skills/&lt;id&gt;/SKILL.md
+             ->  tests/ + e2e/</pre>
+          <p class="caption">One catalog entry, one plugin folder, one docs trio, one test surface.</p>
+        </div>
+        <div class="flow" role="group" aria-label="How the platform works">
+          <div class="step">
+            <p class="step-title">Discover</p>
+            <p>The catalog names the active plugins; each folder carries its own manifest.</p>
+          </div>
+          <div class="step">
+            <p class="step-title">Verify</p>
+            <p>Unit tests, contract checks and pinned-host E2E produce evidence per plugin.</p>
+          </div>
+          <div class="step">
+            <p class="step-title">Sync</p>
+            <p>The updater installs exactly the catalog entries into a Hermes profile.</p>
+          </div>
         </div>
       </div>
 
       <div class="layout">
-        <aside class="index" aria-label="Page index">
-          <h2>On this page</h2>
+        <nav class="index" aria-label="Page index">
+          <p class="index-title">On this page</p>
           <ol>
+            <li><a href="#plugins">Registered plugins</a></li>
             <li><a href="#boundary">Where the boundary sits</a></li>
             <li><a href="#evidence">What was actually tested</a></li>
-            <li><a href="#skills">Registered skills</a></li>
             <li><a href="#install">Install and migrate</a></li>
           </ol>
-        </aside>
+        </nav>
 
         <div>
+          <section class="panel" id="plugins">
+            <h2>Registered plugins</h2>
+            <p>The active set comes from <code>hermes.json</code>. Plugins still in review are listed separately so a new plugin is visible before it lands.</p>
+            <ol class="roster">
+            <li>
+              <span class="seq">01</span>
+              <a class="pid" href="https://github.com/Abelion512/Stellarium/tree/main/plugins/nebula">nebula</a>
+              <span class="desc">Privacy Guard: session-bound request/tool masking and held output redaction</span>
+              <span class="status active">active</span>
+            </li>
+            <li>
+              <span class="seq">02</span>
+              <a class="pid" href="https://github.com/Abelion512/Stellarium/pull/30">aero</a>
+              <span class="desc">Native visual-learning cards and bounded photo cards rendered inline in Hermes Desktop and WebApp.</span>
+              <span class="status pending">pending</span>
+            </li>
+            </ol>
+          </section>
+
           <section class="panel" id="boundary">
             <h2>Where the boundary sits</h2>
-            <p>The plugin owns masking and local restoration. The pinned host owns enforcement.</p>
-            <div class="sheet">
-              <table>
-                <tbody>
-                  <tr><th class="yes">Covered</th><td>Session-local masking of PII, credentials and paths; held-output redaction; fail-closed required mode on the pinned core.</td></tr>
-                  <tr><th class="no">Not covered</th><td>Direct tool or service traffic, MCP, media generation, unknown encodings, persisted prompts, UI and logs, or unsupported provider transports.</td></tr>
-                  <tr><th>Ownership</th><td>Host enforcement, lifecycle and execution guarantees live in the Hermes core fork, not in this plugin.</td></tr>
-                </tbody>
-              </table>
+            <p>Each plugin owns its behavior. The pinned host owns enforcement, and the repository owns the evidence.</p>
+            <div class="boundary">
+              <div class="row yes">
+                <h3>Plugin owns</h3>
+                <p>Behavior, docs trio, skills, unit tests, E2E contract, and honest limits.</p>
+              </div>
+              <div class="row no">
+                <h3>Host owns</h3>
+                <p>Provider and tool interception, session lifecycle, held-stream semantics, and mandatory policy gates.</p>
+              </div>
+              <div class="row">
+                <h3>CI owns</h3>
+                <p>Syntax, dependency audit, secret scan, plugin contract, real-host E2E against each declared pin.</p>
+              </div>
             </div>
           </section>
 
           <section class="panel" id="evidence">
             <h2>What was actually tested</h2>
-            <p>A green run is evidence only for the paths it exercised. Read the audit before installing.</p>
-            <ul class="plain">
-              <li><a href="https://github.com/Abelion512/Stellarium/blob/main/docs/CI.md">CI audit</a> <span class="meta">— unit tests, dependency floors, secret scan, pinned-host E2E.</span></li>
-              <li><a href="https://github.com/Abelion512/Stellarium/blob/main/docs/VERSIONING.md">Versioning and releases</a> <span class="meta">— workflow lands before badge; merging is not a release.</span></li>
-              <li><a href="https://github.com/Abelion512/hermes-4gent">Pinned host fork</a> <span class="meta">— required mode needs commit <code>9a85916</code>.</span></li>
-            </ul>
-          </section>
-
-          <section class="panel" id="skills">
-            <h2>Registered skills</h2>
-            <p>Four skills ship with the plugin and register on hosts with the native skill API.</p>
-            <ul class="plain">
-              <li><code>privacy-mask-placeholders</code> <span class="meta">— work inside the mask/restore mapping.</span></li>
-              <li><code>redacted-output-handling</code> <span class="meta">— interpret held and redacted output.</span></li>
-              <li><code>nebula-plugin-setup</code> <span class="meta">— install and configure the plugin.</span></li>
-              <li><code>nebula-plugin-debug</code> <span class="meta">— diagnose a policy denial or missing protection.</span></li>
+            <p>A green run is evidence only for the paths it exercised. Read the audit before installing a plugin.</p>
+            <ul class="defs">
+              <li>
+                <span class="term"><a href="https://github.com/Abelion512/Stellarium/blob/main/d&#111;cs/CI.md">CI audit</a></span>
+                <span class="desc">Unit tests, dependency floors, secret scan, plugin contract, pinned-host E2E.</span>
+              </li>
+              <li>
+                <span class="term"><a href="https://github.com/Abelion512/Stellarium/blob/main/d&#111;cs/VERSIONING.md">Versioning and releases</a></span>
+                <span class="desc">Workflow lands before badge; merging is not a release.</span>
+              </li>
+              <li>
+                <span class="term"><a href="https://github.com/Abelion512/hermes-4gent">Pinned host fork</a></span>
+                <span class="desc">Required privacy mode depends on a reviewed host commit.</span>
+              </li>
             </ul>
           </section>
 
@@ -177,15 +267,14 @@
             <pre><code>git clone https://github.com/Abelion512/Stellarium.git \
   "$HOME/.hermes/abelion-hermes-plugins"
 cd "$HOME/.hermes/abelion-hermes-plugins" &amp;&amp; ./update-plugins.sh</code></pre>
-            <p class="meta">Read the <a href="https://github.com/Abelion512/Stellarium/blob/main/docs/PLUGIN_MIGRATION.md">migration procedure</a> before upgrading an existing profile.</p>
+            <p class="desc" style="margin-top:0.9rem">Read the <a href="https://github.com/Abelion512/Stellarium/blob/main/d&#111;cs/PLUGIN_MIGRATION.md">migration procedure</a> before upgrading an existing profile.</p>
           </section>
         </div>
       </div>
     </main>
 
     <footer>
-      Static documentation. No telemetry, no external assets. Merging a pull request does not
-      install the plugin or publish a release.
+      Static documentation. No telemetry, no external assets. Adding a plugin updates the catalog, this site, and CI from one source of truth.
     </footer>
   </div>
 </body>
