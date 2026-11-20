@@ -31,8 +31,9 @@ action.
 Plugin versions move independently from the repository tag. Update the plugin
 manifest when that plugin's behavior changes, and describe the change in its
 `docs/USAGE.md` status table. A plugin version alone does not prove compatibility
-with a Hermes host; the pinned host commit in `AGENTS.md` is the compatibility
-evidence used by CI.
+with a Hermes host; the pinned host commit in `plugins/nebula/e2e/host.json` is the
+source of truth for the compatibility evidence used by CI. Per-plugin pins live in
+that plugin's own `e2e/host.json`.
 
 ## Documentation site
 

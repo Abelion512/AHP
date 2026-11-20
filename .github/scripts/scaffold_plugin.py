@@ -7,9 +7,10 @@ Usage:
 
 The name must be one core word listed under a tier heading (or Our Plugin) in
 docs/title-reference.md. The script refuses to overwrite an existing plugin or
-catalog entry, writes the docs trio, a registered skill and a first test, then
-updates hermes.json and README.md. CI discovers the new plugin through
-plugins/<id>/plugin.yaml; no workflow edit is needed.
+catalog entry, writes the docs trio, a plugin AGENTS.md from the shared
+template, a registered skill and a first test, then updates hermes.json and
+README.md. CI discovers the new plugin through plugins/<id>/plugin.yaml; no
+workflow edit is needed.
 """
 from __future__ import annotations
 
@@ -110,6 +111,24 @@ def _skill_description(pid: str) -> str:
     return description
 
 
+def _agents_guide(root: Path, pid: str) -> str:
+    """Use the shared template when present; keep scaffolding usable in fixtures."""
+    template = root / ".github" / "plugin-templates" / "AGENTS.md"
+    if template.is_file():
+        return template.read_text(encoding="utf-8").replace("PLUGIN_ID", pid)
+    return (
+        "# AGENTS.md — %s plugin\n\n"
+        "Replace PLUGIN_ID with the catalog id in the shared template. Keep plugin-specific\n"
+        "rules, the host pin, and scoped commands in this file.\n\n"
+        "## Rules\n\n"
+        "- Use synthetic-only test data; never paste real secrets, cookies, map values,\n"
+        "  or account identifiers into code, docs, skills, or prompts.\n"
+        "- Do not claim stock Hermes, a laptop, or a provider is safe; report exact pins.\n"
+        "- Update code, docs/USAGE.md, and tests in the same commit.\n"
+        "- Open a PR for every change; never push directly to main.\n" % pid
+    )
+
+
 def write_skeleton(root: Path, pid: str, description: str, category: str,
                    skill_description: str) -> list[str]:
     base = root / "plugins" / pid
@@ -131,6 +150,7 @@ def write_skeleton(root: Path, pid: str, description: str, category: str,
             "## Limits\n\nAdd the behavior contract and unverified paths before claiming support.\n"
             % (pid.capitalize(), description)
         ),
+        base / "AGENTS.md": _agents_guide(root, pid),
         base / "docs" / "USAGE.md": (
             "# %s usage\n\nDescribe every hook, skill and config key here with its source file and behavior.\n"
             "State what is memory-only, session-scoped or disk-backed.\n" % pid.capitalize()
