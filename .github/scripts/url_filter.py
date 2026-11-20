@@ -9,7 +9,8 @@ import re
 
 # Stop at common markdown/HTML delimiters so adjacent URLs stay separate.
 _URL = re.compile(r"https?://[^\s<>\"')\]]+", re.IGNORECASE)
-_BENIGN_PATH_MARKERS = ("AHP",)
+# Legacy and current repository names both count as known-benign path noise.
+_BENIGN_PATH_MARKERS = ("AHP", "Stellarium")
 
 
 def strip_url_structure(text):
