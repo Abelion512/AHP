@@ -36,7 +36,7 @@ query($owner:String!, $name:String!, $number:Int!) {
         nodes { isResolved comments(first:1) { nodes { author { login } } } }
       }
       reviews(last:20) {
-        pageInfo { hasNextPage }
+        pageInfo { hasNextPage hasPreviousPage }
         nodes { author { login } state submittedAt }
       }
     }
@@ -90,8 +90,10 @@ def summary(pr):
     commit = (commits[0].get("commit") or {}) if commits else {}
     rollup = commit.get("statusCheckRollup") or {}
     contexts = rollup.get("contexts") or {}
+    reviews = pr.get("reviews") or {}
     truncated = any(bool((node or {}).get("pageInfo", {}).get("hasNextPage"))
-                    for node in (contexts, pr.get("reviewThreads"), pr.get("reviews")))
+                    for node in (contexts, pr.get("reviewThreads"))) or bool(
+        reviews.get("pageInfo", {}).get("hasPreviousPage"))
 
     latest = {}
     for check in contexts.get("nodes") or []:

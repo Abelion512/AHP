@@ -113,6 +113,13 @@ class SummaryTest(unittest.TestCase):
         self.assertEqual(result["reviews"]["CHANGES_REQUESTED"], [])
         self.assertEqual(result["reviews"]["APPROVED"], ["reviewer"])
 
+    def test_truncated_review_history_is_not_ready(self):
+        pr = payload([{"name": "ci", "status": "COMPLETED", "conclusion": "SUCCESS"}], [], [])
+        pr["reviews"]["pageInfo"] = {"hasPreviousPage": True}
+        result = pr_readiness.summary(pr)
+        self.assertTrue(result["truncated"])
+        self.assertFalse(result["ready"])
+
     def test_draft_pr_is_not_ready(self):
         pr = payload([{"name": "ci", "status": "COMPLETED", "conclusion": "SUCCESS"}], [], [])
         pr["isDraft"] = True
