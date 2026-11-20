@@ -194,8 +194,7 @@ class MergeGateApiTest(unittest.TestCase):
              patch.object(merge_gate, "gate_check_ids", side_effect=merge_gate.GateError("list down")), \
              patch.object(merge_gate, "api_request") as request:
             merge_gate.publish_blocking("a" * 40, "API down")
-            method, path = request.call_args.args[:2]
-            self.assertEqual(method, "POST")
+            self.assertEqual(request.call_args.args[0], "POST")
             self.assertEqual(request.call_args.args[2]["conclusion"], "failure")
 
     def test_read_failure_publishes_blocking_result(self):
