@@ -18,7 +18,7 @@ Start here, then open the guide of the plugin you are touching. Do not assume th
 - `.github/e2e_support/abelion_e2e_support/` — shared Hermes+E2E harness.
 - `.github/labeler.yml` + `plugins/PLUGIN_ID/.github/labels.yml` — shared labels by folder, plugin labels per plugin.
 - `.github/scripts/` — `plugin_contract.py`, `scaffold_plugin.py`, `e2e_matrix.py`, `build_site.py`.
-- `update-plugins.sh` — syncs plugins listed in `hermes.json` into `~/.hermes/plugins/`. Does not migrate profiles; see [docs/PLUGIN_MIGRATION.md](docs/PLUGIN_MIGRATION.md).
+- `update-plugins.sh` — syncs plugins listed in `hermes.json` into `~/.hermes/plugins/`. Does not migrate profiles; see [docs/PLUGIN_MIGRATION.md](docs/PLUGIN_MIGRATION.md). Retired IDs, including `abelion-intelligence-ui`, stop the updater before sync.
 - `docs/` — repo-level docs: [PLUGIN_PLATFORM.md](docs/PLUGIN_PLATFORM.md), [CI.md](docs/CI.md), [VERSIONING.md](docs/VERSIONING.md), [SESSION_HISTORY.md](docs/SESSION_HISTORY.md), [PRIORITY_LABELS.md](docs/PRIORITY_LABELS.md), [title-reference.md](docs/title-reference.md).
 - `.github/retired-source-recovery.md` — recover retired Shield/tool-context/RSI source from a pinned commit.
 
