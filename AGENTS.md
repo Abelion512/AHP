@@ -126,7 +126,7 @@ Restart the process and start a new session.
 
 ## After opening a PR
 
-Opening a PR is not the end of the task. Run `python3 .github/scripts/pr_readiness.py <pr-number>` immediately after `gh pr create`, then loop until it exits 0. Exit 0 is the only signal for "ready for review".
+Opening a PR is not the end of the task. Run `python3 .github/scripts/pr_readiness.py <pr-number>` immediately after `gh pr create`, then loop until it exits 0. Exit 0 is the only signal for "ready for review". From a fork checkout, pass the upstream `owner/repo` as a second argument or set `GH_REPO`.
 
 The gate checks three things: latest CI result per check name, unresolved review threads, and review states. When it reports a failure, do not tell the user the PR is ready. Fix the cause, push to the PR branch, reply to each finding in-thread, resolve addressed threads, re-trigger bot reviews when a bot posts stale findings, and run the gate again. Use `git push --force-with-lease` only on your own PR branch when amending.
 

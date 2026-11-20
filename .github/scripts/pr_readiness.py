@@ -36,6 +36,7 @@ query($owner:String!, $name:String!, $number:Int!) {
         nodes { isResolved comments(first:1) { nodes { author { login } } } }
       }
       reviews(last:20) {
+        pageInfo { hasNextPage }
         nodes { author { login } state submittedAt }
       }
     }
@@ -89,8 +90,8 @@ def summary(pr):
     commit = (commits[0].get("commit") or {}) if commits else {}
     rollup = commit.get("statusCheckRollup") or {}
     contexts = rollup.get("contexts") or {}
-    truncated = bool(contexts.get("pageInfo", {}).get("hasNextPage")) or bool(
-        (pr.get("reviewThreads") or {}).get("pageInfo", {}).get("hasNextPage"))
+    truncated = any(bool((node or {}).get("pageInfo", {}).get("hasNextPage"))
+                    for node in (contexts, pr.get("reviewThreads"), pr.get("reviews")))
 
     latest = {}
     for check in contexts.get("nodes") or []:
@@ -159,10 +160,14 @@ def report(number, s):
 
 
 def main():
-    if len(sys.argv) != 2 or not sys.argv[1].isdigit():
-        print("usage: python3 pr_readiness.py <pr-number>", file=sys.stderr)
+    args = sys.argv[1:]
+    if not args or not args[0].isdigit() or len(args) > 2:
+        print("usage: python3 pr_readiness.py <pr-number> [owner/repo]", file=sys.stderr)
         return 2
-    return report(int(sys.argv[1]), summary(fetch(int(sys.argv[1]))))
+    if len(args) == 2:
+        os.environ["GH_REPO"] = args[1]
+    number = int(args[0])
+    return report(number, summary(fetch(number)))
 
 
 if __name__ == "__main__":
