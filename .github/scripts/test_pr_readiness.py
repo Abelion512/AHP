@@ -90,6 +90,34 @@ class SummaryTest(unittest.TestCase):
         self.assertEqual(data["passed"], [])
         self.assertEqual(data["pending"], ["ci"])
 
+    def test_no_checks_is_not_ready(self):
+        data = pr_readiness.summary(payload([], [], []))
+        self.assertFalse(data["ready"])
+
+    def test_stale_conclusion_is_a_failure(self):
+        data = pr_readiness.summary(payload(
+            [{"name": "ci", "status": "COMPLETED", "conclusion": "STALE"}], [], []))
+        self.assertFalse(data["ready"])
+        self.assertEqual(data["failed"], ["ci"])
+
+    def test_latest_review_state_wins_per_author(self):
+        pr = payload([{"name": "ci", "status": "COMPLETED", "conclusion": "SUCCESS"}], [], [])
+        pr["reviews"]["nodes"] = [
+            {"author": {"login": "reviewer"}, "state": "CHANGES_REQUESTED",
+             "submittedAt": "2026-01-01T00:00:00Z"},
+            {"author": {"login": "reviewer"}, "state": "APPROVED",
+             "submittedAt": "2026-01-02T00:00:00Z"},
+        ]
+        result = pr_readiness.summary(pr)
+        self.assertTrue(result["ready"])
+        self.assertEqual(result["reviews"]["CHANGES_REQUESTED"], [])
+        self.assertEqual(result["reviews"]["APPROVED"], ["reviewer"])
+
+    def test_draft_pr_is_not_ready(self):
+        pr = payload([{"name": "ci", "status": "COMPLETED", "conclusion": "SUCCESS"}], [], [])
+        pr["isDraft"] = True
+        self.assertFalse(pr_readiness.summary(pr)["ready"])
+
 
 if __name__ == "__main__":
     unittest.main()
