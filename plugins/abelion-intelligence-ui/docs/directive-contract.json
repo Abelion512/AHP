@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "directive": "ui",
+  "placement": "alone-on-its-own-line",
+  "plugin_id": "abelion-intelligence-ui",
+  "common_attrs": ["version", "id"],
+  "validation": {
+    "version": "1",
+    "allowlist": true,
+    "reject_unknown_kind": true,
+    "caps": "title 80, rows 8, row_chars 60, field_value_chars 160, prompt 240"
+  },
+  "state": {
+    "owner": "plugin",
+    "key": "abelion-intelligence-ui:<version>:<id>",
+    "persisted": ["wizard.done"],
+    "not_persisted": ["form.values"]
+  },
+  "events": {
+    "bridge": "host.composer.submit(focusedSessionId, text)",
+    "fail_closed": true
+  },
+  "kinds": {
+    "wizard": {
+      "attrs": ["title", "steps"],
+      "description": "Numbered steps with progress and Bantu/Sudah controls."
+    },
+    "status": {
+      "attrs": ["title", "items"],
+      "description": "One row per label:state pair, dot coloured by state."
+    },
+    "trace": {
+      "attrs": ["title", "steps"],
+      "description": "Collapsible thinking trace, maximum three nodes recommended."
+    },
+    "compare": {
+      "attrs": ["title", "left", "right", "pick"],
+      "description": "Two aligned columns; pick highlights left or right."
+    },
+    "form": {
+      "attrs": ["title", "fields", "submit"],
+      "description": "Labelled text inputs; submit sends values through the composer."
+    }
+  },
+  "limits": {
+    "title_chars": 80,
+    "row_chars": 60,
+    "rows": 8,
+    "prompt_chars": 240,
+    "field_value_chars": 160
+  },
+  "values_are_untrusted": true,
+  "secrets_allowed": false,
+  "network_allowed": false,
+  "fallback": "::preview{file=\"...\"} sandboxed HTML card"
+}
