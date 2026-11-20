@@ -50,7 +50,7 @@ E2E needs the host pin declared in `$P/e2e/host.json` for plugins with host-depe
 ## Adding a plugin
 
 - Follow [docs/PLUGIN_PLATFORM.md](docs/PLUGIN_PLATFORM.md) and [.github/plugin-docs-standard.md](.github/plugin-docs-standard.md); start from `.github/plugin-templates/` (or `python .github/scripts/scaffold_plugin.py`).
-- Add `plugins/PLUGIN_ID/` with README, AGENTS.md, docs, tests, skills, a `hermes.json` entry, and `e2e/` only when the plugin has host-dependent behavior (see `.github/plugin-templates/PLUGIN_E2E_STANDARD.md`).
+- Add `plugins/PLUGIN_ID/` with `plugin.yaml`, README, AGENTS.md, docs, tests, skills, a `hermes.json` entry, and `e2e/` only when the plugin has host-dependent behavior (see `.github/plugin-templates/PLUGIN_E2E_STANDARD.md`).
 
 ## PR rationale gate
 

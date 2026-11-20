@@ -19,7 +19,7 @@ python -m pytest "$P/tests" -q
 ```
 
 For host-dependent behavior, describe the pinned E2E command here and keep the
-pin in `PLUGIN_ID/e2e/host.json`. Do not run full E2E unless needed.
+pin in `e2e/host.json`. Do not run full E2E unless needed.
 
 ## Rules
 
