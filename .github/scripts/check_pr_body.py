@@ -5,7 +5,12 @@ import re
 SECTIONS = {
     'What changed': ('what changed', 'fungsi apa yang dibawa pr ini?'),
     'Why merge this now': ('why merge this now', 'kenapa harus saya merge?'),
+    'Changes': ('changes', 'perubahan'),
+    'Before / after': ('before / after', 'sebelum / sesudah'),
+    'How it works': ('how it works', 'cara kerja', 'bagaimana cara kerjanya'),
     'Verification': ('verification', 'bukti verifikasi'),
+    'Trade-off': ('trade-off', 'tradeoff', 'kekurangan'),
+    'Checklist': ('checklist', 'daftar periksa'),
 }
 PLACEHOLDERS = {'todo', 'tbd', 'tba', 'n/a', 'na', 'none', 'placeholder',
                 'xxx', 'fixme', 'wip', 'coming soon', 'tbc', 'fixes', 'later', 'null', 'empty'}
@@ -22,7 +27,9 @@ def substantive(text):
     for line in text.splitlines():
         if re.match(r'^\s*\|?(?:\s*:?-+:?\s*\|)+\s*$', line):
             continue
-        line = re.sub(r'^\s*[-*]\s+\[[ xX]\]\s*', '', line)
+        if re.match(r'^\s*[-*]\s+\[\s*\]\s*', line):
+            continue
+        line = re.sub(r'^\s*[-*]\s+\[[xX]\]\s*', '', line)
         words = re.findall(r'[^\W_]+', line.casefold(), re.UNICODE)
         words = [w for w in words if w not in PLACEHOLDERS]
         if words not in (['check', 'result', 'label'], ['before', 'this', 'pr']):

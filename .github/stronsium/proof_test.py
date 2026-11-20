@@ -45,7 +45,7 @@ CONTEXT={'pr':1,'sha':HEAD,'base':BASE,
 
 def fixture():
  log='one independently selected assertion passed\n'
- return {'version':1,'repository':'Abelion512/abelion-hermes-plugins',
+ return {'version':1,'repository':'Abelion512/Stellarium',
  'producer':{'run_id':10,'attempt':1,'head_sha':WORKFLOW,'closure_sha256':CLOSURE,'test_definition_sha256':TEST_HASH},
  'context_sha256':digest(CONTEXT),'scope':{'classification':'P4_python_ast_equivalent',
  'ast_equivalent_only':True,'coverage_complete':True,'reasons':['Synthetic offline fixture, not production approval']},
@@ -69,7 +69,7 @@ def archive(record=None, name='proof.json', mode=None, extra=False, payload=None
 class ProofTest(unittest.TestCase):
  def setUp(self):
   self.policy=ProducerPolicy(7,'.github/workflows/proof.yml',CLOSURE,TEST_HASH,('fixed-regression',),(777,),'trusted-proof')
-  self.run={'id':10,'run_attempt':1,'repository':{'full_name':'Abelion512/abelion-hermes-plugins'},
+  self.run={'id':10,'run_attempt':1,'repository':{'full_name':'Abelion512/Stellarium'},
    'workflow_id':7,'actor':{'id':777},'triggering_actor':{'id':777},'head_branch':'trusted-proof','path':'.github/workflows/proof.yml','head_sha':WORKFLOW,
    'event':'workflow_dispatch','status':'completed','conclusion':'success'}
   self.artifact={'id':11,'expired':False,'workflow_run':{'id':10,'head_sha':WORKFLOW}}

@@ -1,0 +1,252 @@
+# Real host E2E. Kept out of ci.yml so this job runs only on pull_request and
+# push, never on schedule or workflow_dispatch. Those two events can write the
+# default-branch cache scope, and this job executes code from a host ref chosen
+# by repository data. Needs a matrix job of its own because the pin differs per
+# plugin.
+name: e2e
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}-${{ github.run_attempt }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Real host E2E: every e2e suite declares its pinned host in e2e/host.json.
+  # Group plugins by host so one matrix job checks out and verifies that exact
+  # commit, then runs only the suites that declared it.
+  e2e-detect:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.find.outputs.matrix }}
+      relevant: ${{ steps.find.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: find
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          matrix="$(python .github/scripts/e2e_matrix.py .)"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "e2e matrix: $matrix"
+          # Docs, Markdown and image changes cannot alter host behavior. Skip the
+          # heavy job for them, but never skip when there is no comparable base.
+          base=""
+          [ "$EVENT" = pull_request ] && base="$PR_BASE"
+          [ "$EVENT" = push ] && base="$PUSH_BEFORE"
+          relevant=1
+          if [ -n "$base" ] && ! echo "$base" | grep -qE '^0+$' && git cat-file -e "$base^{commit}" 2>/dev/null; then
+            relevant=0
+            while IFS= read -r f; do
+              [ -z "$f" ] && continue
+              case "$f" in
+                *.md|*.mdx|docs/*|*.png|*.jpg|*.jpeg|*.gif|*.svg|*.webp) continue;;
+              esac
+              relevant=1
+              break
+            done <<< "$(git diff --name-only "$base" HEAD)"
+          fi
+          echo "relevant=$relevant" >> "$GITHUB_OUTPUT"
+
+  e2e:
+    needs: e2e-detect
+    if: needs.e2e-detect.outputs.relevant == '1' && needs.e2e-detect.outputs.matrix != '[]'
+    name: Real Hermes E2E (${{ matrix.repository }}@${{ matrix.ref }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.e2e-detect.outputs.matrix) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    env:
+      REQUIRE_HERMES_E2E: "1"
+      HERMES_EXPECTED_COMMIT: ${{ matrix.ref }}
+      E2E_PATHS: ${{ matrix.paths }}
+      E2E_LABEL: ${{ matrix.repository }}@${{ matrix.ref }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Checkout pinned Hermes core
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ matrix.repository }}
+          ref: ${{ matrix.ref }}
+          path: hermes-core
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.14"
+          cache: "pip"
+          # Pinned pip packages live in this workflow; plugin deps in plugin.yaml.
+          cache-dependency-path: |
+            .github/workflows/e2e.yml
+            plugins/**/plugin.yaml
+            plugins/**/plugin-requirements.txt
+            plugins/**/requirements*.txt
+      # Verify the external lockfile exists at the pinned Hermes ref before caching.
+      - name: verify hermes-core npm lockfile
+        run: test -f hermes-core/package-lock.json
+      # Node 26 satisfies Hermes' declared runtime range; pin the action to its reviewed commit.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: "26"
+          cache: "npm"
+          # hermes-core is checked out two steps earlier at a pinned ref; lockfile must exist there.
+          # Later puppeteer-core install (npm install --prefix "$E2E_NODE") is not covered by this cache.
+          cache-dependency-path: hermes-core/package-lock.json
+      - name: Prepare apt cache directory
+        run: sudo mkdir -p /var/cache/apt/archives && sudo chown -R "$USER:$USER" /var/cache/apt/archives
+      # Version-keyed caches only: the package versions are pinned in this file, so a
+      # hit cannot serve a different Chrome build or apt package set than the code asks for.
+      - name: Cache apt packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-e2e-${{ hashFiles('.github/workflows/e2e.yml') }}
+      - name: Cache Chrome for Testing
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ${{ runner.temp }}/chrome-for-testing-142.0.7444.175.zip
+            ${{ runner.temp }}/chrome-for-testing-142.0.7444.175
+          key: chrome-for-testing-142.0.7444.175-${{ runner.os }}
+      - name: Install host dependencies for E2E
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends tigervnc-standalone-server xdotool xfce4-panel xfwm4 xfdesktop4 xfce4-settings xfce4-terminal dbus-x11 x11-xserver-utils x11-utils x11-xkb-utils xauth fonts-dejavu-core
+          if ! command -v Xvnc >/dev/null 2>&1; then
+            xvnc="$(command -v Xtigervnc || true)"
+            test -n "$xvnc" || { echo "Neither Xvnc nor Xtigervnc is available"; exit 1; }
+            sudo ln -s "$xvnc" /usr/local/bin/Xvnc
+          fi
+          command -v Xvnc
+          command -v xdotool
+          command -v xfce4-terminal
+          command -v xfwm4
+          command -v xfce4-panel
+          command -v xfdesktop
+          command -v xfsettingsd
+          command -v xdpyinfo
+          command -v xprop
+      # apt writes archives as root; the cache save step runs as the runner user.
+      - name: Fix apt cache ownership
+        if: always()
+        run: sudo chown -R "$USER:$USER" /var/cache/apt/archives
+      - name: Install pinned Hermes source and E2E dependencies
+        run: |
+          # No pip self-upgrade: it is unpinned and the runner pip is new enough.
+          # Use Hermes' own uv resolver so its [tool.uv] Pillow 13 override is honored.
+          # pip install -e fails here: browser-harness 0.1.13 pins Pillow 12.3.0.
+          python -m pip install --only-binary ':all:' uv==0.13.5
+          uv sync --project ./hermes-core --no-dev --locked --no-build
+          uv pip install --python "$GITHUB_WORKSPACE/hermes-core/.venv/bin/python" pytest==9.1.1
+          # The real-host harness copies plugin directories directly into a disposable profile,
+          # bypassing Hermes' normal plugin installer. Install declared dependencies for active
+          # catalog plugins into the same pinned Hermes environment before loading their APIs.
+          "$GITHUB_WORKSPACE/hermes-core/.venv/bin/python" - <<'PY'
+          import json, os, subprocess, sys
+          from pathlib import Path
+          import hermes_yaml as yaml
+
+          root = Path(os.environ["GITHUB_WORKSPACE"])
+          catalog = json.loads((root / "hermes.json").read_text(encoding="utf-8"))
+          dependencies = []
+          for plugin in catalog.get("plugins", []):
+              path = root / plugin["path"] / "plugin.yaml"
+              if not path.is_file():
+                  continue
+              with path.open(encoding="utf-8") as handle:
+                  manifest = yaml.safe_load(handle) or {}
+              declared = manifest.get("python_dependencies", [])
+              if not isinstance(declared, list) or not all(isinstance(item, str) and item.strip() for item in declared):
+                  raise SystemExit(f"Invalid python_dependencies in {path}")
+              dependencies.extend(declared)
+          dependencies = list(dict.fromkeys(dependencies))
+          if dependencies:
+              subprocess.run(["uv", "pip", "install", "--python", sys.executable, *dependencies], check=True)
+          PY
+          echo "HERMES_PYTHON=$GITHUB_WORKSPACE/hermes-core/.venv/bin/python" >> "$GITHUB_ENV"
+          # Dashboard's --skip-build mode requires the matching, fresh web_dist in Hermes core.
+          (cd hermes-core && npm ci --workspace web --ignore-scripts && npm run build -w web)
+          # Use the exact Chrome for Testing build paired with Puppeteer 24.31.0.
+          # Install puppeteer-core only; browser download/install scripts are not needed.
+          E2E_NODE="$RUNNER_TEMP/e2e-node"
+          mkdir -p "$E2E_NODE"
+          printf '%s' '{"private":true,"name":"hermes-plugin-e2e-tools"}' > "$E2E_NODE/package.json"
+          npm install --prefix "$E2E_NODE" --no-audit --no-fund puppeteer-core@24.31.0
+          CHROME_FOR_TESTING_VERSION="142.0.7444.175"
+          CHROME_ZIP="$RUNNER_TEMP/chrome-for-testing-${CHROME_FOR_TESTING_VERSION}.zip"
+          CHROME_ROOT="$RUNNER_TEMP/chrome-for-testing-${CHROME_FOR_TESTING_VERSION}"
+          # A cache hit skips both the download and the extract; a miss still verifies
+          # the pinned checksum before anything is unpacked.
+          if [ ! -f "$CHROME_ZIP" ]; then
+            curl --proto '=https' --proto-redir '=https' -fsSL "https://storage.googleapis.com/chrome-for-testing-public/${CHROME_FOR_TESTING_VERSION}/linux64/chrome-linux64.zip" -o "$CHROME_ZIP"
+            echo "855d228f4918b9e21b059a3ab6785a2217489dc570d220d73c4fa667c83b4582  $CHROME_ZIP" | sha256sum -c -
+          fi
+          if [ ! -x "$CHROME_ROOT/chrome-linux64/chrome" ]; then
+            rm -rf "$CHROME_ROOT"
+            mkdir -p "$CHROME_ROOT"
+            unzip -q "$CHROME_ZIP" -d "$CHROME_ROOT"
+          fi
+          chrome="$CHROME_ROOT/chrome-linux64/chrome"
+          test -x "$chrome"
+          export NODE_PATH="$E2E_NODE/node_modules"
+          node -e "require('puppeteer-core')"
+          echo "NODE_PATH=$E2E_NODE/node_modules" >> "$GITHUB_ENV"
+      - name: Verify exact host revision
+        run: |
+          actual="$(git -C hermes-core rev-parse HEAD)"
+          test "$actual" = "$HERMES_EXPECTED_COMMIT"
+          "$HERMES_PYTHON" - <<'PY'
+          import os, subprocess
+          expected = os.environ["HERMES_EXPECTED_COMMIT"]
+          import hermes_cli
+          source_root = os.path.dirname(os.path.dirname(hermes_cli.__file__))
+          actual = subprocess.check_output(["git", "-C", source_root, "rev-parse", "HEAD"], text=True).strip()
+          print(f"Hermes import source: {source_root}")
+          print(f"Hermes core HEAD: {actual}")
+          assert actual == expected, f"imported Hermes source mismatch: {actual} != {expected}"
+          from hermes_cli.observability.shared_metrics_consent import OFFER_VERSION
+          print(f"Hermes host probe: OFFER_VERSION={OFFER_VERSION}")
+          PY
+          node -e "require('puppeteer-core')"
+      - name: Run declared real-host end-to-end tests
+        run: |
+          read -r -a e2e_paths <<< "$E2E_PATHS"
+          "$HERMES_PYTHON" -m pytest "${e2e_paths[@]}" -q -rs --junitxml="$RUNNER_TEMP/real-host-e2e.xml"
+      - name: Real-host E2E summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          report = Path(os.environ["RUNNER_TEMP"]) / "real-host-e2e.xml"
+          if not report.is_file():
+              line = "- Real-host E2E: JUnit report unavailable; inspect the E2E step log."
+          else:
+              root = ET.parse(report).getroot()
+              suites = [root] if root.tag == "testsuite" else root.findall(".//testsuite")
+              counts = {name: sum(int(suite.attrib.get(name, 0)) for suite in suites)
+                        for name in ("tests", "failures", "errors", "skipped")}
+              line = (f"- **Real-host E2E ({os.environ['E2E_LABEL']})**: {counts['tests']} tests, "
+                      f"{counts['failures']} failures, {counts['errors']} errors, "
+                      f"{counts['skipped']} skipped.")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write(line + "\n")
+          PY

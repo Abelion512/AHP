@@ -2,10 +2,14 @@
 
 Use this when adding a plugin folder that will live under `plugins/<id>/` and be shipped by this monorepo. Adapt the names; do not leave obvious placeholders like `<plugin>` in the final commit.
 
+Start with `python .github/scripts/scaffold_plugin.py <Name> --description "..."` from the repo root. It creates the folder skeleton, adds the `hermes.json` entry and the README row, and refuses names not listed in `docs/title-reference.md`. Fill every generated placeholder before opening the PR; the script does not make a plugin complete.
+
 ## 1. Decide the stable identifier first
 
+Pick the plugin name from `docs/title-reference.md` (Stellarium is the full celestial pool, not only the Milky Way; Elements and Light & Time remain valid). Name the chosen family in the PR body. Do not invent a name outside those families.
+
 - Folder: `plugins/<stable-id>/`
-- Hermes plugin `name` in `plugin.yaml`: the installed plugin name
+- Hermes plugin `name` in `plugin.yaml`: exactly the lowercase stable id, identical to the folder name (`_check_manifest` rejects a mismatch). For a plugin with a desktop entry, the title-cased reference word is the visible name set in that entry; plugins without one have no documented visible-name source in `docs/title-reference.md`, so check the host before claiming one.
 - Monorepo public ID used by `hermes.json`, `update-plugins.sh`, README, labeler: pick one stable token and reuse it everywhere
 
 Do not rename a plugin's public identity later just because the internal folder layout changed.
@@ -28,6 +32,7 @@ plugins/<id>/
 │   └── <first behavior area>.py
 └── e2e/
     ├── README.md
+    ├── host.json          # pinned repository + full commit SHA for E2E
     ├── conftest.py
     └── <first real-host behavior>.py
 ```
@@ -39,7 +44,7 @@ A plugin folder without the doc trio plus at least one test layer is incomplete,
 Keep it honest and minimal. If the plugin has no Python deps, do not add an empty deps list just to look complete.
 
 ```yaml
-name: <installed plugin name>
+name: <stable-id>
 description: "<one line.>"
 version: <sem-like release label>
 author: Abelion
@@ -75,7 +80,6 @@ If the plugin refuses legacy hosts, say so explicitly and raise/return in a way 
 Update in the same change:
 
 - `hermes.json` → add to `plugins[]`
-- `update-plugins.sh` → add to the sync list
 - Root `README.md` → add a row to the active plugin table
 - `.github/labeler.yml` → add the plugin label(s)
 - `.github/task-templates/README.md` → mention the new plugin only if it changes the repeating-task shape
@@ -91,6 +95,7 @@ If the plugin bundles third-party viewer/runtime code, also add `docs/VENDOR.md`
 - One unit/regression area in `tests/` that exercises the plugin's own logic without a real Hermes host.
 - One real-host E2E area in `e2e/` with synthetic data and a disposable profile.
 - `e2e/README.md` describing the CI contract and limits.
+- `e2e/host.json` with the exact host repository and full commit SHA. CI groups suites by this file, checks out that commit, and fails if it is missing or not a full SHA.
 
 Do not claim an E2E proves something it only skips.
 
@@ -106,7 +111,11 @@ Do not claim an E2E proves something it only skips.
 - Secret scan: the repo-level `secret-scan` job already covers the whole tree; do not add per-plugin secret logic that weakens it.
 - If the plugin needs extra CI shape, add that shape in the shared workflow, not as a one-off script that only the author remembers.
 
-## 9. Default limits to state early
+## 9. PR body follows the repository template
+
+Open the PR with `.github/PULL_REQUEST_TEMPLATE.md` unchanged: all eight sections, one real image in "How it works", and command + result labels in "Verification". The `pr-body-check` workflow requires all eight sections to contain substantive text, including `Before / after`. Keep every section even for docs-only changes; a short accurate row is enough. The image and command + result labels are authoring requirements a reviewer checks, not CI-enforced gates. Fill the checklist; do not delete sections.
+
+## 10. Default limits to state early
 
 - What the plugin does not cover
 - What "required" means, if anything, and which host contract it needs

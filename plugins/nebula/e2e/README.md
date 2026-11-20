@@ -4,7 +4,7 @@ These tests start a real Hermes process with Privacy Guard enabled and assert wh
 
 ## CI contract
 
-CI runs this suite against `Abelion512/hermes-4gent` pinned to `9a85916c87d56c2ca00b02fad8918f93ef1816e9`. The harness verifies the imported source's full Git HEAD. Missing Hermes or a different revision fails the required run rather than silently skipping it.
+CI reads the pinned host from [`host.json`](host.json) and checks out that repository and commit. The harness verifies the imported source's full Git HEAD. Missing Hermes or a different revision fails the required run rather than silently skipping it.
 
 This is compatibility evidence for that exact fork commit. It does not certify stock Hermes, all secret formats, every outbound path, or a real provider.
 
@@ -17,7 +17,7 @@ This is compatibility evidence for that exact fork commit. It does not certify s
 - `support/loopback_provider.py`: server fixture that records local test traffic.
 - `../docs/USAGE.md`: behavior contract and limits.
 
-The shared process/profile harness lives under `.github/e2e_support/` so both plugin E2E suites use one core-verification implementation.
+The shared process/profile harness lives under `.github/e2e_support/` so every plugin E2E suite uses one core-verification implementation.
 
 ## Run locally
 

@@ -4,6 +4,7 @@ No production classifier/test policy is shipped. No workflow, network client,
 subprocess, candidate import or candidate checkout is created here. This runner
 is not a sandbox for hostile Python; reviewed check code is trusted application.
 """
+import builtins
 import copy
 from dataclasses import dataclass
 import hashlib
@@ -11,9 +12,59 @@ import io
 import json
 import pathlib
 import stat
+import types
 import zipfile
 from proof_context import canonical_bytes,normalize_context,context_digest
 from proof_evidence import ProducerPolicy,ProofVerifier,REPO,MAX_BYTES,SHA,HASH
+
+_PERMITTED_BUILTINS=('len','str','ValueError','sorted','all','any','tuple','list','dict','set','range','enumerate','zip','int','bool','isinstance','Exception','min','max','sum')
+
+def _code_fingerprint(code):
+    """Structural identity of a code object, ignoring file name and line numbers.
+
+    Defaults and closure cell values are runtime state, not source structure, so
+    they cannot be derived from the verified file. Registration stays trusted
+    wiring; this fingerprint only rules out a callable running code the approved
+    definition does not define.
+    """
+    constants=tuple(_code_fingerprint(c) if isinstance(c,types.CodeType) else (type(c).__name__,repr(c))
+        for c in code.co_consts)
+    return (code.co_code,constants,code.co_names,code.co_varnames,code.co_freevars,code.co_cellvars,
+        code.co_argcount,code.co_posonlyargcount,code.co_kwonlyargcount,code.co_nlocals,code.co_stacksize,
+        code.co_flags,getattr(code,'co_exceptiontable',None))
+
+def freeze_function(function):
+    """Clone a trusted function with a frozen globals snapshot and minimal builtins.
+
+    A static dispatch callable must not observe later mutations of its defining
+    module globals; the exec loader previously gave every check a fresh namespace.
+    This keeps that isolation without compiling or executing source at runtime.
+    Mutable container globals are copied, and defaults/closure/keyword defaults
+    are carried over so the clone behaves like the original.
+    """
+    if type(function) is not types.FunctionType:raise ValueError('trusted_program_missing')
+    namespace={}
+    for key,value in function.__globals__.items():
+        if key in ('__builtins__','__name__','__loader__','__spec__','__package__','__file__','__cached__'):continue
+        # Copy every non-callable, non-module, non-class value; those three keep
+        # their reference on purpose. A value that cannot be copied would stay
+        # shared with the original module, so fail closed instead of silently
+        # freezing a check that can still observe live state.
+        if not callable(value) and not isinstance(value,(types.ModuleType,type)):
+            try:value=copy.deepcopy(value)
+            except Exception as exc:raise ValueError('trusted_program_unfreezable') from exc
+        namespace[key]=value
+    namespace['__builtins__']={key:getattr(builtins,key) for key in _PERMITTED_BUILTINS}
+    namespace['__name__']='trusted_checks'
+    try:defaults=copy.deepcopy(function.__defaults__)
+    except Exception as exc:raise ValueError('trusted_program_unfreezable') from exc
+    clone=types.FunctionType(function.__code__,namespace,function.__name__,defaults,function.__closure__)
+    try:clone.__kwdefaults__=copy.deepcopy(function.__kwdefaults__)
+    except Exception as exc:raise ValueError('trusted_program_unfreezable') from exc
+    clone.__annotations__=dict(function.__annotations__)
+    clone.__doc__=function.__doc__
+    clone.__module__='trusted_checks'
+    return clone
 
 @dataclass(frozen=True)
 class FrozenProgram:
@@ -22,6 +73,9 @@ class FrozenProgram:
     # Names only. Never accept functions, module objects or caller globals.
     classifier: tuple
     checks: tuple
+    # Callables for the verified files, supplied by trusted application wiring.
+    # load() never compiles or executes file contents.
+    functions: tuple = ()
 
     def _verified(self):
         import ast
@@ -62,6 +116,14 @@ class FrozenProgram:
                         raise ValueError('definition_function_format')
                 else:raise ValueError('definition_top_level_code')
             blobs[name]=(raw,tree);manifest.append([name,got])
+        # Compile the hash-verified, policy-pinned source. Nothing is executed:
+        # the code objects only give load() a way to require that a registered
+        # callable really is the function this file defines.
+        codes={}
+        for name,(_,tree) in blobs.items():
+            module=compile(tree,str(root/name),'exec')
+            codes[name]={const.co_name:_code_fingerprint(const)
+                for const in module.co_consts if isinstance(const,types.CodeType)}
         def selected(spec):
             if (type(spec) is not tuple or len(spec)!=2 or any(type(v) is not str for v in spec)
                     or spec[0] not in blobs or not spec[1].isidentifier() or spec[1].startswith('__')):
@@ -78,25 +140,42 @@ class FrozenProgram:
             ids.add(item[0]);checks.append([item[0],*selected(item[1:])])
         definition={'files':sorted(manifest),'classifier':classifier,'checks':checks}
         digest=hashlib.sha256(json.dumps(definition,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()
-        return root,blobs,digest
+        return root,blobs,digest,codes
 
     def definition_digest(self):
         return self._verified()[2]
 
-    def load(self):
-        # Execute ONLY hash-verified trusted program bytes in fresh namespaces.
-        # No candidate bytes, loaded modules, imported globals or dispatch code.
-        # Restricted builtins reduce mistakes; this is NOT a hostile-code sandbox.
-        root,blobs,digest=self._verified()
-        import builtins
-        permitted=('len','str','ValueError','sorted','all','any','tuple','list','dict','set','range','enumerate','zip','type','int','bool','isinstance','Exception','min','max','sum')
-        modules={}
-        for name,(raw,tree) in blobs.items():
-            namespace={'__builtins__':{key:getattr(builtins,key) for key in permitted},'__name__':'trusted_checks'}
-            exec(compile(tree,str(root/name),'exec',dont_inherit=True,optimize=0),namespace,namespace)
-            modules[name]=namespace
-        classifier=modules[self.classifier[0]][self.classifier[1]]
-        checks=tuple((identifier,modules[file][function]) for identifier,file,function in self.checks)
+    def load(self, expected_digest):
+        # Resolve ONLY application-supplied callables for hash-verified files.
+        # No dynamic code execution: the caller registers the exact functions,
+        # and the manifest digest must equal the policy-pinned digest before any
+        # callable is returned.
+        _root,blobs,digest,codes=self._verified()
+        if type(expected_digest) is not str or digest!=expected_digest:
+            raise ValueError('test_definition_changed')
+        supplied=dict(self.functions)
+        def resolve(name):
+            function=supplied.get(name)
+            if (type(name) is not tuple or len(name)!=2 or type(function) is not types.FunctionType
+                    or function.__name__!=name[1]):
+                raise ValueError('trusted_program_missing')
+            # Wiring must supply freeze_function output, not a raw module function
+            # with unrestricted globals and builtins.
+            builtins_map=function.__globals__.get('__builtins__')
+            if (getattr(function,'__module__',None)!='trusted_checks'
+                    or function.__globals__.get('__name__')!='trusted_checks'
+                    or not isinstance(builtins_map,dict)
+                    or set(builtins_map)!=set(_PERMITTED_BUILTINS)
+                    or any(builtins_map[key] is not getattr(builtins,key) for key in _PERMITTED_BUILTINS)):
+                raise ValueError('trusted_program_not_frozen')
+            # Same name is not enough: the callable must be the exact code the
+            # verified file defines, so miswired wiring cannot run an unrelated
+            # check while the proof records the approved definition digest.
+            if _code_fingerprint(function.__code__)!=codes[name[0]].get(name[1]):
+                raise ValueError('trusted_program_mismatch')
+            return function
+        classifier=resolve(self.classifier)
+        checks=tuple((identifier,resolve((file,function))) for identifier,file,function in self.checks)
         return digest,classifier,checks
 
 class Assertions:
@@ -133,7 +212,7 @@ class ProofProducer:
         if type(closure_sha256) is not str or not HASH.fullmatch(closure_sha256):raise ValueError('invalid_producer_closure')
         if closure_sha256!=self.policy.closure_sha256:raise ValueError('producer_closure_not_selected')
         c=normalize_context(context);before=canonical_bytes(c)
-        definition,classifier,selected_checks=self.program.load()
+        definition,classifier,selected_checks=self.program.load(self.policy.test_definition_sha256)
         if definition!=self.policy.test_definition_sha256:raise ValueError('producer_definition_not_selected')
         if tuple(i for i,f in selected_checks)!=self.policy.required_test_ids:raise ValueError('producer_test_ids_not_selected')
         # Candidate content remains strings/maps. Never eval, import, run, or

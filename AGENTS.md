@@ -20,8 +20,9 @@ Right now there is one active plugin, **Privacy Guard (nebula)**: session-local 
   - `validation/` — historical imported adversarial matrix; legacy evidence only, not current CI passes.
 - `docs/SESSION_HISTORY.md` — plugin session notes (mask/restore discussion, test status, open items).
 - `docs/title-reference.md` — internal naming tiers; cosmic/Latin names only, no external model labels.
-- `update-plugins.sh` — syncs `plugins/nebula/` into `~/.hermes/plugins/`. Does not migrate profiles.
-- `.github/workflows/ci.yml` — syntax, unit tests, dependency audit, real-host E2E, gitleaks.
+- `update-plugins.sh` — syncs every plugin listed in `hermes.json` into `~/.hermes/plugins/`. Does not migrate profiles.
+- `.github/workflows/ci.yml` — syntax, mandatory unit tests, dependency audit, gitleaks, and the shared plugin contract.
+- `.github/workflows/e2e.yml` — per-plugin pinned-host E2E, grouped by `plugins/<id>/e2e/host.json`.
 - `.github/e2e_support/abelion_e2e_support/` — shared Hermes+E2E harness used by plugin E2E suites.
 - `.github/retired-source-recovery.md` — how to recover old Shield/tool-context/RSI source from a pinned commit.
 
@@ -43,7 +44,7 @@ Right now there is one active plugin, **Privacy Guard (nebula)**: session-local 
 
 ## Required host
 
-Mandatory privacy requires Hermes fork commit `9a85916c87d56c2ca00b02fad8918f93ef1816e9` from `Abelion512/hermes-4gent`. CI checks out that exact commit for the E2E job and verifies the imported source matches.
+Mandatory privacy requires Hermes fork commit `9a85916c87d56c2ca00b02fad8918f93ef1816e9` from `Abelion512/hermes-4gent`. The plugin declares that pin in `plugins/nebula/e2e/host.json`; CI checks out the declared commit and verifies the imported source matches.
 
 ## Local dev
 
@@ -68,7 +69,7 @@ E2E is skipped when `HERMES_PYTHON` does not point at an importable Hermes insta
 
 ### Install into a Hermes profile
 
-Use `update-plugins.sh`. It expects the repo cloned at `$HOME/.hermes/abelion-hermes-plugins` and syncs `plugins/nebula/` into `~/.hermes/plugins/`. It stops before syncing if retired plugin directories remain. It does not migrate profiles, change privacy settings, or remove old installed plugins. Follow [the migration procedure](docs/PLUGIN_MIGRATION.md) before upgrading an existing profile.
+Use `update-plugins.sh`. It expects the repo cloned at `$HOME/.hermes/abelion-hermes-plugins` and syncs every plugin listed in `hermes.json` into `~/.hermes/plugins/`. It stops before syncing if retired plugin directories remain. It does not migrate profiles, change privacy settings, or remove old installed plugins. Follow [the migration procedure](docs/PLUGIN_MIGRATION.md) before upgrading an existing profile.
 
 For a disposable test profile with required mode:
 
@@ -90,7 +91,7 @@ Restart the process and start a new session.
 - Skills are registered through native `ctx.register_skill` and `register_system_prompt_section`. Older hosts without those APIs skip them; README alone is not automatic discovery.
 - Naming theme is cosmic/Latin (`nebula`, `nova`, `aurora`, ...). No `-abelion` suffixes, no external model-tier labels.
 - Test data is synthetic/local-only. No cloud accounts, no real credentials in tests. Public-known credential shapes are tested with fake bodies and must stay masked and non-restorable.
-- Every behavior change: edit the code, update the plugin's `docs/USAGE.md` status table and/or ideas docs, and add/change the matching test and/or E2E in the same commit. A behavior is "Proven" only when its E2E passes.
+- Every behavior change: edit the code, update the plugin's `plugins/nebula/docs/USAGE.md` status table and/or ideas docs, and add/change the matching test and/or E2E in the same commit. A behavior is "Proven" only when its E2E passes.
 - Always open a GitHub PR for every change, and never merge directly to `master`/`main` yourself: even one-line fixes go through a PR with review and a green CI gate before merging. Direct pushes to the default branch are reserved for admin-only accidents (e.g., dependabot rebases).
 
 ## Security and privacy rules for agents working here
@@ -118,7 +119,7 @@ Restart the process and start a new session.
 ## If you are adding another plugin
 
 - Follow the plugin platform standard in [docs/PLUGIN_PLATFORM.md](docs/PLUGIN_PLATFORM.md) and the docs trio standard in [.github/plugin-docs-standard.md](.github/plugin-docs-standard.md).
-- Start from the repo templates under [.github/templates/](.github/templates/) so repeated work stays repeatable: plugin docs, skills, ideas/feature docs, tests, E2E, and status tables.
+- Start from the repo templates under [.github/plugin-templates/](.github/plugin-templates/) so repeated work stays repeatable: plugin docs, skills, ideas/feature docs, tests, E2E, and status tables.
 - Add it under `plugins/<id>/` with its own README, docs, tests, e2e, skills, plugin-local labels if useful, and a catalog entry in `hermes.json`.
 - Keep feature policy/UI in the plugin repo; host enforcement, lifecycle, and execution guarantees belong in the Hermes core fork.
 - Do not vendor or duplicate the `decolua/9router` router here.

@@ -5,10 +5,10 @@ Use this when a plugin is added or removed, or when the repo's label/priority ta
 ## Plugin add/remove checklist
 
 - [ ] `hermes.json` → plugins[]
-- [ ] `update-plugins.sh` → sync list
 - [ ] Root `README.md` → active plugin table
 - [ ] `.github/labeler.yml` → plugin label(s)
 - [ ] `.github/workflows/ci.yml` → only if detection/labeler/behavior changes
+- [ ] `plugins/<id>/e2e/host.json` → exact host repository and full commit SHA when the plugin has E2E
 - [ ] `.github/task-templates/` → mention the new shape only if it changes the repeating task
 
 ## Labeler discipline
