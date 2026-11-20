@@ -55,7 +55,7 @@ commit, not a mutable ref. Compare with `git grep -n "uses:" origin/main --
 ## Local equivalents
 
 ```bash
-P=plugins/<id>   # any plugin listed in hermes.json
+P=plugins/PLUGIN_ID   # replace PLUGIN_ID with the catalog id
 python -m compileall -q "$P"
 python -m pytest "$P/tests" -q
 python .github/scripts/test_dependency_floor_audit.py

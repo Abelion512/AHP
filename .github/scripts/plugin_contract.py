@@ -49,6 +49,8 @@ def _check_manifest(plugin_dir: Path, errors: list[str]) -> dict | None:
 
 
 def _check_docs(plugin_dir: Path, errors: list[str]) -> None:
+    if not (plugin_dir / "AGENTS.md").is_file():
+        errors.append(f"{plugin_dir / 'AGENTS.md'}: missing plugin guide")
     for rel in ("README.md", "docs/USAGE.md"):
         path = plugin_dir / rel
         if not path.is_file():

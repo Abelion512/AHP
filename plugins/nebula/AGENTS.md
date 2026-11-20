@@ -56,7 +56,7 @@ E2E is skipped when `HERMES_PYTHON` does not point at an importable Hermes insta
 
 ### Install into a Hermes profile
 
-Use `update-plugins.sh`. It expects the repo cloned at `$HOME/.hermes/abelion-hermes-plugins` and syncs every plugin listed in `hermes.json` into `~/.hermes/plugins/`. It stops before syncing if retired plugin directories remain. It does not migrate profiles, change privacy settings, or remove old installed plugins. Follow [the migration procedure](docs/PLUGIN_MIGRATION.md) before upgrading an existing profile.
+Use `update-plugins.sh`. It expects the repo cloned at `$HOME/.hermes/abelion-hermes-plugins` and syncs every plugin listed in `hermes.json` into `~/.hermes/plugins/`. It stops before syncing if retired plugin directories remain. It does not migrate profiles, change privacy settings, or remove old installed plugins. Follow [the migration procedure](../../docs/PLUGIN_MIGRATION.md) before upgrading an existing profile.
 
 For a disposable test profile with required mode:
 
