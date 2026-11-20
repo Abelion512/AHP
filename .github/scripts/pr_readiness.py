@@ -35,7 +35,7 @@ query($owner:String!, $name:String!, $number:Int!) {
         pageInfo { hasNextPage }
         nodes { isResolved comments(first:1) { nodes { author { login } } } }
       }
-      reviews(last:20) {
+      reviews(last:100) {
         pageInfo { hasNextPage hasPreviousPage }
         nodes { author { login } state submittedAt }
       }
