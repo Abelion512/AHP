@@ -55,8 +55,9 @@ commit, not a mutable ref. Compare with `git grep -n "uses:" origin/main --
 ## Local equivalents
 
 ```bash
-python -m compileall -q plugins/nebula
-python -m pytest plugins/nebula/tests -q
+P=plugins/<id>   # any plugin listed in hermes.json
+python -m compileall -q "$P"
+python -m pytest "$P/tests" -q
 python .github/scripts/test_dependency_floor_audit.py
 python .github/scripts/test_labeler_merge_step.py
 python .github/scripts/test_plugin_install_step.py
