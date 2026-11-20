@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 SHA = re.compile(r'[a-f0-9]{40}')
 HASH = re.compile(r'[a-f0-9]{64}')
-REPO = 'Abelion512/AHP'
+REPO = 'Abelion512/Stellarium'
 MAX_BYTES = 1_000_000
 _SEAL = object()
 
