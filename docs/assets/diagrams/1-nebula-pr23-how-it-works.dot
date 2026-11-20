@@ -1,0 +1,14 @@
+digraph nebula23 {
+ graph [rankdir=TB,bgcolor="white",pad="0.3",nodesep="0.35",ranksep="0.4",label="Nebula: bounded matching and exact change counts",labelloc=t,fontname="Helvetica",fontsize=22];
+ node [shape=box,style="rounded,filled",fillcolor="#f6f8fa",color="#d0d7de",fontname="Helvetica",fontsize=15,margin="0.22,0.15"];
+ edge [color="#57606a",fontname="Helvetica",fontsize=12];
+ input [label="Synthetic text containing labeled credentials"];
+ vendor [label="Vendor token shapes + private-key blocks\nMask matches and count replacements"];
+ name [label="Bounded field-name matcher\nAtomic name group prevents retrying shorter names\nSupported Hermes runtime: Python 3.11+",fillcolor="#dafbe1"];
+ scalar [label="Reference/code checks\nReplace recognized sensitive values only"];
+ count [label="Count each actual replacement event\nLine callback + assignment scan + CLI callback",fillcolor="#dafbe1"];
+ output [label="Return (masked text, new replacement count)\nExisting marker text is not a new change"];
+ control [label="Regression controls\nEmbedded markers must not produce 0 or negative counts\nAlready-masked output must return count 0",fillcolor="#fff8c5"];
+ input -> vendor -> name -> scalar -> count -> output;
+ count -> control [style=dashed];
+}

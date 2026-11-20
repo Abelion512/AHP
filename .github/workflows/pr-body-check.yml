@@ -1,0 +1,30 @@
+name: pr-body-check
+
+on:
+  # No paths filter: a docs-only PR still needs its rationale and verification
+  # sections validated, and a skipped workflow leaves the check pending forever.
+  pull_request:
+    types: [opened, edited, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  required-pr-sections:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Test PR body validation
+        run: python -m unittest discover -s .github/tests -p test_pr_body_check.py
+      - name: Require substantive PR rationale and verification
+        env:
+          PR_BODY: ${{ github.event.pull_request.body || '' }}
+        run: python .github/scripts/check_pr_body.py
+      - name: Test non-empty PR check
+        run: python -m unittest discover -s .github/tests -p test_nonempty_pr.py
+      - name: Require non-empty PR
+        env:
+          PR_CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
+        run: python .github/scripts/check_nonempty_pr.py

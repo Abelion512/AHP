@@ -60,7 +60,7 @@ iframe, not native).
 
 ```sh
 python3 -m unittest discover -s plugins/abelion_intelligence_ui/tests -v
-cd plugins/abelion_intelligence_ui/desktop && cp plugin.js plugin.mjs && node --check plugin.mjs
+cd plugins/abelion_intelligence_ui/desktop && node --check plugin.js
 ```
 
 Live WebApp evidence is recorded in `docs/directive-contract.json` and
