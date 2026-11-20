@@ -17,7 +17,7 @@ that points at a workflow not yet on `main` reads as broken until that PR merges
 
 1. Bump `hermes.json` `version` in a normal PR and merge it.
 2. Create an annotated tag from the merged `main` commit:
-   `git tag -a v1.0.1 -m "AHP v1.0.1" && git push origin v1.0.1`.
+   `git tag -a v1.0.1 -m "Stellarium v1.0.1" && git push origin v1.0.1`.
 3. `.github/workflows/release.yml` runs on the tag, rejects a tag that does not
    match `hermes.json`, and then creates a GitHub Release with generated notes.
 

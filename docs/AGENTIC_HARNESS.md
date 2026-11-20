@@ -15,7 +15,7 @@
 | CLAUDE.md | AGENTS.md (portable, cwd-only) / .hermes.md (hierarchical, walks to git root) | AGENTS.md ada; .hermes.md belum ada — ditambahkan oleh adopsi ini |
 | Hooks | Shell hooks: pre_llm_call, pre_tool_call, post_tool_call, post_llm_call, pre_approval_request | Aktif, tapi hanya notify_9r.py (working/done/blocked). Belum ada lint/test/self-improving hook — script contoh ditambahkan di docs/hooks-examples/ |
 | Skills | Hermes skills (progressive disclosure, auto-load by relevance) + ctx.register_skill untuk plugin | 169 skills installed di ~/.hermes/skills; beberapa disabled relevan (code-simplification, incremental-implementation). 3 skill baru ditambahkan oleh adopsi ini |
-| Plugins | hermes.json catalog + plugins/<id>/plugin.yaml + update-plugins.sh | nebula aktif. Pola platform di docs/PLUGIN_PLATFORM.md + templates di .github/templates/ |
+| Plugins | hermes.json catalog + plugins/<id>/plugin.yaml + update-plugins.sh | nebula aktif. Pola platform di docs/PLUGIN_PLATFORM.md + templates di .github/plugin-templates/ |
 | MCP servers | hermes mcp (context7, fireflies, twelve-data enabled; lainnya disabled) | context7 aktif = contoh structured docs search. Aktifkan lainnya on-demand, bukan semua |
 | LSP | hermes lsp (enabled true; pyright, typescript, rust-analyzer, bash, yaml installed) | Aktif. shellcheck missing = diagnostics bash kosong (warning LSP). |
 | Subagents | delegate_task + kanban + hermes -w / --worktree + tmux multi-instance | delegate_task toolset enabled di CLI. Roster subagent didokumentasikan di bawah; belum ada definisi formal .claude/agents, diganti delegate_task goal/context |
@@ -64,7 +64,7 @@ Pendaftaran: tambahkan ke ~/.hermes/config.yaml hooks.<event> dengan hermes conf
 
 - Satu plugin satu folder plugins/<id>/, satu entri hermes.json, docs trio (README, docs/USAGE.md, skills), tests + e2e bila host behaviour penting.
 - Distribusi via managed marketplace mental model: update-plugins.sh sync ke ~/.hermes/plugins/; jangan distribusikan setup tribal hanya di chat.
-- Template sudah ada di .github/templates/ (PLUGIN_E2E_STANDARD, PLUGIN_SKILLS, PLUGIN_STATUS_TABLE, PLUGIN_TEST_STANDARD).
+- Template sudah ada di .github/plugin-templates/ (PLUGIN_E2E_STANDARD, PLUGIN_SKILLS, PLUGIN_STATUS_TABLE, PLUGIN_TEST_STANDARD).
 
 ## 5. MCP — perluasan terstruktur
 

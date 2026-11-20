@@ -26,6 +26,7 @@ documentation:
       - any-glob-to-any-file:
           - ".github/plugin-docs-standard.md"
           - ".github/task-templates/**"
+          - ".github/plugin-templates/**"
           - "plugins/**/docs/**"
           - "plugins/**/README.md"
           - "plugins/**/e2e/README.md"
@@ -35,6 +36,7 @@ repo-tools:
   - changed-files:
       - any-glob-to-any-file:
           - ".github/task-templates/**"
+          - ".github/plugin-templates/**"
           - ".github/triage-priority.md"
           - ".github/labeler.yml"
           - ".github/plugin-docs-standard.md"
