@@ -53,6 +53,39 @@ class MergeGateTest(unittest.TestCase):
         self.assertTrue(ok, reasons)
         self.assertEqual(reasons, [])
 
+    def test_run_re_accepts_singular_and_plural_job_paths(self):
+        for url in ("/actions/runs/123/job/456", "/actions/runs/123/jobs/456"):
+            with self.subTest(url=url):
+                match = merge_gate.RUN_RE.search(url)
+                self.assertIsNotNone(match)
+                self.assertEqual(match.group(1), "123")
+
+    def test_plural_jobs_details_url_is_trusted(self):
+        checks, threads, reviews = green_inputs()
+        checks[0]["details_url"] = "https://github.com/Abelion512/Stellarium/actions/runs/1/jobs/2"
+        ok, reasons = evaluate(pr(), checks, threads, reviews, workflows=workflows_for(checks))
+        self.assertTrue(ok, reasons)
+
+    def test_missing_author_login_blocks(self):
+        checks, threads, reviews = green_inputs()
+        for user in ({"login": None}, {}, None):
+            with self.subTest(user=user):
+                ok, reasons = evaluate(pr(user=user), checks, threads, reviews,
+                                       workflows=workflows_for(checks))
+                self.assertFalse(ok)
+                self.assertTrue(any("author" in reason for reason in reasons))
+
+    def test_skipped_review_app_checks_are_allowed(self):
+        checks, threads, reviews = green_inputs()
+        for name in merge_gate.REVIEW_APP_CHECKS:
+            item = next((entry for entry in checks if entry["name"] == name), None)
+            if item is None:
+                checks.append(check(name, conclusion="skipped", slug="socketdev", run=len(checks) + 1))
+            else:
+                item["conclusion"] = "skipped"
+        ok, reasons = evaluate(pr(), checks, threads, reviews, workflows=workflows_for(checks))
+        self.assertTrue(ok, reasons)
+
     def test_failed_pending_and_untrusted_checks_block(self):
         checks, threads, reviews = green_inputs()
         checks[0]["conclusion"] = "failure"

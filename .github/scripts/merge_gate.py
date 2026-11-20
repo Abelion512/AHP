@@ -19,14 +19,18 @@ import urllib.request
 from pathlib import Path
 
 CHECK_NAME = "merge-gate"
-# Only a real success counts: a skipped security/quality check must not pass
-# the gate. Kept strict so a failed reevaluation cannot leave a stale green.
+# Workflow checks need a real success: a skipped security/quality check must
+# not pass. Kept strict so a failed reevaluation cannot leave a stale green.
+# External review apps may skip when they find no findings.
 ALLOWED_CONCLUSIONS = frozenset({"success"})
+REVIEW_APP_CHECKS = frozenset({
+    "Sourcery review", "Kilo Code Review", "SonarCloud Code Analysis", "Socket",
+})
 ENFORCED_BASE = "main"
 API_ROOT = "https://api.github.com"
 REPO_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 SHA_RE = re.compile(r"^[a-f0-9]{40}$")
-RUN_RE = re.compile(r"/actions/runs/(\d+)/job/")
+RUN_RE = re.compile(r"/actions/runs/(\d+)/jobs?/")
 
 CI = ".github/workflows/ci.yml"
 EXPECTED_SOURCES = {
@@ -249,6 +253,15 @@ def is_bot(user: dict) -> bool:
     return user.get("type") == "Bot" or str(user.get("login") or "").endswith("[bot]")
 
 
+def conclusion_allowed(check: dict) -> bool:
+    """Workflow checks need success; review apps may skip when they find nothing."""
+    if check.get("conclusion") in ALLOWED_CONCLUSIONS:
+        return True
+    name = str(check.get("name") or "")
+    return (check.get("conclusion") == "skipped" and name in REVIEW_APP_CHECKS
+            and bool((check.get("app") or {}).get("slug")))
+
+
 def evaluate(pr: dict, checks: list[dict], threads: list[dict], reviews: list[dict],
              workflows: dict[str, str] | None = None) -> tuple[bool, list[str]]:
     reasons: list[str] = []
@@ -267,7 +280,7 @@ def evaluate(pr: dict, checks: list[dict], threads: list[dict], reviews: list[di
         name = str(check.get("name") or "unnamed")
         status = check.get("status")
         conclusion = check.get("conclusion")
-        if status != "completed" or conclusion not in ALLOWED_CONCLUSIONS:
+        if status != "completed" or not conclusion_allowed(check):
             reasons.append(f"check {name}: status={status}, conclusion={conclusion}")
 
     for expected in EXPECTED_SOURCES:
@@ -275,7 +288,7 @@ def evaluate(pr: dict, checks: list[dict], threads: list[dict], reviews: list[di
         if not matches:
             reasons.append("missing check: " + expected)
         elif not any(item.get("status") == "completed"
-                     and item.get("conclusion") in ALLOWED_CONCLUSIONS
+                     and conclusion_allowed(item)
                      and check_trusted(item, trusted_cache, workflows) for item in matches):
             reasons.append("untrusted or unsuccessful check: " + expected)
 
@@ -284,6 +297,9 @@ def evaluate(pr: dict, checks: list[dict], threads: list[dict], reviews: list[di
             reasons.append("unresolved review thread: " + str(thread.get("path") or thread.get("id")))
 
     author = (pr.get("user") or {}).get("login")
+    if not isinstance(author, str) or not author:
+        # Without the author login the self-approval exclusion cannot work.
+        reasons.append("missing PR author login")
     states = latest_review_states(reviews)
     for login, (state, _commit) in states.items():
         if state == "CHANGES_REQUESTED":
