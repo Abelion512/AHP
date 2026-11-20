@@ -18,7 +18,7 @@ python -m unittest discover -s "$P/tests"
 node --check "$P/desktop/plugin.js"
 ```
 
-The live WebApp smoke is documented at `e2e/README.md`; it requires a running
+The live WebApp smoke is described in `docs/CORE_COMPARISON.md` and `docs/USAGE.md`; it requires a running
 WebApp with CDP and is not a CI gate. There is no per-plugin `e2e/host.json`
 because the plugin has no host-dependent required behavior.
 
