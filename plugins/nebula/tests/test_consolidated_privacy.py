@@ -13,12 +13,13 @@ PLUGINS_ROOT=REPO_ROOT/'plugins'
 
 def test_exactly_one_active_plugin_manifest_and_catalog_entry():
     manifests=list(PLUGINS_ROOT.rglob('plugin.yaml'))
-    assert len(manifests)==1
+    assert manifests
     catalog=json.loads((REPO_ROOT/'hermes.json').read_text())['plugins']
-    assert len(catalog)==1
-    assert {p['id'] for p in catalog}=={'nebula'}
-    assert 'output-redact-abelion' not in {p['id'] for p in catalog}
-    assert 'nebula' in {p['id'] for p in catalog}
+    ids={p['id'] for p in catalog}
+    assert 'nebula' in ids
+    assert 'output-redact-abelion' not in ids
+    assert 'abelion-intelligence-ui' not in ids
+    assert ids=={p.parent.name for p in manifests}
     assert not (PLUGINS_ROOT/'output_redact_abelion').exists()
     assert not (REPO_ROOT/'model-providers'/'9router').exists()
 

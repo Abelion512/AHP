@@ -27,7 +27,7 @@ fi
 # A source rename does not uninstall an older copy from a user's Hermes profile.
 # Never delete, overwrite, or silently leave a retired plugin discoverable beside
 # the consolidated plugin. Require an explicit, backed-up native migration first.
-LEGACY_PLUGIN_IDS=(pii_mask_abelion screen output-redact-abelion)
+LEGACY_PLUGIN_IDS=(pii_mask_abelion screen output-redact-abelion abelion-intelligence-ui)
 found_legacy=()
 for id in "${LEGACY_PLUGIN_IDS[@]}"; do
   if [ -d "$PLUGIN_DIR/$id" ]; then
@@ -49,7 +49,9 @@ Migration required:
   2. Back up the active Hermes profile configuration and the nebula plus listed
      legacy plugin directories.
   3. Use the installed Hermes version's native plugin management to disable the
-     listed legacy plugin IDs. Confirm that only `nebula` owns Privacy Guard.
+     listed legacy plugin IDs. Confirm that no retired ID stays enabled and that
+     `nebula` remains the only Privacy Guard owner. For `abelion-intelligence-ui`,
+     the replacement is the `aero` plugin; do not enable it before that plugin lands.
   4. Move the disabled legacy directories outside ~/.hermes/plugins/ (for
      example, into ~/.hermes/plugin-quarantine/<timestamp>/). Keep them for
      rollback; do not permanently delete them yet.
@@ -65,6 +67,16 @@ fi
 echo "Pulling latest plugins..."
 cd "$REPO"
 git pull --ff-only
+
+# A native plugin manager may recreate a retired directory between the first
+# scan and the sync. Recheck before touching any installed plugin.
+for id in "${LEGACY_PLUGIN_IDS[@]}"; do
+  if [ -d "$PLUGIN_DIR/$id" ]; then
+    printf 'Retired plugin %s reappeared before sync; aborting.\n' "$id" >&2
+    printf 'Disable and quarantine it using docs/PLUGIN_MIGRATION.md first.\n' >&2
+    exit 2
+  fi
+done
 
 echo "Syncing active plugins to $PLUGIN_DIR..."
 

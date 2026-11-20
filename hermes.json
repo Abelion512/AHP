@@ -1,6 +1,6 @@
 {
   "name": "abelion-hermes-plugins",
-  "description": "Privacy Guard for Hermes Agent",
+  "description": "Abelion's Hermes Agent plugins; see plugins/<id> for each plugin",
   "version": "1.0.0",
   "author": "Abelion",
   "plugins": [

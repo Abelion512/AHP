@@ -1,0 +1,13 @@
+digraph G {
+ graph [rankdir=LR,bgcolor="white",pad="0.3",nodesep="0.4",ranksep="0.5",label="Root AGENTS.md routes; each plugin owns its rules",labelloc=t,fontsize=18,fontname="DejaVu Sans"];
+ node [shape=box,style="rounded,filled",fillcolor="#EEF3FA",fontname="DejaVu Sans",fontsize=14,margin="0.2,0.12"];
+ edge [fontname="DejaVu Sans",fontsize=12,color="#62738A"];
+ root [label="AGENTS.md (root)\nrepo-wide rules, shared infra,\ncommands, PR gate"];
+ cat [label="hermes.json\nplugin catalog"];
+ neb [label="plugins/nebula/AGENTS.md\nPrivacy Guard files, host pin,\nE2E command, security rules"];
+ next [label="plugins/<id>/AGENTS.md\none per plugin, from templates",fillcolor="#FFF2D9"];
+ ci [label="CI, E2E, labeler, site dispatch\nfrom plugins/* and hermes.json\n(unchanged). Residual: credential-guard\npin allowlist is nebula-only",fillcolor="#E6F4EA"];
+ root -> cat [label="find your plugin"];
+ cat -> neb; cat -> next;
+ root -> ci [label="shared, unchanged",style=dashed];
+}
