@@ -34,3 +34,9 @@ contract limits are rejected; untrusted values are rendered as text, never as ma
 
 See [`directive-contract.json`](directive-contract.json) for the versioned contract and
 [`CORE_COMPARISON.md`](CORE_COMPARISON.md) for the live smoke result.
+
+## Maintenance
+
+Run `node --check desktop/plugin.js` from this folder after editing the renderer. The
+folder's `package.json` marks the file as an ES module, so no duplicated `.mjs` copy is
+needed for the syntax check.
