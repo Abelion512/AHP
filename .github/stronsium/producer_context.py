@@ -26,7 +26,7 @@ def source_text(raw):
     except UnicodeDecodeError:
         return 'binary-source sha256='+hashlib.sha256(raw).hexdigest()
 
-REPO='Abelion512/AHP'
+REPO='Abelion512/Stellarium'
 ROOT='/repos/'+REPO
 
 def collect_context(gh,pr_number,*,repo_id,bot_id,owner_id,bot_slug,request_comment_id):
