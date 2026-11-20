@@ -2,7 +2,7 @@
 
 A single check named `merge-gate` is published on every open PR. It is green only when:
 
-- all expected check runs are completed and successful (`success`, `skipped` or `neutral`);
+- all expected check runs are completed with `success`;
 - no review thread is unresolved;
 - no reviewer has outstanding `CHANGES_REQUESTED`;
 - at least one human approval exists, excluding the PR author and bots;
