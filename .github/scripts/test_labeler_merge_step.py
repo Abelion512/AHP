@@ -25,7 +25,7 @@ class MergeStep(unittest.TestCase):
             out = pathlib.Path(d) / "gh_output"
             if with_output:
                 env["GITHUB_OUTPUT"] = str(out)
-            r = subprocess.run([sys.executable, "-c", script()], cwd=d, env=env, capture_output=True, text=True, timeout=60)
+            r = subprocess.run([sys.executable, "-c", script()], cwd=d, env=env, capture_output=True, text=True, timeout=60, check=False)
             merged = (pathlib.Path(d) / "merged_labeler.yml")
             return r, (out.read_text() if out.exists() else ""), (merged.read_text() if merged.exists() else "")
 
@@ -37,7 +37,7 @@ class MergeStep(unittest.TestCase):
         self.assertIn("p-label", merged); self.assertIn("plugins/p/src/**", merged); self.assertIn("repo-label", merged)
 
     def test_without_github_output_still_runs(self):
-        r, out, merged = self.run_step(False)
+        r, _, _ = self.run_step(False)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("labels_count=2", r.stdout)
 
