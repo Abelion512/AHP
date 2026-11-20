@@ -11,7 +11,7 @@
     },
     {
       "id": "abelion-intelligence-ui",
-      "path": "plugins/abelion_intelligence_ui",
+      "path": "plugins/abelion-intelligence-ui",
       "description": "Intelligence UI: native interactive transcript cards via ::ui{...} in Desktop and WebApp"
     }
   ]

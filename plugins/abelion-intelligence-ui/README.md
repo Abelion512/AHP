@@ -8,8 +8,8 @@ and WebApp transcript**. No iframe, no core patch.
 | Field | Value |
 |---|---|
 | Runtime / plugin id | `abelion-intelligence-ui` |
-| Folder | `plugins/abelion_intelligence_ui` |
-| Desktop half | `plugins/abelion_intelligence_ui/desktop/plugin.js` |
+| Folder | `plugins/abelion-intelligence-ui` |
+| Desktop half | `plugins/abelion-intelligence-ui/desktop/plugin.js` |
 | Directive | `::ui{...}` |
 | Display name | Abelion Intelligence UI |
 
@@ -59,8 +59,8 @@ iframe, not native).
 ## Tests
 
 ```sh
-python3 -m unittest discover -s plugins/abelion_intelligence_ui/tests -v
-cd plugins/abelion_intelligence_ui/desktop && node --check plugin.js
+python3 -m unittest discover -s plugins/abelion-intelligence-ui/tests -v
+cd plugins/abelion-intelligence-ui/desktop && node --check plugin.js
 ```
 
 Live WebApp evidence is recorded in `docs/directive-contract.json` and

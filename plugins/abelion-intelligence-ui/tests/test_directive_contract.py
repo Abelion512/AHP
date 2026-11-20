@@ -1,7 +1,7 @@
 """Contract tests for the abelion-intelligence-ui directive.
 
 Run from the repo root:
-    python3 -m unittest discover -s plugins/abelion_intelligence_ui/tests -v
+    python3 -m unittest discover -s plugins/abelion-intelligence-ui/tests -v
 """
 
 import json
@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-PLUGIN = ROOT / "plugins" / "abelion_intelligence_ui"
+PLUGIN = ROOT / "plugins" / "abelion-intelligence-ui"
 CONTRACT = PLUGIN / "docs" / "directive-contract.json"
 SOURCE = PLUGIN / "desktop" / "plugin.js"
 
