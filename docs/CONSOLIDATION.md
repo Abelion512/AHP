@@ -10,6 +10,7 @@ manifest, docs, tests, skills, and optional end-to-end suite.
 |---|---|
 | Catalog and install list | `hermes.json`, `update-plugins.sh` |
 | Privacy Guard runtime | `plugins/nebula/` |
+| Native transcript cards | `plugins/aero/`, `plugins/abelion-intelligence-ui/` |
 | Shared CI and gates | `.github/workflows/`, `.github/scripts/` |
 | Generated documentation site | `site/`, built from the catalog |
 

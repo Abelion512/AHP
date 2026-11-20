@@ -1,0 +1,16 @@
+{
+  "checks": [
+    "existing strict schema, cap and URL refusal retained; price display requires value plus source note",
+    "integrated Aero retains all8legacy ui kinds plus both photo cards in same real native renderer; wizard local toggle still works, zero sends",
+    "320px peer layout and no page overflow; photo/source-only viewport viewer; zoom selector and image toggle; Escape/X focus return; focus trap with real owner module",
+    "390px peer layout and no page overflow; photo/source-only viewport viewer; zoom selector and image toggle; Escape/X focus return; focus trap with real owner module",
+    "1280px peer layout and no page overflow; photo/source-only viewport viewer; zoom selector and image toggle; Escape/X focus return; focus trap with real owner module",
+    "real SDK primary/focused session and renderer owner changes dismiss retained viewer without old-trigger focus or pointer interception",
+    "streaming has no early photo or action",
+    "image failure preserves all facts/caveats/source without inventing title action",
+    "unsafe card refused entirely",
+    "explicit composer request retained; zero composer submissions"
+  ],
+  "errors": [],
+  "scope": "actual Hermes native markdown/SDK module graph with real owner focus module, not full app or model output; local cached-image response interception only"
+}
