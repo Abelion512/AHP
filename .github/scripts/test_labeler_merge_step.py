@@ -36,7 +36,7 @@ class MergeStep(unittest.TestCase):
             return r, "", merged
 
     def test_with_github_output_writes_outputs_and_merged_file(self):
-        r, out, merged = self.run_step(True)
+        _, out, merged = self.run_step(True)
         self.assertIn("merged_labeler_path=merged_labeler.yml", out)
         self.assertIn("labels_count=2", out)
         parsed = yaml.safe_load(merged)
@@ -52,7 +52,7 @@ class MergeStep(unittest.TestCase):
         self.assertEqual(set(yaml.safe_load(merged)), {"p-label", "repo-label"})
 
     def test_without_plugin_local_labels_keeps_repository_labels(self):
-        r, out, merged = self.run_step(True, with_plugin_labels=False)
+        _, out, merged = self.run_step(True, with_plugin_labels=False)
         self.assertIn("merged_labeler_path=merged_labeler.yml", out)
         self.assertIn("labels_count=1", out)
         parsed = yaml.safe_load(merged)
