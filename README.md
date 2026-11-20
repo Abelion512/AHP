@@ -15,9 +15,8 @@ Documentation site: <https://abelion512.github.io/Stellarium/>
 | Plugin | Runtime ID | Source | Responsibility |
 |---|---|---|---|
 | Privacy Guard | `nebula` | [`plugins/nebula/`](plugins/nebula/) | Session-local PII/credential masking, permitted placeholder restoration, and held output redaction. |
-| Intelligence UI | `abelion-intelligence-ui` | [`plugins/abelion-intelligence-ui/`](plugins/abelion-intelligence-ui/) | Native interactive transcript cards (`::ui{...}`) in Desktop and WebApp. |
 
-Each plugin folder contains its own `README.md`, `docs/`, `tests/`, `e2e/`, and `skills/` as applicable. The bundled authoring skill lives at [`plugins/abelion-intelligence-ui/skills/intelligence-ui/`](plugins/abelion-intelligence-ui/skills/intelligence-ui/); the live WebApp smoke lives at [`e2e/`](e2e/). The repository root retains only shared metadata and entry points such as `hermes.json`, `update-plugins.sh`, this README, and GitHub configuration.
+Each plugin folder contains its own `README.md`, `docs/`, `tests/`, `e2e/`, and `skills/` as applicable. The repository root retains only shared metadata and entry points such as `hermes.json`, `update-plugins.sh`, this README, and GitHub configuration.
 
 ## Plugin vs. core
 

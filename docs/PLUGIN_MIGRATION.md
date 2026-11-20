@@ -5,6 +5,7 @@ This migration is for profiles that previously installed one or more of:
 - `pii_mask_abelion` (renamed to `nebula`)
 - `screen` (retired)
 - `output-redact-abelion` (consolidated into `nebula`)
+- `abelion-intelligence-ui` (duplicate of the Aero transcript-card plugin; removed in the revert of PR #56)
 
 Removing source folders from this repository does not remove copies already installed in
 `~/.hermes/plugins/`. The updater deliberately stops when it finds these directories.
@@ -23,9 +24,11 @@ actually loads. Do not assume the default profile path if the gateway uses a cus
    current `nebula` directory if present, and every legacy directory detected by the
    updater. Store the backup outside `~/.hermes/plugins/`. Keep permissions and timestamps.
 4. **Disable legacy IDs using Hermes native plugin management.** Disable each detected ID:
-   `pii_mask_abelion`, `screen`, and/or `output-redact-abelion`. Do not disable
-   `nebula` or turn off required Privacy Guard as a shortcut. Verify the active profile
-   has exactly one Privacy Guard owner: `nebula`.
+   `pii_mask_abelion`, `screen`, `output-redact-abelion`, and/or
+   `abelion-intelligence-ui`. Do not disable `nebula` or turn off required Privacy
+   Guard as a shortcut. Verify the active profile has exactly one Privacy Guard
+   owner: `nebula`. Native `::ui{...}` cards move to `aero`; do not enable `aero`
+   before that plugin lands on `main`.
 5. **Quarantine disabled directories.** Only after the native manager confirms the IDs are
    disabled, move the corresponding directories outside the plugin discovery directory.
    For example:
@@ -34,7 +37,7 @@ actually loads. Do not assume the default profile path if the gateway uses a cus
    stamp="$(date -u +%Y%m%dT%H%M%SZ)"
    quarantine="$HOME/.hermes/plugin-quarantine/$stamp"
    mkdir -p "$quarantine"
-   for id in pii_mask_abelion screen output-redact-abelion; do
+   for id in pii_mask_abelion screen output-redact-abelion abelion-intelligence-ui; do
      if [ -d "$HOME/.hermes/plugins/$id" ]; then
        mv -- "$HOME/.hermes/plugins/$id" "$quarantine/$id"
      fi
