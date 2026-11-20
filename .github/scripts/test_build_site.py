@@ -12,7 +12,7 @@ def make_root(path: Path, catalog: dict, pending: dict | None = None) -> Path:
     (path / "hermes.json").write_text(json.dumps(catalog), encoding="utf-8")
     if pending is not None:
         (path / "site/pending.json").write_text(json.dumps(pending), encoding="utf-8")
-    (path / "site/template.html").write_text(
+    (path / "site/template.html.tpl").write_text(
         "@@TITLE@@|@@DESCRIPTION@@|@@PLUGIN_ROWS@@", encoding="utf-8")
     return path
 

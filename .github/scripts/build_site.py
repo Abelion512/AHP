@@ -87,7 +87,7 @@ def plugin_rows(plugins: list[dict[str, str]]) -> str:
 
 
 def render(root: Path) -> str:
-    template = (root / "site/template.html").read_text(encoding="utf-8")
+    template = (root / "site/template.html.tpl").read_text(encoding="utf-8")
     plugins = active_plugins(root) + pending_plugins(root)
     ids = [plugin["id"] for plugin in plugins]
     if len(ids) != len(set(ids)):
