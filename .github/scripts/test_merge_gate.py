@@ -5,11 +5,13 @@ from unittest.mock import patch
 import merge_gate
 from merge_gate import EXPECTED_SOURCES, evaluate, is_bot, latest_review_states
 
+DETAILS_BASE = "https://example.invalid/acme/widgets/actions/runs/"
+
 
 def check(name: str, status: str = "completed", conclusion: str = "success", slug: str = "github-actions", run: int = 1) -> dict:
     return {"name": name, "status": status, "conclusion": conclusion,
             "app": {"slug": slug},
-            "details_url": "https://github.com/Abelion512/Stellarium/actions/runs/" + str(run) + "/job/2"}
+            "details_url": DETAILS_BASE + str(run) + "/job/2"}
 
 
 def pr(**changes) -> dict:
@@ -62,7 +64,7 @@ class MergeGateTest(unittest.TestCase):
 
     def test_plural_jobs_details_url_is_trusted(self):
         checks, threads, reviews = green_inputs()
-        checks[0]["details_url"] = "https://github.com/Abelion512/Stellarium/actions/runs/1/jobs/2"
+        checks[0]["details_url"] = DETAILS_BASE + "1/jobs/2"
         ok, reasons = evaluate(pr(), checks, threads, reviews, workflows=workflows_for(checks))
         self.assertTrue(ok, reasons)
 
@@ -97,7 +99,7 @@ class MergeGateTest(unittest.TestCase):
         self.assertFalse(ok)
         self.assertTrue(any("status=in_progress" in reason for reason in reasons))
         checks, threads, reviews = green_inputs()
-        checks[0]["details_url"] = "https://github.com/Abelion512/Stellarium/actions/runs/999/job/2"
+        checks[0]["details_url"] = DETAILS_BASE + "999/job/2"
         ok, reasons = evaluate(pr(), checks, threads, reviews, workflows=workflows_for(green_inputs()[0]))
         self.assertFalse(ok)
         self.assertTrue(any("untrusted" in reason for reason in reasons))
@@ -170,9 +172,9 @@ class MergeGateTest(unittest.TestCase):
         self.assertTrue(any("Validate PR title" in reason for reason in reasons))
 
     def test_latest_attempt_keeps_only_newest_check(self):
-        old = check("Validate PR title", conclusion="failure", run=1)
+        old = check("Validate PR title", conclusion="failure", run=7)
         old["started_at"] = "2026-01-01T00:00:00Z"
-        new = check("Validate PR title", conclusion="success", run=2)
+        new = check("Validate PR title", conclusion="success", run=7)
         new["started_at"] = "2026-01-02T00:00:00Z"
         seen = merge_gate.latest_checks([old, new])
         self.assertEqual(len(seen), 1)
@@ -187,6 +189,54 @@ class MergeGateTest(unittest.TestCase):
         success["started_at"] = "2026-01-02T00:00:00Z"
         checks = [failed, success] + checks[1:]
         ok, reasons = evaluate(pr(), checks, threads, reviews, workflows=workflows_for(green_inputs()[0]))
+        self.assertTrue(ok, reasons)
+
+    def test_latest_failure_blocks(self):
+        old = check("Validate PR title", conclusion="success", run=7)
+        old["started_at"] = "2026-01-01T00:00:00Z"
+        new = check("Validate PR title", conclusion="failure", run=7)
+        new["started_at"] = "2026-01-02T00:00:00Z"
+        seen = merge_gate.latest_checks([old, new])
+        self.assertEqual(len(seen), 1)
+        self.assertEqual(seen[0]["conclusion"], "failure")
+        checks, threads, reviews = green_inputs()
+        ok, reasons = evaluate(pr(), [old, new] + checks[1:], threads, reviews,
+                               workflows=workflows_for(checks))
+        self.assertFalse(ok)
+        self.assertTrue(any("check Validate PR title" in reason for reason in reasons))
+
+    def test_distinct_workflow_checks_with_same_name_cannot_hide_failure(self):
+        checks, threads, reviews = green_inputs()
+        first = check("build (3.11)", run=10)
+        second = check("build (3.11)", conclusion="failure", run=11)
+        checks = [item for item in checks if item["name"] != "build (3.11)"] + [first, second]
+        workflows = workflows_for(checks)
+        workflows["10"] = workflows["11"] = ".github/workflows/pylint.yml"
+        ok, reasons = evaluate(pr(), checks, threads, reviews, workflows=workflows)
+        self.assertFalse(ok)
+        self.assertTrue(any("untrusted or unsuccessful check: build (3.11)" in reason
+                            for reason in reasons))
+
+    def test_forged_workflow_check_is_untrusted(self):
+        checks, threads, reviews = green_inputs()
+        checks[0]["app"] = {"slug": "not-github-actions"}
+        ok, reasons = evaluate(pr(), checks, threads, reviews, workflows=workflows_for(checks))
+        self.assertFalse(ok)
+        self.assertTrue(any("untrusted or unsuccessful check" in reason for reason in reasons))
+
+    def test_pr_modified_workflow_cannot_satisfy_gate(self):
+        checks, threads, reviews = green_inputs()
+        ok, reasons = evaluate(pr(), checks, threads, reviews, workflows=workflows_for(checks),
+                               changed_files=frozenset({".github/workflows/pr-title.yml"}))
+        self.assertFalse(ok)
+        self.assertTrue(any("untrusted or unsuccessful check: Validate PR title" in reason
+                            for reason in reasons))
+
+    def test_skipped_conditional_job_is_allowed(self):
+        checks, threads, reviews = green_inputs()
+        label = next(item for item in checks if item["name"] == "label")
+        label["conclusion"] = "skipped"
+        ok, reasons = evaluate(pr(), checks, threads, reviews, workflows=workflows_for(checks))
         self.assertTrue(ok, reasons)
 
 
@@ -208,7 +258,7 @@ class MergeGateApiTest(unittest.TestCase):
 
     def test_publish_updates_existing_check(self):
         with patch.object(merge_gate, "repo_path", side_effect=lambda suffix: suffix), \
-             patch.object(merge_gate, "gate_check_ids", return_value=[42]), \
+             patch.object(merge_gate, "gate_checks", return_value=[{"id": 42}]), \
              patch.object(merge_gate, "api_request") as request:
             merge_gate.publish("a" * 40, True, [], "https://example.test")
             method, path = request.call_args.args[:2]
@@ -217,7 +267,7 @@ class MergeGateApiTest(unittest.TestCase):
 
     def test_publish_creates_when_no_existing_check(self):
         with patch.object(merge_gate, "repo_path", side_effect=lambda suffix: suffix), \
-             patch.object(merge_gate, "gate_check_ids", return_value=[]), \
+             patch.object(merge_gate, "gate_checks", return_value=[]), \
              patch.object(merge_gate, "api_request") as request:
             merge_gate.publish("a" * 40, True, [], "https://example.test")
             self.assertEqual(request.call_args.args[0], "POST")
@@ -233,6 +283,7 @@ class MergeGateApiTest(unittest.TestCase):
     def test_read_failure_publishes_blocking_result(self):
         payload = pr(head={"sha": "a" * 40}, base={"ref": "main"}, state="open")
         with patch.object(merge_gate, "load_pr", return_value=payload), \
+             patch.object(merge_gate, "publish_pending"), \
              patch.object(merge_gate, "load_checks", side_effect=merge_gate.GateError("API down")), \
              patch.object(merge_gate, "publish_blocking") as blocking:
             with self.assertRaises(merge_gate.GateError):
@@ -240,6 +291,44 @@ class MergeGateApiTest(unittest.TestCase):
             blocking.assert_called_once()
             self.assertEqual(blocking.call_args.args[0], "a" * 40)
             self.assertIn("evaluation failed", blocking.call_args.args[1])
+
+    def test_lookup_failure_publishes_blocking_with_known_sha(self):
+        with patch.object(merge_gate, "load_pr", side_effect=merge_gate.GateError("lookup down")), \
+             patch.object(merge_gate, "publish_blocking") as blocking:
+            with self.assertRaises(merge_gate.GateError):
+                merge_gate.run_one(1, "a" * 40)
+            blocking.assert_called_once()
+            self.assertEqual(blocking.call_args.args[0], "a" * 40)
+            self.assertEqual(blocking.call_args.args[2], 1)
+
+    def test_gate_is_marked_pending_before_evaluation(self):
+        payload = pr(head={"sha": "a" * 40}, base={"ref": "main"}, state="open")
+        calls = []
+        with patch.object(merge_gate, "load_pr", return_value=payload), \
+             patch.object(merge_gate, "publish_pending",
+                          side_effect=lambda *a: calls.append("pending")), \
+             patch.object(merge_gate, "load_checks",
+                          side_effect=lambda *a: calls.append("read") or []), \
+             patch.object(merge_gate, "load_threads", return_value=[]), \
+             patch.object(merge_gate, "load_reviews", return_value=[]), \
+             patch.object(merge_gate, "load_changed_files", return_value=set()), \
+             patch.object(merge_gate, "publish", side_effect=lambda *a: calls.append("publish")):
+            merge_gate.run_one(1)
+        self.assertEqual(calls, ["pending", "read", "publish"])
+
+    def test_publish_keys_check_to_pr(self):
+        with patch.object(merge_gate, "repo_path", side_effect=lambda suffix: suffix), \
+             patch.object(merge_gate, "gate_checks", return_value=[]), \
+             patch.object(merge_gate, "api_request") as request:
+            merge_gate.publish("a" * 40, True, [], "https://example.test", 51)
+            self.assertEqual(request.call_args.args[2]["external_id"], "pr-51")
+
+    def test_main_continues_after_one_pr_error(self):
+        with patch.object(merge_gate, "targets", return_value=[(1, None), (2, None)]), \
+             patch.object(merge_gate, "run_one",
+                          side_effect=[merge_gate.GateError("bad"), True]) as runner:
+            self.assertEqual(merge_gate.main(["--auto"]), 2)
+            self.assertEqual(runner.call_count, 2)
 
     def test_non_main_base_is_skipped(self):
         payload = pr(base={"ref": "release/1.0"}, state="open")

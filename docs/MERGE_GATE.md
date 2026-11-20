@@ -1,8 +1,9 @@
 # Merge gate
 
-A single check named `merge-gate` is published on every open PR. It is green only when:
+A single check named `merge-gate` is published on every open PR that targets `main`. PRs against other bases are skipped, because the required workflows run only for `main`. It is green only when:
 
-- all expected check runs are completed with `success`;
+- every expected check run is completed with `success`, from its trusted workflow or app, and from a workflow the PR did not modify; a second check with the same name from another workflow must also pass;
+- designated review apps and the conditional `label` job may conclude `skipped` when they find nothing to do;
 - no review thread is unresolved;
 - no reviewer has outstanding `CHANGES_REQUESTED`;
 - at least one human approval exists, excluding the PR author and bots;
