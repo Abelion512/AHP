@@ -68,6 +68,16 @@ echo "Pulling latest plugins..."
 cd "$REPO"
 git pull --ff-only
 
+# A native plugin manager may recreate a retired directory between the first
+# scan and the sync. Recheck before touching any installed plugin.
+for id in "${LEGACY_PLUGIN_IDS[@]}"; do
+  if [ -d "$PLUGIN_DIR/$id" ]; then
+    printf 'Retired plugin %s reappeared before sync; aborting.\n' "$id" >&2
+    printf 'Disable and quarantine it using docs/PLUGIN_MIGRATION.md first.\n' >&2
+    exit 2
+  fi
+done
+
 echo "Syncing active plugins to $PLUGIN_DIR..."
 
 if ! command -v python3 >/dev/null 2>&1; then
