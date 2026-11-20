@@ -35,6 +35,13 @@ query($owner:String!,$name:String!,$number:Int!){
 
 
 def gh(args: list[str], jq: str | None = None, paginate: bool = False) -> list[object]:
+    # Fixed prefixes only: endpoint paths are built in this module, never taken
+    # from CLI, PR text or model output. Inputs are passed as typed -F values.
+    allowed = {
+        "graphql", "repos/", "pulls/"
+    }
+    if not args or not any(args[0].startswith(prefix) for prefix in allowed):
+        raise ValueError("unsupported gh api endpoint")
     cmd = ["gh", "api", *args]
     if jq:
         cmd.extend(["--jq", jq])
