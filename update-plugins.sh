@@ -2,6 +2,7 @@
 # update-plugins: sync active monorepo plugin packages to Hermes' plugin directory.
 set -euo pipefail
 
+# Local checkout path stays stable across the AHP -> Stellarium repo rename.
 REPO="$HOME/.hermes/abelion-hermes-plugins"
 PLUGIN_DIR="$HOME/.hermes/plugins"
 LOCK_DIR="$HOME/.hermes/.update-plugins.lock.d"
@@ -19,7 +20,7 @@ trap cleanup EXIT
 
 if [ ! -d "$REPO/.git" ]; then
   echo "Repo not found at $REPO" >&2
-  echo "Clone first: git clone git@github.com:Abelion512/abelion-hermes-plugins.git $REPO" >&2
+  echo "Clone first: git clone git@github.com:Abelion512/Stellarium.git $REPO" >&2
   exit 1
 fi
 

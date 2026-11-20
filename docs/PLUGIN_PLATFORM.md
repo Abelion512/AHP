@@ -51,7 +51,7 @@ plugin name only.
 - `AGENTS.md` — repo onboarding and rules for humans and agents working here.
 - `.github/plugin-docs-standard.md` — docs trio standard and validation before
   merge.
-- `.github/templates/` — reusable templates for repeatable agent and maintainer
+- `.github/plugin-templates/` — reusable templates for repeatable agent and maintainer
   tasks.
 - `.github/workflows/`, `.github/labeler.yml`, and plugin-local label config —
   CI and labeling rules.

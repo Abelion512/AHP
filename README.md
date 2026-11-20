@@ -2,13 +2,13 @@
 
 A monorepo for standalone Hermes Agent plugins. Each plugin owns its implementation, documentation, unit tests, skills, and feature-specific end-to-end tests. Shared CI and the pinned-core E2E harness live under `.github/`.
 
-[![ci](https://github.com/Abelion512/AHP/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Abelion512/AHP/actions/workflows/ci.yml)
-[![e2e](https://github.com/Abelion512/AHP/actions/workflows/e2e.yml/badge.svg?branch=main)](https://github.com/Abelion512/AHP/actions/workflows/e2e.yml)
-[![CodeQL](https://github.com/Abelion512/AHP/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/Abelion512/AHP/actions/workflows/codeql.yml)
-[![Pylint](https://github.com/Abelion512/AHP/actions/workflows/pylint.yml/badge.svg?branch=main)](https://github.com/Abelion512/AHP/actions/workflows/pylint.yml)
-[![Pages](https://github.com/Abelion512/AHP/actions/workflows/pages.yml/badge.svg?branch=main)](https://github.com/Abelion512/AHP/actions/workflows/pages.yml)
+[![ci](https://github.com/Abelion512/Stellarium/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Abelion512/Stellarium/actions/workflows/ci.yml)
+[![e2e](https://github.com/Abelion512/Stellarium/actions/workflows/e2e.yml/badge.svg?branch=main)](https://github.com/Abelion512/Stellarium/actions/workflows/e2e.yml)
+[![CodeQL](https://github.com/Abelion512/Stellarium/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/Abelion512/Stellarium/actions/workflows/codeql.yml)
+[![Pylint](https://github.com/Abelion512/Stellarium/actions/workflows/pylint.yml/badge.svg?branch=main)](https://github.com/Abelion512/Stellarium/actions/workflows/pylint.yml)
+[![Pages](https://github.com/Abelion512/Stellarium/actions/workflows/pages.yml/badge.svg?branch=main)](https://github.com/Abelion512/Stellarium/actions/workflows/pages.yml)
 
-Documentation site: <https://abelion512.github.io/AHP/>
+Documentation site: <https://abelion512.github.io/Stellarium/>
 
 ## Active plugins
 

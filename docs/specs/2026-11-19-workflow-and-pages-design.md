@@ -1,7 +1,7 @@
 # Workflow hardening, opt-in auto-fix, and skills-driven Pages — design
 
 Date: 2026-11-19
-Repo: Abelion512/AHP (`abelion-hermes-plugins`)
+Repo: Abelion512/Stellarium
 Status: approved, implementation in one feature branch with three commits
 
 ## Intent
