@@ -1,0 +1,9 @@
+{
+  "plugins": [
+    {
+      "id": "aero",
+      "description": "Native visual-learning cards and bounded photo cards rendered inline in Hermes Desktop and WebApp.",
+      "url": "https://github.com/Abelion512/Stellarium/pull/30"
+    }
+  ]
+}
