@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from build_site import active_plugins, pending_plugins, plugin_rows, render
+from build_site import active_plugins, pending_plugins, render
 
 
 def make_root(path: Path, catalog: dict, pending: dict | None = None) -> Path:

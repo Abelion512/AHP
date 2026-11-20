@@ -100,15 +100,17 @@ def render(root: Path) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", default=".", help="repository root")
     parser.add_argument("--check", action="store_true", help="fail if the generated file differs")
     args = parser.parse_args(argv)
+    # Always generate in the current working directory; a CLI-supplied root
+    # would let untrusted input choose files outside the repository.
+    root = Path.cwd()
     try:
-        output = render(Path(args.root).resolve())
+        output = render(root)
     except ValueError as exc:
         print("::error::" + str(exc))
         return 1
-    target = Path(args.root) / "site/index.html"
+    target = root / "site/index.html"
     if args.check:
         if not target.is_file() or target.read_text(encoding="utf-8") != output:
             print("site/index.html is stale; run python .github/scripts/build_site.py")
