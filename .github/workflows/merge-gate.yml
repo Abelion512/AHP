@@ -1,0 +1,60 @@
+name: merge gate
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+  check_run:
+    types: [completed]
+  # Re-evaluate after any workflow finishes and on a timer, so a late bot
+  # review or thread resolution cannot leave the gate stale.
+  workflow_run:
+    workflows:
+      - ci
+      - e2e
+      - CodeQL Advanced
+      - Dependency review
+      - labeler
+      - pr-body-check
+      - pr-review-tests
+      - pr-title
+      - Pylint
+      - Python package
+      - stronsium-proof-tests
+      - stronsium-proof
+      - Aero runtime
+    types: [completed]
+  schedule:
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: write
+
+concurrency:
+  group: merge-gate
+  cancel-in-progress: true
+
+jobs:
+  evaluate:
+    # Never loop on our own check run or workflow, and skip unrelated check_run
+    # events with no associated PR.
+    if: >-
+      ${{ (github.event_name != 'workflow_run' || github.event.workflow_run.name != 'merge gate') &&
+          (github.event_name != 'check_run' || github.event.check_run.name != 'merge-gate') }}
+    runs-on: ubuntu-latest
+    steps:
+      # actions/checkout v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.14"
+      - name: Evaluate merge gate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python .github/scripts/merge_gate.py --auto
