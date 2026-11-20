@@ -10,27 +10,19 @@ A monorepo for standalone Hermes Agent plugins. Each plugin owns its implementat
 
 Documentation site: <https://abelion512.github.io/Stellarium/>
 
-## Active plugins
+## Plugins
 
-| Plugin | Runtime ID | Source | Responsibility |
-|---|---|---|---|
-| Privacy Guard | `nebula` | [`plugins/nebula/`](plugins/nebula/) | Session-local PII/credential masking, permitted placeholder restoration, and held output redaction. |
-| Intelligence UI | `abelion-intelligence-ui` | [`plugins/abelion-intelligence-ui/`](plugins/abelion-intelligence-ui/) | Native interactive transcript cards (`::ui{...}`) in Desktop and WebApp. |
+[`hermes.json`](hermes.json) is the catalog of active plugins. Each entry names a plugin id and its `plugins/<id>/` folder. Plugins still in review are listed in [`site/pending.json`](site/pending.json).
 
-Each plugin folder contains its own `README.md`, `docs/`, `tests/`, `e2e/`, and `skills/` as applicable. The bundled authoring skill lives at [`plugins/abelion-intelligence-ui/skills/intelligence-ui/`](plugins/abelion-intelligence-ui/skills/intelligence-ui/); the live WebApp smoke lives at [`e2e/`](e2e/). The repository root retains only shared metadata and entry points such as `hermes.json`, `update-plugins.sh`, this README, and GitHub configuration.
+Each plugin owns its `README.md`, `AGENTS.md`, `docs/`, `tests/`, `e2e/`, and `skills/` as applicable. Plugin behavior, host pins, and validation evidence belong in that plugin's docs. The repository root keeps only shared metadata and entry points such as `hermes.json`, `update-plugins.sh`, this README, and GitHub configuration.
 
 ## Plugin vs. core
 
-Feature policy and UI stay in the plugin repository. Host-wide enforcement, authorization, lifecycle, and execution guarantees belong in the Hermes core fork. Do not duplicate the same security boundary in both places.
+Feature policy and UI stay in each plugin repository. Host-wide enforcement, authorization, lifecycle, and execution guarantees belong in the Hermes core fork. Do not duplicate the same security boundary in both places.
 
-- **Privacy Guard plugin:** credential/PII/path classification, session-local token mapping, bounded restoration, policy configuration, skills, and regression tests.
-- **Hermes core:** provider/tool interception, mandatory fail-closed policy gates, session lifecycle, held-stream semantics, and stable native redaction contracts.
+Each plugin declares its own host requirements and limitations in its docs. A green CI run is evidence only for the pinned host and paths that plugin's suite tests; it does not certify stock Hermes, upstream adoption, or an arbitrary environment.
 
 The standalone `decolua/9router` project owns its router implementation. This repository does not vendor or maintain a duplicate adapter.
-
-## Security and compatibility
-
-Mandatory Privacy Guard behavior requires the exact Hermes fork commit `9a85916c87d56c2ca00b02fad8918f93ef1816e9` from [`Abelion512/hermes-4gent`](https://github.com/Abelion512/hermes-4gent). CI checks out that commit for real-host tests. This does not certify stock Hermes, prove upstream adoption, or provide a process-wide network firewall. Detection remains heuristic, and unsupported transports are not universally covered.
 
 ## CI and security gates
 
@@ -51,19 +43,15 @@ Details, permission scopes, and the current workflow audit live in [`docs/CI.md`
 
 ## Validation
 
-CI runs each plugin's own tests and dependency checks, plus a real-host E2E suite with a synthetic loopback provider and disposable profiles. Each E2E suite pins its host in `e2e/host.json`; CI groups suites by that pin, checks out the exact commit, and verifies the imported source. No real provider or production credentials are used. A green CI run is evidence for its tested commit and paths only.
+CI runs each plugin's own tests and dependency checks, plus real-host E2E suites grouped by the host pin each plugin declares in `e2e/host.json`. CI checks out the exact commit and verifies the imported source. No real provider or production credentials are used. A green CI run is evidence for its tested commit and paths only.
 
-### Privacy regression strategy
+Keep both test layers for each plugin: fast unit tests for behavior, boundaries, and isolation, and E2E tests against the pinned host that inspect recorded provider requests plus delivered output. Neither layer replaces the other. Per-plugin matrices and evidence live in each plugin's `docs/`.
 
-Keep both test layers. Unit tests exercise classifiers, boundaries, capacity, session isolation, and adversarial mutations quickly; E2E tests exercise the pinned Hermes host and inspect recorded provider requests plus delivered output. E2E does not replace unit coverage, and a green unit run alone is not proof of a secure provider boundary.
-
-The privacy suite includes a deterministic 256-case field-name mutation matrix and fail-closed checks for invisible Unicode in sensitive assignments. CI prints test counts in the run summary and continues to run the full real-host suite against a synthetic loopback provider.
-
-The “2.8T” target is not treated as a count of test cases or as a privacy guarantee. CI does **not** call a live 2.8-trillion-parameter model or send real PII/secrets to a remote endpoint. The current evidence is model-agnostic boundary testing: sensitive canaries must not appear in requests observed at the provider or in final user-visible output. Any live-model compatibility claim requires a separate explicitly configured evaluation and recorded evidence.
+Model-size or marketing labels are not test counts and not guarantees. CI does not call a live model or send real secrets to a remote endpoint; compatibility claims need a separate configured evaluation with recorded evidence.
 
 ## Installation and migration
 
-`update-plugins.sh` syncs every plugin listed in `hermes.json` into `~/.hermes/plugins/`. It stops before pulling or syncing if it detects the retired `pii_mask_abelion`, `screen`, or `output-redact-abelion` directories. It does not guess the active profile, edit Hermes configuration, or delete plugin state. Complete the backed-up native migration and quarantine procedure in [`docs/PLUGIN_MIGRATION.md`](docs/PLUGIN_MIGRATION.md) first. Never delete plugin directories from a live profile, and never disable required Privacy Guard merely to hide a migration failure.
+`update-plugins.sh` syncs every plugin listed in `hermes.json` into `~/.hermes/plugins/`. It stops before pulling or syncing if it detects the retired `pii_mask_abelion`, `screen`, or `output-redact-abelion` directories. It does not guess the active profile, edit Hermes configuration, or delete plugin state. Complete the backed-up native migration and quarantine procedure in [`docs/PLUGIN_MIGRATION.md`](docs/PLUGIN_MIGRATION.md) first. Never delete plugin directories from a live profile, and never disable a plugin's required enforcement merely to hide a migration failure.
 
 Retired source can be recovered from Git history as documented in [`.github/retired-source-recovery.md`](.github/retired-source-recovery.md). An old installed copy is separate state and is not deleted merely because its source was removed from this repository.
 
