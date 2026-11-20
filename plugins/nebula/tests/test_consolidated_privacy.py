@@ -18,6 +18,7 @@ def test_exactly_one_active_plugin_manifest_and_catalog_entry():
     ids={p['id'] for p in catalog}
     assert 'nebula' in ids
     assert 'output-redact-abelion' not in ids
+    assert 'abelion-intelligence-ui' not in ids
     assert ids=={p.parent.name for p in manifests}
     assert not (PLUGINS_ROOT/'output_redact_abelion').exists()
     assert not (REPO_ROOT/'model-providers'/'9router').exists()

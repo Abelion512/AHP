@@ -15,9 +15,8 @@ Documentation site: <https://abelion512.github.io/Stellarium/>
 | Plugin | Runtime ID | Source | Responsibility |
 |---|---|---|---|
 | Privacy Guard | `nebula` | [`plugins/nebula/`](plugins/nebula/) | Session-local PII/credential masking, permitted placeholder restoration, and held output redaction. |
-| Intelligence UI | `abelion-intelligence-ui` | [`plugins/abelion-intelligence-ui/`](plugins/abelion-intelligence-ui/) | Native interactive transcript cards (`::ui{...}`) in Desktop and WebApp. |
 
-Each plugin folder contains its own `README.md`, `docs/`, `tests/`, `e2e/`, and `skills/` as applicable. The bundled authoring skill lives at [`plugins/abelion-intelligence-ui/skills/intelligence-ui/`](plugins/abelion-intelligence-ui/skills/intelligence-ui/); the live WebApp smoke lives at [`e2e/`](e2e/). The repository root retains only shared metadata and entry points such as `hermes.json`, `update-plugins.sh`, this README, and GitHub configuration.
+Each plugin folder contains its own `README.md`, `docs/`, `tests/`, `e2e/`, and `skills/` as applicable. The repository root retains only shared metadata and entry points such as `hermes.json`, `update-plugins.sh`, this README, and GitHub configuration.
 
 ## Plugin vs. core
 
@@ -63,7 +62,7 @@ The “2.8T” target is not treated as a count of test cases or as a privacy gu
 
 ## Installation and migration
 
-`update-plugins.sh` syncs every plugin listed in `hermes.json` into `~/.hermes/plugins/`. It stops before pulling or syncing if it detects the retired `pii_mask_abelion`, `screen`, or `output-redact-abelion` directories. It does not guess the active profile, edit Hermes configuration, or delete plugin state. Complete the backed-up native migration and quarantine procedure in [`docs/PLUGIN_MIGRATION.md`](docs/PLUGIN_MIGRATION.md) first. Never delete plugin directories from a live profile, and never disable required Privacy Guard merely to hide a migration failure.
+`update-plugins.sh` syncs every plugin listed in `hermes.json` into `~/.hermes/plugins/`. It stops before pulling or syncing if it detects the retired `pii_mask_abelion`, `screen`, `output-redact-abelion`, or `abelion-intelligence-ui` directories. It does not guess the active profile, edit Hermes configuration, or delete plugin state. Complete the backed-up native migration and quarantine procedure in [`docs/PLUGIN_MIGRATION.md`](docs/PLUGIN_MIGRATION.md) first. Never delete plugin directories from a live profile, and never disable required Privacy Guard merely to hide a migration failure.
 
 Retired source can be recovered from Git history as documented in [`.github/retired-source-recovery.md`](.github/retired-source-recovery.md). An old installed copy is separate state and is not deleted merely because its source was removed from this repository.
 
