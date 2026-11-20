@@ -22,9 +22,7 @@ def make_root(path: Path) -> Path:
     (path / ".github/scripts").mkdir(parents=True)
     (path / "docs").mkdir(parents=True)
     (path / "README.md").write_text(
-        "# Plugins\n\n## Active plugins\n\n| Plugin | Runtime ID | Source | Responsibility |\n"
-        "|---|---|---|---|\n"
-        "| Privacy Guard | `nebula` | [`plugins/nebula/`](plugins/nebula/) | Masking. |\n",
+        "# Plugins\n\n## Plugins\n\n`hermes.json` is the catalog of active plugins.\n",
         encoding="utf-8")
     (path / "hermes.json").write_text(
         json.dumps({"plugins": [{"id": "nebula", "path": "plugins/nebula", "description": "Masking."}]}),
@@ -53,7 +51,6 @@ class ScaffoldTest(unittest.TestCase):
             self.assertIn("plugins/proxima/plugin.yaml", created)
             catalog = json.loads((root / "hermes.json").read_text(encoding="utf-8"))
             self.assertEqual(catalog["plugins"][-1]["id"], "proxima")
-            self.assertIn("| Proxima | `proxima` |", (root / "README.md").read_text(encoding="utf-8"))
             manifest = (base / "plugin.yaml").read_text(encoding="utf-8")
             self.assertIn('name: "proxima"', manifest)
             self.assertIn('category: "utility"', manifest)
@@ -100,28 +97,23 @@ class ScaffoldTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             _skill_description("x" * 25)
 
-    def test_missing_readme_anchor_leaves_no_partial_state(self):
+    def test_catalog_readme_is_left_untouched(self):
         with tempfile.TemporaryDirectory() as directory:
             root = make_root(Path(directory))
             readme = root / "README.md"
-            readme.write_text("# Plugins\n\nNo table here.\n", encoding="utf-8")
             before = readme.read_text(encoding="utf-8")
-            with self.assertRaises(ValueError):
-                scaffold(root, "Proxima", "Valid sentence.", "utility")
-            self.assertFalse((root / "plugins/proxima").exists())
+            scaffold(root, "Proxima", "Valid sentence.", "utility")
             self.assertEqual(readme.read_text(encoding="utf-8"), before)
 
     def test_rolls_back_on_later_failure(self):
         with tempfile.TemporaryDirectory() as directory:
             root = make_root(Path(directory))
             catalog = (root / "hermes.json").read_text(encoding="utf-8")
-            readme = (root / "README.md").read_text(encoding="utf-8")
-            with patch.object(scaffold_plugin, "add_readme_row", side_effect=OSError("boom")):
+            with patch.object(scaffold_plugin, "add_catalog_entry", side_effect=OSError("boom")):
                 with self.assertRaises(OSError):
                     scaffold(root, "Proxima", "Valid sentence.", "utility")
             self.assertFalse((root / "plugins/proxima").exists())
             self.assertEqual((root / "hermes.json").read_text(encoding="utf-8"), catalog)
-            self.assertEqual((root / "README.md").read_text(encoding="utf-8"), readme)
 
 
 if __name__ == "__main__":
