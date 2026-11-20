@@ -120,14 +120,16 @@ function foldDirectiveRuns(node: MdNode) {
 
   const out: MdNode[] = []
 
-  for (let i = 0; i < kids.length; i += 1) {
-    const child = kids[i]
+  let cursor = 0
+
+  while (cursor < kids.length) {
+    const child = kids[cursor]
 
     if (child.type === 'text' && OPEN_DIRECTIVE_RE.test(child.value ?? '')) {
       let merged = child.value ?? ''
       let closed = -1
 
-      for (let j = i + 1; j < kids.length && merged.length <= 4800; j += 1) {
+      for (let j = cursor + 1; j < kids.length && merged.length <= 4800; j += 1) {
         const piece = inlineText(kids[j])
 
         if (piece === null) {
@@ -146,7 +148,7 @@ function foldDirectiveRuns(node: MdNode) {
       if (closed !== -1) {
         // Re-scan the folded node: its tail may open the next directive.
         kids[closed] = { type: 'text', value: merged }
-        i = closed - 1
+        cursor = closed
 
         continue
       }
@@ -154,6 +156,7 @@ function foldDirectiveRuns(node: MdNode) {
 
     foldDirectiveRuns(child)
     out.push(child)
+    cursor += 1
   }
 
   node.children = out

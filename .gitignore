@@ -4,3 +4,6 @@ __pycache__/
 .DS_Store
 *.swp
 *.swo
+
+# Runtime test dependencies are installed by npm ci in CI; never committed.
+plugins/aero/tests/runtime/node_modules/

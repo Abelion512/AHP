@@ -7,7 +7,8 @@ export function safeCardUrl(raw){
  if(typeof raw!=='string'||raw.length>600)return null
  try{
   const u=new URL(raw)
-  const h=u.hostname.toLowerCase().replace(/\.+$/,'')
+  let h=u.hostname.toLowerCase()
+  while(h.endsWith('.'))h=h.slice(0,-1)
   if(u.protocol!=='https:'||u.username||u.password||!h||h.includes(':'))return null
   if(/^[0-9.]+$/.test(h)){
    const parts=h.split('.')
@@ -52,7 +53,7 @@ export function visualCardsRenderer({attrs,streaming,sessionId,hostState}){
   if(!plain(attrs)||Object.entries(attrs).reduce((n,[k,v])=>n+k.length+String(v).length+4,-1)>2000)throw Error('group cap')
   const groups={}
   for(const [key,value] of Object.entries(attrs)){const m=/^([abcde])_(.+)$/.exec(key);if(!m)throw Error('group schema');(groups[m[1]]??={})[m[2]]=value}
-  const keys=Object.keys(groups).sort();if(keys.length<1||keys.length>5||keys.some((key,index)=>key!==String.fromCharCode(97+index)))throw Error('group count')
+  const keys=Object.keys(groups).sort((a,b)=>a.localeCompare(b));if(keys.length<1||keys.length>5||keys.some((key,index)=>key!==String.fromCharCode(97+index)))throw Error('group count')
   return React.createElement('section',{className:'hermes-visual-grid',role:'region',tabIndex:0,'aria-label':'Pilihan kartu visual, geser ke samping'},...keys.map(key=>React.createElement(VisualCard,{key:JSON.stringify(groups[key]),sessionId,hostState,data:parseVisualCard(groups[key])})))
  }catch{return React.createElement('p',{role:'alert'},'Kumpulan kartu tidak valid. Tidak ada tautan atau gambar dibuka.')}
 }
