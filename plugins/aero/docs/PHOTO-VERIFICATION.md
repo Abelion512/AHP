@@ -4,9 +4,9 @@ This is a partial reference-imitation implementation, not completion of the full
 
 ## Source and build
 
-- `desktop/src/aero-baseline.js` SHA256 `b63d27fd97b883c8acd35fc44acb1c27d57300c9297a127efbd55e88753aba0f` preserves PR30 head495624de's renderer.
+- `desktop/src/aero-baseline.js` SHA256 recorded by `sha256sum desktop/src/aero-baseline.js` preserves PR30 head495624de's renderer.
 - `desktop/src/index.mjs` calls the existing registration and adds the photo directives. Public SDK session state closes a retained viewer on navigation; renderer-owner changes and unmount also close it. X/Escape restore the original photo trigger; navigation does not restore focus to the old card.
-- `tests/runtime/build-plugin.mjs` rebuilds the committed bundle. Its SHA256 `0cfd12ee5425c82030dfb72abbcbb715251b0e25005fae622ba0388606cfb108` matches the independently exercised combined v8 artifact.
+- `tests/runtime/build-plugin.mjs` rebuilds the committed bundle. Its SHA256 (see `sha256sum` of the rebuilt bundle) matches the independently exercised combined v8 artifact.
 - Test harness adapters now select the `ui` registration by name rather than assuming it is the last registered directive. Existing behavioral assertions remain.
 
 ## Evidence levels

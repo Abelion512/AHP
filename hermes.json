@@ -8,6 +8,11 @@
       "id": "nebula",
       "path": "plugins/nebula",
       "description": "Privacy Guard: session-bound request/tool masking and held output redaction"
+    },
+    {
+      "id": "aero",
+      "path": "plugins/aero",
+      "description": "Native visual and product transcript cards for Hermes Desktop"
     }
   ]
 }
