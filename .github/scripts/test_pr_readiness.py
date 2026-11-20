@@ -63,6 +63,33 @@ class SummaryTest(unittest.TestCase):
         self.assertEqual(data["unresolved"], ["sourcery-ai"])
         self.assertEqual(data["reviews"]["CHANGES_REQUESTED"], ["reviewer"])
 
+    def test_ghost_authors_empty_commits_and_null_conclusion(self):
+        data = pr_readiness.summary({
+            "headRefOid": "a" * 40, "state": "OPEN", "isDraft": False,
+            "mergeable": "UNKNOWN", "reviewDecision": None,
+            "commits": {"nodes": []},
+            "reviewThreads": {"nodes": [
+                {"isResolved": False, "comments": {"nodes": [{"author": None}]}}
+            ]},
+            "reviews": {"nodes": [{"author": None, "state": "COMMENTED"}]},
+        })
+        self.assertFalse(data["ready"])
+        self.assertEqual(data["unresolved"], ["unknown"])
+        self.assertEqual(data["reviews"]["COMMENTED"], ["unknown"])
+
+    def test_queued_check_without_timestamp_is_pending(self):
+        data = pr_readiness.summary(payload(
+            [{"name": "ci", "status": "QUEUED", "createdAt": None}], [], []))
+        self.assertFalse(data["ready"])
+        self.assertEqual(data["pending"], ["ci"])
+
+    def test_completed_check_without_conclusion_is_pending(self):
+        data = pr_readiness.summary(payload(
+            [{"name": "ci", "status": "COMPLETED", "conclusion": None}], [], []))
+        self.assertFalse(data["ready"])
+        self.assertEqual(data["passed"], [])
+        self.assertEqual(data["pending"], ["ci"])
+
 
 if __name__ == "__main__":
     unittest.main()
