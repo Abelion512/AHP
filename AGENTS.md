@@ -124,6 +124,14 @@ Restart the process and start a new session.
 - Keep feature policy/UI in the plugin repo; host enforcement, lifecycle, and execution guarantees belong in the Hermes core fork.
 - Do not vendor or duplicate the `decolua/9router` router here.
 
+## After opening a PR
+
+Opening a PR is not the end of the task. Run `python3 .github/scripts/pr_readiness.py <pr-number>` immediately after `gh pr create`, then loop until it exits 0. Exit 0 is the only signal for "ready for review".
+
+The gate checks three things: latest CI result per check name, unresolved review threads, and review states. When it reports a failure, do not tell the user the PR is ready. Fix the cause, push to the PR branch, reply to each finding in-thread, resolve addressed threads, re-trigger bot reviews when a bot posts stale findings, and run the gate again. Use `git push --force-with-lease` only on your own PR branch when amending.
+
+Human approval is intentionally not a failure condition: `REVIEW_REQUIRED` with no approval means the reviewer's step is still pending. State that explicitly in the final report instead of calling the PR mergeable. Never approve your own PR or merge it yourself.
+
 ## PR rationale gate
 
 Use `.github/PULL_REQUEST_TEMPLATE.md`, the single canonical template. Explain the function in "What changed", the merge reason and stack order in "Why merge this now", and evidence in "Verification". The PR-body check requires substantive answers, not a green CI claim alone. Indonesian headings remain supported for existing PRs.
