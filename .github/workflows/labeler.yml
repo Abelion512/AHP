@@ -6,12 +6,18 @@ name: labeler
 on:
   pull_request_target:
 
+# Serialize runs per PR: a superseded run must not reapply an older size label.
+concurrency:
+  group: labeler-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
   label:
-    # Dependabot PRs get a read-only token here; their labels are set in dependabot.yml.
+    # Dependabot PRs get a read-only GITHUB_TOKEN on pull_request_target, so a
+    # size job cannot write labels either. Their labels come from dependabot.yml.
     if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
@@ -119,3 +125,30 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           configuration-path: merged_labeler.yml
           sync-labels: true
+      - name: Label PR by change size
+        uses: pascalgn/size-label-action@56b489b027932ec0cf60438a1a5f1a19c8fc71ff
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IGNORED: |
+            **/*.png
+            **/*.jpg
+            **/*.jpeg
+            **/*.gif
+            **/*.webp
+            **/*.svg
+            **/*.dot
+            **/browser-report.json
+            **/*.lock
+            **/package-lock.json
+            **/pnpm-lock.yaml
+        with:
+          sizes: >
+            {
+              "0": "xs",
+              "10": "s",
+              "100": "m",
+              "500": "l",
+              "1000": "xl",
+              "3000": "xxl",
+              "10000": "xxxl"
+            }
