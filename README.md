@@ -43,9 +43,9 @@ Details, permission scopes, and the current workflow audit live in [`docs/CI.md`
 
 ## Validation
 
-CI runs each plugin's own tests and dependency checks, plus real-host E2E suites grouped by the host pin each plugin declares in `e2e/host.json`. CI checks out the exact commit and verifies the imported source. No real provider or production credentials are used. A green CI run is evidence for its tested commit and paths only.
+CI runs each plugin's own tests and dependency checks. Plugins that declare a pinned host in `e2e/host.json` also get a real-host E2E job; CI checks out the exact commit and verifies the imported source. Other live checks, such as the WebApp smoke, are not CI gates unless wired into `e2e.yml`. No real provider or production credentials are used. A green CI run is evidence for its tested commit and paths only.
 
-Keep both test layers for each plugin: fast unit tests for behavior, boundaries, and isolation, and E2E tests against the pinned host that inspect recorded provider requests plus delivered output. Neither layer replaces the other. Per-plugin matrices and evidence live in each plugin's `docs/`.
+For plugins with pinned-host E2E, keep both test layers: fast unit tests for behavior, boundaries, and isolation, and E2E tests that inspect recorded provider requests plus delivered output. Neither layer replaces the other. Per-plugin matrices and evidence live in each plugin's `docs/`.
 
 Model-size or marketing labels are not test counts and not guarantees. CI does not call a live model or send real secrets to a remote endpoint; compatibility claims need a separate configured evaluation with recorded evidence.
 

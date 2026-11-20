@@ -8,8 +8,8 @@ Usage:
 The name must be one core word listed under a tier heading (or Our Plugin) in
 docs/title-reference.md. The script refuses to overwrite an existing plugin or
 catalog entry, writes the docs trio, a plugin AGENTS.md from the shared
-template, a registered skill and a first test, then updates hermes.json and
-README.md. CI discovers the new plugin through plugins/<id>/plugin.yaml; no
+template, a registered skill and a first test, then updates hermes.json, the
+catalog. CI discovers the new plugin through plugins/<id>/plugin.yaml; no
 workflow edit is needed.
 """
 from __future__ import annotations
@@ -24,7 +24,6 @@ from pathlib import Path
 NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*$")
 SKILL_DESC_RE = re.compile(r"^.{1,60}\.$")
 LEGACY_IDS = frozenset({"screen"})
-README_ANCHOR = "| Privacy Guard |"
 
 
 def reference_names(reference: str) -> set[str]:
@@ -88,20 +87,6 @@ def add_catalog_entry(root: Path, pid: str, description: str) -> None:
     updated.append({"id": pid, "path": "plugins/" + pid, "description": description})
     catalog["plugins"] = updated
     _atomic_write(path, json.dumps(catalog, indent=2, ensure_ascii=False) + "\n")
-
-
-def add_readme_row(root: Path, pid: str, description: str) -> None:
-    path = trusted_file(root, "README.md")
-    lines = path.read_text(encoding="utf-8").splitlines()
-    for index, line in enumerate(lines):
-        if line.startswith(README_ANCHOR):
-            row = "| %s | `%s` | [`plugins/%s/`](plugins/%s/) | %s |" % (
-                pid.capitalize(), pid, pid, pid, description)
-            lines.insert(index + 1, row)
-            break
-    else:
-        raise ValueError("README.md has no active plugins table row")
-    _atomic_write(path, "\n".join(lines) + "\n")
 
 
 def _skill_description(pid: str) -> str:
@@ -207,21 +192,15 @@ def scaffold(root: Path, name: str, description: str, category: str) -> list[str
     skill_description = _skill_description(pid)
 
     catalog_path = trusted_file(root, "hermes.json")
-    readme_path = trusted_file(root, "README.md")
     original_catalog = catalog_path.read_text(encoding="utf-8")
-    original_readme = readme_path.read_text(encoding="utf-8")
-    if not any(line.startswith(README_ANCHOR) for line in original_readme.splitlines()):
-        raise ValueError("README.md has no active plugins table row")
 
     plugin_dir = root / "plugins" / pid
     try:
         created = write_skeleton(root, pid, description, category, skill_description)
         add_catalog_entry(root, pid, description)
-        add_readme_row(root, pid, description)
     except Exception:
         shutil.rmtree(plugin_dir, ignore_errors=True)
         _atomic_write(catalog_path, original_catalog)
-        _atomic_write(readme_path, original_readme)
         raise
     return created
 
@@ -239,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     for path in created:
         print("created " + path)
-    print("updated hermes.json and README.md; open the PR with .github/PULL_REQUEST_TEMPLATE.md")
+    print("updated hermes.json; open the PR with .github/PULL_REQUEST_TEMPLATE.md")
     return 0
 
 
