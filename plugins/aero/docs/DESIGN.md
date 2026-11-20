@@ -1,3 +1,7 @@
+# Direction (owner-settled, 2026-11-20)
+
+Aero is the product: the owner's own UI library and this DESIGN.md for Hermes WebApp, built by ATM (amati, tiru, modifikasi) on two references: OpenUI (https://github.com/thesysdev/openui/, https://www.openui.com/docs) and Apple design (https://github.com/dickwu/apple-design-skill). OpenUI and Apple design are references only, not the product name and not a compatibility claim. Scope: Hermes WebApp through the existing plugin seam, no core changes. Newer research references (A2UI, AG-UI, GenUI and related comparisons) are undecided study material and do not change this direction unless the owner decides.
+
 # Visual-learning design
 
 This document records the original eight `ui` kinds. The added media directives, external image loading and their separate acceptance gaps are scoped in [PHOTO-VERIFICATION.md](PHOTO-VERIFICATION.md).
