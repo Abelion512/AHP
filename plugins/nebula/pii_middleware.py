@@ -209,6 +209,14 @@ def _mask_obj(value: Any, key: str = "", depth: int = 0):
         pair = value.get("name") if isinstance(value.get("name"), str) else None
         for k, v in value.items():
             if not isinstance(k, str):
+                # JSON serialises integer keys as strings, so values under them
+                # reach the provider. Scan the value instead of skipping the entry.
+                new, count = _mask_obj(v, "", depth + 1)
+                if count:
+                    if out is None:
+                        out = dict(value)
+                    out[k] = new
+                    total += count
                 continue
             # {"name": "HF_TOKEN", "value": "..."} style entries: classify by the name.
             if pair is not None and k == "value" and isinstance(v, str) and classify_field(pair):
