@@ -1,6 +1,5 @@
 """Case changes must never flip a field's classification."""
 import importlib
-import itertools
 import random
 import sys
 from pathlib import Path
