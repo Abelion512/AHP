@@ -18,7 +18,7 @@ Start here, then open the guide of the plugin you are touching. Do not assume th
 - `.github/e2e_support/abelion_e2e_support/` — shared Hermes+E2E harness.
 - `.github/labeler.yml` + `plugins/PLUGIN_ID/.github/labels.yml` — shared labels by folder, plugin labels per plugin.
 - `.github/scripts/` — `plugin_contract.py`, `scaffold_plugin.py`, `e2e_matrix.py`, `build_site.py`.
-- `update-plugins.sh` — syncs plugins listed in `hermes.json` into `~/.hermes/plugins/`. Does not migrate profiles; see [docs/PLUGIN_MIGRATION.md](docs/PLUGIN_MIGRATION.md).
+- `update-plugins.sh` — syncs plugins listed in `hermes.json` into `~/.hermes/plugins/`. Does not migrate profiles; see [docs/PLUGIN_MIGRATION.md](docs/PLUGIN_MIGRATION.md). Retired IDs, including `abelion-intelligence-ui`, stop the updater before sync.
 - `docs/` — repo-level docs: [PLUGIN_PLATFORM.md](docs/PLUGIN_PLATFORM.md), [CI.md](docs/CI.md), [VERSIONING.md](docs/VERSIONING.md), [SESSION_HISTORY.md](docs/SESSION_HISTORY.md), [PRIORITY_LABELS.md](docs/PRIORITY_LABELS.md), [title-reference.md](docs/title-reference.md).
 - `.github/retired-source-recovery.md` — recover retired Shield/tool-context/RSI source from a pinned commit.
 
@@ -51,6 +51,14 @@ E2E needs the host pin declared in `$P/e2e/host.json` for plugins with host-depe
 
 - Follow [docs/PLUGIN_PLATFORM.md](docs/PLUGIN_PLATFORM.md) and [.github/plugin-docs-standard.md](.github/plugin-docs-standard.md); start from `.github/plugin-templates/` (or `python .github/scripts/scaffold_plugin.py`).
 - Add `plugins/PLUGIN_ID/` with `plugin.yaml`, README, AGENTS.md, docs, tests, skills, a `hermes.json` entry, and `e2e/` only when the plugin has host-dependent behavior (see `.github/plugin-templates/PLUGIN_E2E_STANDARD.md`).
+
+## After opening a PR
+
+Opening a PR is not the end of the task. Run `python3 .github/scripts/pr_readiness.py <pr-number>` immediately after `gh pr create`, then loop until it exits 0. Exit 0 is the only signal for "ready for review". From a fork checkout, pass the upstream `owner/repo` as a second argument or set `GH_REPO`.
+
+The gate checks three things: latest CI result per check name, unresolved review threads, and review states. When it reports a failure, do not tell the user the PR is ready. Fix the cause, push to the PR branch, reply to each finding in-thread, resolve addressed threads, re-trigger bot reviews when a bot posts stale findings, and run the gate again. Use `git push --force-with-lease` only on your own PR branch when amending.
+
+Human approval is intentionally not a failure condition: `REVIEW_REQUIRED` with no approval means the reviewer's step is still pending. State that explicitly in the final report instead of calling the PR mergeable. Never approve your own PR or merge it yourself.
 
 ## PR rationale gate
 

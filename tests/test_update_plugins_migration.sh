@@ -39,7 +39,7 @@ chmod +x "$TMP/bin/git" "$TMP/bin/rsync"
 export PATH="$TMP/bin:$PATH"
 
 # Each retired plugin ID must block before git pull or rsync can mutate a profile.
-for id in pii_mask_abelion screen output-redact-abelion; do
+for id in pii_mask_abelion screen output-redact-abelion abelion-intelligence-ui; do
   mkdir -p "$PLUGIN_DIR/$id"
   set +e
   output="$(bash "$ROOT/update-plugins.sh" 2>&1)"

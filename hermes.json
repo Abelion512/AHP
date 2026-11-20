@@ -8,11 +8,6 @@
       "id": "nebula",
       "path": "plugins/nebula",
       "description": "Privacy Guard: session-bound request/tool masking and held output redaction"
-    },
-    {
-      "id": "abelion-intelligence-ui",
-      "path": "plugins/abelion-intelligence-ui",
-      "description": "Intelligence UI: native interactive transcript cards via ::ui{...} in Desktop and WebApp"
     }
   ]
 }
