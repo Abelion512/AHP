@@ -12,7 +12,10 @@ await new Promise(r=>server.listen(0,'127.0.0.1',r))
 const browser=await chromium.launch({headless:true,args:['--no-sandbox']})
 const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message))
 // Synthetic image bytes test the media controls, not product-photo provenance.
-await page.route('https://assets.raspberrypi.com/**',r=>r.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="800" height="600" fill="#cde"/><text x="30" y="50">SYNTHETIC TEST IMAGE</text></svg>'}))
+const syntheticImage={contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="800" height="600" fill="#cde"/><text x="30" y="50">SYNTHETIC TEST IMAGE</text></svg>'}
+await page.route('https://assets.raspberrypi.com/**',r=>r.fulfill(syntheticImage))
+// Fixtures use the stable product URL after the credential guard removed CDN cache keys.
+await page.route('https://www.raspberrypi.com/products/raspberry-pi-5/',r=>r.fulfill(syntheticImage))
 const raw=readFileSync(dir+'evidence/photo-response.md','utf8')
 try{
  await page.goto('http://127.0.0.1:'+server.address().port)
