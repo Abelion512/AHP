@@ -19,7 +19,10 @@ import urllib.request
 from pathlib import Path
 
 CHECK_NAME = "merge-gate"
-ALLOWED_CONCLUSIONS = frozenset({"success", "skipped"})
+# Only a real success counts: a skipped security/quality check must not pass
+# the gate. Kept strict so a failed reevaluation cannot leave a stale green.
+ALLOWED_CONCLUSIONS = frozenset({"success"})
+ENFORCED_BASE = "main"
 API_ROOT = "https://api.github.com"
 REPO_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 SHA_RE = re.compile(r"^[a-f0-9]{40}$")
@@ -139,6 +142,35 @@ def load_checks(head_sha: str) -> list[dict]:
     return [item for item in checks if item.get("name") != CHECK_NAME]
 
 
+def gate_check_ids(head_sha: str) -> list[int]:
+    """Existing merge-gate check run ids for this head, if any."""
+    if not SHA_RE.fullmatch(head_sha):
+        raise GateError("invalid head SHA")
+    checks = api_pages(repo_path("/commits/" + head_sha + "/check-runs"), "check_runs")
+    return [item["id"] for item in checks
+            if item.get("name") == CHECK_NAME and isinstance(item.get("id"), int)
+            and not isinstance(item.get("id"), bool)]
+
+
+def check_recency(check: dict) -> tuple[str, int, str]:
+    attempt = check.get("run_attempt")
+    if not isinstance(attempt, int) or isinstance(attempt, bool):
+        attempt = 0
+    started = str(check.get("started_at") or check.get("created_at") or "")
+    return (started, attempt, str(check.get("id") or ""))
+
+
+def latest_checks(checks: list[dict]) -> list[dict]:
+    """Keep only the newest attempt of each named check (reruns collapse)."""
+    latest: dict[str, dict] = {}
+    for check in checks:
+        name = str(check.get("name") or "")
+        current = latest.get(name)
+        if current is None or check_recency(check) > check_recency(current):
+            latest[name] = check
+    return list(latest.values())
+
+
 def load_threads(number: int) -> list[dict]:
     owner, name = repo().split("/", 1)
     nodes: list[dict] = []
@@ -146,13 +178,23 @@ def load_threads(number: int) -> list[dict]:
     while True:
         variables = {"owner": owner, "name": name, "number": number, "after": after}
         response = api_request("POST", "/graphql", {"query": THREADS_QUERY, "variables": variables})
-        pull = response.get("data", {}).get("repository", {}).get("pullRequest") or {}
-        threads = pull.get("reviewThreads") or {}
+        if not isinstance(response, dict):
+            raise GateError("unexpected GraphQL response")
+        if response.get("errors"):
+            raise GateError("GraphQL errors: " + json.dumps(response["errors"])[:300])
+        data = response.get("data")
+        repository = data.get("repository") if isinstance(data, dict) else None
+        pull = repository.get("pullRequest") if isinstance(repository, dict) else None
+        threads = pull.get("reviewThreads") if isinstance(pull, dict) else None
+        if not isinstance(threads, dict):
+            raise GateError("GraphQL response missing repository or pull request data")
         nodes.extend(node for node in threads.get("nodes", []) if isinstance(node, dict))
         info = threads.get("pageInfo") or {}
         if not info.get("hasNextPage"):
             return nodes
         after = info.get("endCursor")
+        if not isinstance(after, str) or not after:
+            raise GateError("GraphQL pagination missing endCursor")
 
 
 def load_reviews(number: int) -> list[dict]:
@@ -210,6 +252,7 @@ def is_bot(user: dict) -> bool:
 def evaluate(pr: dict, checks: list[dict], threads: list[dict], reviews: list[dict],
              workflows: dict[str, str] | None = None) -> tuple[bool, list[str]]:
     reasons: list[str] = []
+    checks = latest_checks(checks)
     head_sha = (pr.get("head") or {}).get("sha")
 
     if pr.get("draft"):
@@ -270,7 +313,37 @@ def publish(head_sha: str, ok: bool, reasons: list[str], details_url: str) -> No
         "details_url": details_url,
         "output": {"title": "Merge gate: " + ("green" if ok else "blocked"), "summary": summary},
     }
-    api_request("POST", repo_path("/check-runs"), payload)
+    existing = gate_check_ids(head_sha)
+    if existing:
+        for check_id in existing:
+            api_request("PATCH", repo_path("/check-runs/" + str(check_id)), payload)
+    else:
+        api_request("POST", repo_path("/check-runs"), payload)
+
+
+def publish_blocking(head_sha: str, reason: str) -> None:
+    """Retract an earlier green so a failed read cannot leave a stale gate."""
+    try:
+        publish(head_sha, False, [reason], "")
+        return
+    except (GateError, OSError, ValueError, json.JSONDecodeError) as exc:
+        # Listing check runs can fail independently of writing them. Retry the
+        # failure result as a fresh POST so the stale green is no longer the
+        # only result for this head SHA.
+        print("::warning::could not update merge gate check: " + str(exc))
+    payload = {
+        "name": CHECK_NAME,
+        "head_sha": head_sha,
+        "status": "completed",
+        "conclusion": "failure",
+        "output": {"title": "Merge gate: blocked",
+                   "summary": "Merge gate is not green:\n- " + reason + "\n"},
+    }
+    try:
+        api_request("POST", repo_path("/check-runs"), payload)
+    except (GateError, OSError, ValueError, json.JSONDecodeError) as exc:
+        # Checks API is down too: only the log and the non-zero exit remain.
+        print("::error::could not publish blocking merge gate: " + str(exc))
 
 
 def targets() -> list[int]:
@@ -300,11 +373,25 @@ def run_one(number: int) -> bool:
     pr = load_pr(number)
     if pr.get("state") != "open":
         return True
+    base = (pr.get("base") or {}).get("ref")
+    if base != ENFORCED_BASE:
+        # Required workflows run only for main-targeted PRs; other bases have
+        # no enforceable gate, so skip instead of publishing a false failure.
+        print("PR #" + str(number) + ": skipped (base " + str(base) + " != " + ENFORCED_BASE + ")")
+        return True
     head_sha = (pr.get("head") or {}).get("sha")
     if not isinstance(head_sha, str) or not SHA_RE.fullmatch(head_sha):
         raise GateError("PR has no valid head SHA")
-    ok, reasons = evaluate(pr, load_checks(head_sha), load_threads(number), load_reviews(number))
-    publish(head_sha, ok, reasons, str(pr.get("html_url") or ""))
+    try:
+        ok, reasons = evaluate(pr, load_checks(head_sha), load_threads(number), load_reviews(number))
+    except (GateError, OSError, ValueError, json.JSONDecodeError) as exc:
+        publish_blocking(head_sha, "merge gate evaluation failed: " + str(exc))
+        raise
+    try:
+        publish(head_sha, ok, reasons, str(pr.get("html_url") or ""))
+    except (GateError, OSError, ValueError, json.JSONDecodeError) as exc:
+        publish_blocking(head_sha, "merge gate publish failed: " + str(exc))
+        raise
     print("PR #" + str(number) + ": " + ("green" if ok else "blocked: " + "; ".join(reasons)))
     return ok
 

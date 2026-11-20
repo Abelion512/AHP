@@ -2,8 +2,12 @@ name: merge gate
 
 on:
   pull_request_target:
+    # Only the enforced main branch has a merge-gate branch rule. Other bases
+    # would miss the main-only required workflows and stay falsely blocked.
+    branches: [main]
     types: [opened, synchronize, reopened, ready_for_review, edited]
   pull_request_review:
+    branches: [main]
     types: [submitted, edited, dismissed]
   check_run:
     types: [completed]
