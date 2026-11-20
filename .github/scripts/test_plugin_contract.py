@@ -21,6 +21,7 @@ def write_plugin(root: Path, pid: str = "alpha", *, tests: bool = True, e2e: boo
         encoding="utf-8",
     )
     (plugin / "README.md").write_text("# Synthetic\n", encoding="utf-8")
+    (plugin / "AGENTS.md").write_text("# Synthetic plugin guide\n", encoding="utf-8")
     (plugin / "docs" / "USAGE.md").write_text("# Usage\n", encoding="utf-8")
     (plugin / "skills" / f"{pid}-skill" / "SKILL.md").write_text(
         f"---\nname: {pid}-skill\ndescription: {skill_description}\n---\n\n# Skill\n",
@@ -58,6 +59,15 @@ class PluginContractTests(unittest.TestCase):
             write_catalog(root, [{"id": "alpha", "path": "plugins/alpha"}])
             errors = validate(root)
             self.assertTrue(any("tests/test_*.py" in error for error in errors), errors)
+
+    def test_missing_plugin_guide_fails(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plugin = write_plugin(root)
+            (plugin / "AGENTS.md").unlink()
+            write_catalog(root, [{"id": "alpha", "path": "plugins/alpha"}])
+            errors = validate(root)
+            self.assertTrue(any("missing plugin guide" in error for error in errors), errors)
 
     def test_missing_docs_fails(self):
         with tempfile.TemporaryDirectory() as directory:

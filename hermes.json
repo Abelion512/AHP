@@ -1,6 +1,6 @@
 {
   "name": "abelion-hermes-plugins",
-  "description": "Privacy Guard for Hermes Agent",
+  "description": "Abelion's Hermes Agent plugins; see plugins/<id> for each plugin",
   "version": "1.0.0",
   "author": "Abelion",
   "plugins": [
@@ -8,11 +8,6 @@
       "id": "nebula",
       "path": "plugins/nebula",
       "description": "Privacy Guard: session-bound request/tool masking and held output redaction"
-    },
-    {
-      "id": "abelion-intelligence-ui",
-      "path": "plugins/abelion-intelligence-ui",
-      "description": "Intelligence UI: native interactive transcript cards via ::ui{...} in Desktop and WebApp"
     }
   ]
 }
