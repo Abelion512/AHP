@@ -15,18 +15,24 @@ manifest, docs, tests, skills, and optional end-to-end suite.
 
 ## Retired sources
 
-Shield, RSI learning, tool-context, and the separate output-redaction package are
-retired. Their source is kept only as a rollback archive outside the active install
-catalog. Do not add them back to `hermes.json`; the plugin contract and the
-consolidated-privacy test reject retired manifests.
+Shield, RSI learning, tool-context, Bot Screen (`screen`), and the separate
+output-redaction package are retired. Privacy Guard was renamed from
+`pii_mask_abelion` to `nebula` during the monorepo refactor. Retired source is kept
+only as a rollback archive outside the active install catalog. Do not add retired
+plugins back to `hermes.json`; the plugin contract checks catalog/folder/id
+consistency, and the consolidated-privacy test explicitly rejects the
+`output-redact-abelion` id. Follow `docs/PLUGIN_MIGRATION.md` when moving an existing
+profile off a retired plugin.
 
 ## Adding a plugin
 
 1. Create `plugins/<id>/` with `plugin.yaml`, `README.md`, `docs/USAGE.md`,
    `tests/test_*.py`, and at least one `skills/*/SKILL.md`.
-2. Add a matching `id` and `path` entry to `hermes.json`.
-3. Run `python .github/scripts/plugin_contract.py .` and
+2. Add a matching `id`, `path`, and non-empty `description` to `hermes.json`.
+3. From the repository root, run `python .github/scripts/plugin_contract.py .` and
    `python .github/scripts/build_site.py`, then commit the regenerated site.
+   `build_site.py` resolves its root from the current working directory, so running
+   it elsewhere writes `site/index.html` in the wrong place.
 
 Renames must update the catalog id, folder name, and manifest name together. The
 contract requires all three to match.
